@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 9.5A, and 9.5B Phase 2A)
+## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 9.5A, 9.5B Phase 2A, and 9.5B Phase 2B)
 
 The app currently includes:
 
@@ -70,6 +70,12 @@ The app currently includes:
   - checked-in normalized lock file with provenance + nutrient diagnostics
   - deterministic SQL seed generation from manifest + lock (no live API dependency at generation time)
   - additive migration that upserts only approved pilot FDC IDs into `public.food_catalog`
+- Session 9.5B Phase 2B Common catalog logging:
+  - `/nutrition` Add Food is now **catalog-first** with `Common`, `My Foods`, and `Manual Label` modes
+  - Common mode reads only local `public.food_catalog` pilot rows (no browser USDA calls)
+  - trusted server actions log/edit catalog entries using snapshotted source + per-100g nutrition
+  - catalog amount units support grams, ounces, and source serving only when trusted gram weight exists
+  - Home and Nutrition totals stay compatible through the existing per-serving snapshot model (`servings = 1` for catalog amount entries)
 
 ## Technology
 
@@ -930,3 +936,92 @@ npm run build
 
 - `USDA_FDC_API_KEY` must be present in server environment (`.env.local` for local development).
 - Never expose this key to browser code or commit it to git.
+
+## Session 9.5B Phase 2B: Common Food Catalog Logging (Pilot 20)
+
+### Scope
+
+Phase 2B wires the pilot USDA-backed catalog into live meal logging without introducing live USDA browser search yet.
+
+Primary Add Food modes:
+
+- **Common** (pilot `food_catalog` rows)
+- **My Foods** (user-owned saved foods)
+- **Manual Label** (fallback custom snapshot entry)
+
+### Trusted server boundary
+
+Catalog logging is server-trusted:
+
+- Browser submits only:
+  - `catalog_food_id`
+  - amount value + unit
+  - meal/date/note
+- Server resolves active catalog row, validates unit/amount, computes grams + nutrition from trusted per-100g values, writes immutable snapshot fields, and revalidates `/nutrition` + `/`.
+- Client-submitted macro values are not authoritative for catalog entries.
+
+### Catalog search/ranking behavior
+
+Common mode search uses local `food_catalog` data only (no live USDA API call in this phase) with deterministic ranking:
+
+1. exact normalized-name match
+2. exact alias match
+3. normalized-name prefix match
+4. all query terms in normalized name
+5. all query terms in aliases
+6. recent catalog usage tie-break
+
+Raw/cooked records remain separate; exact USDA descriptions are shown in result rows and logged entries.
+
+### Amount and serving model
+
+For newly logged catalog entries:
+
+- `servings = 1`
+- `serving_size = entered amount value`
+- `serving_unit = entered amount unit`
+- `calories/macros per serving = computed totals for that exact amount`
+- `amount_value`, `amount_unit`, and `amount_grams` are snapshotted
+- `source_status = usda_catalog` with source metadata (`fdc_id`, description, data type, brand/GTIN when present, retrieval timestamp)
+- per-100g source nutrients are snapshotted for future safe recalculation
+
+Supported catalog amount units:
+
+- grams (`g`)
+- ounces (`oz`)
+- source serving (`source_serving`) only when trusted source gram weight exists
+
+Unsupported food-specific units are not guessed.
+
+### Historical snapshot behavior
+
+- Old logs are not rewritten when catalog rows change/deactivate.
+- Catalog-entry quantity edits recalculate from the entry’s own stored per-100g/source-serving snapshots, not by refetching a current catalog row.
+- Manual and My Foods entry paths continue to use existing snapshot behavior.
+
+### Reliability and fallback behavior
+
+- If catalog data is unavailable, existing My Foods/manual flows still remain available.
+- This phase does not add live USDA query dependencies to the browser test path.
+
+### Verification commands
+
+```bash
+npm run test
+npx playwright test tests/e2e/food-catalog.spec.ts
+npm run test:e2e
+npm run lint
+npm run build
+```
+
+### Manual verification checklist (Phase 2B)
+
+1. Open `/nutrition` and Add Food composer.
+2. Confirm `Common`, `My Foods`, and `Manual Label` modes are available.
+3. Search Common foods for chicken breast and verify raw/cooked records are distinct.
+4. Log a Common entry in grams and confirm totals update.
+5. Edit that Common entry to ounces and confirm persistence after refresh.
+6. Delete the Common entry and confirm totals revert.
+7. Confirm Home totals reflect nutrition changes.
+8. Confirm My Foods logging and Manual Label logging still work.
+9. Confirm browser traffic does not call USDA directly.
