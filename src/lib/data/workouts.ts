@@ -1,4 +1,5 @@
 import { getMyExerciseById } from "./exercises";
+import { getExerciseCatalogById } from "./exercise-catalog";
 import { getAuthenticatedContext } from "./auth-context";
 import { asLooseSupabaseClient } from "./untyped-supabase";
 import { fail, ok, type DataAccessResult } from "./result";
@@ -486,6 +487,7 @@ export async function addExerciseToWorkout(
   workoutId: string,
   input: {
     exercise_id?: string | null;
+    catalog_exercise_id?: string | null;
     exercise_name?: string;
     position?: number | string;
     notes?: string | null;
@@ -503,7 +505,15 @@ export async function addExerciseToWorkout(
   }
 
   let exerciseId: string | null = null;
+  let catalogExerciseId: string | null = null;
   let snapshotName = input.exercise_name?.trim() ?? "";
+
+  if (input.exercise_id && input.catalog_exercise_id) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: "Only one exercise source can be selected.",
+    });
+  }
 
   if (input.exercise_id) {
     const exerciseResult = await getMyExerciseById(input.exercise_id);
@@ -520,6 +530,22 @@ export async function addExerciseToWorkout(
     snapshotName = exerciseResult.data.name;
   }
 
+  if (input.catalog_exercise_id) {
+    const catalogResult = await getExerciseCatalogById(input.catalog_exercise_id);
+    if (catalogResult.error) {
+      return catalogResult;
+    }
+    if (!catalogResult.data) {
+      return fail({
+        code: "NOT_FOUND",
+        message: "Catalog exercise not found.",
+      });
+    }
+
+    catalogExerciseId = catalogResult.data.id;
+    snapshotName = catalogResult.data.name;
+  }
+
   const existingResult = await getMyWorkoutExercises(workoutId);
   if (existingResult.error) {
     return existingResult;
@@ -531,6 +557,7 @@ export async function addExerciseToWorkout(
 
   const normalized = normalizeWorkoutExerciseInput({
     exercise_id: exerciseId,
+    catalog_exercise_id: catalogExerciseId,
     exercise_name: snapshotName,
     position: nextPosition,
     notes: input.notes,
@@ -553,6 +580,7 @@ export async function addExerciseToWorkout(
       user_id: auth.data.user.id,
       workout_id: workoutId,
       exercise_id: normalized.data.exercise_id,
+      catalog_exercise_id: normalized.data.catalog_exercise_id,
       exercise_name: normalized.data.exercise_name,
       position: normalized.data.position,
       notes: normalized.data.notes,
@@ -583,6 +611,7 @@ export async function updateWorkoutExercise(
   workoutExerciseId: string,
   input: {
     exercise_id?: string | null;
+    catalog_exercise_id?: string | null;
     exercise_name?: string;
     position?: number | string;
     notes?: string | null;
@@ -601,7 +630,15 @@ export async function updateWorkoutExercise(
 
   const existing = existingResult.data;
   let exerciseId = existing.exercise_id;
+  let catalogExerciseId = (existing as WorkoutExerciseRow & { catalog_exercise_id?: string | null }).catalog_exercise_id ?? null;
   let snapshotName = existing.exercise_name;
+
+  if (input.exercise_id !== undefined && input.catalog_exercise_id !== undefined && input.exercise_id && input.catalog_exercise_id) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: "Only one exercise source can be selected.",
+    });
+  }
 
   if (input.exercise_id !== undefined) {
     if (input.exercise_id === null) {
@@ -619,14 +656,39 @@ export async function updateWorkoutExercise(
         });
       }
       exerciseId = exerciseResult.data.id;
+      catalogExerciseId = null;
       snapshotName = exerciseResult.data.name;
     }
   } else if (input.exercise_name && !exerciseId) {
     snapshotName = input.exercise_name.trim();
   }
 
+  if (input.catalog_exercise_id !== undefined) {
+    if (input.catalog_exercise_id === null) {
+      catalogExerciseId = null;
+      if (!exerciseId) {
+        snapshotName = input.exercise_name?.trim() || snapshotName;
+      }
+    } else {
+      const catalogResult = await getExerciseCatalogById(input.catalog_exercise_id);
+      if (catalogResult.error) {
+        return catalogResult;
+      }
+      if (!catalogResult.data) {
+        return fail({
+          code: "NOT_FOUND",
+          message: "Catalog exercise not found.",
+        });
+      }
+      catalogExerciseId = catalogResult.data.id;
+      exerciseId = null;
+      snapshotName = catalogResult.data.name;
+    }
+  }
+
   const normalized = normalizeWorkoutExerciseInput({
     exercise_id: exerciseId,
+    catalog_exercise_id: catalogExerciseId,
     exercise_name: snapshotName,
     position: input.position ?? existing.position,
     notes: input.notes === undefined ? existing.notes : input.notes,
@@ -647,6 +709,7 @@ export async function updateWorkoutExercise(
     .from("workout_exercises")
     .update({
       exercise_id: normalized.data.exercise_id,
+      catalog_exercise_id: normalized.data.catalog_exercise_id,
       exercise_name: normalized.data.exercise_name,
       position: normalized.data.position,
       notes: normalized.data.notes,

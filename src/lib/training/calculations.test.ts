@@ -133,6 +133,38 @@ describe("training calculations - best set and PR candidate", () => {
     expect(result.isPr).toBe(true);
     expect(result.previousBestEstimatedOneRepMax).toBe(264);
   });
+
+  it("matches historical sets by catalog exercise id before name fallback", () => {
+    const result = evaluatePersonalRecordCandidate(
+      makeSet({
+        catalog_exercise_id: "catalog-1",
+        exercise_id: null,
+        exercise_name: "Lat Pulldown",
+        weight: 180,
+        reps: 8,
+      }),
+      [
+        makeSet({
+          catalog_exercise_id: "catalog-1",
+          exercise_id: null,
+          exercise_name: "Wide Grip Pulldown",
+          weight: 170,
+          reps: 8,
+        }),
+        makeSet({
+          catalog_exercise_id: "catalog-2",
+          exercise_id: null,
+          exercise_name: "Lat Pulldown",
+          weight: 250,
+          reps: 2,
+        }),
+      ],
+      "lb",
+    );
+
+    expect(result.previousBestEstimatedOneRepMax).toBe(215.33);
+    expect(result.isPr).toBe(true);
+  });
 });
 
 describe("training calculations - history ordering", () => {

@@ -133,6 +133,10 @@ export function findBestCompletedSetByEstimatedOneRepMax(
 }
 
 function matchesExercise(candidate: WorkoutSetLike, previous: WorkoutSetLike): boolean {
+  if (candidate.catalog_exercise_id && previous.catalog_exercise_id) {
+    return candidate.catalog_exercise_id === previous.catalog_exercise_id;
+  }
+
   if (candidate.exercise_id && previous.exercise_id) {
     return candidate.exercise_id === previous.exercise_id;
   }

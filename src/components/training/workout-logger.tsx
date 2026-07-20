@@ -5,8 +5,9 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
+  addCatalogExerciseToWorkoutAction,
   addCustomExerciseToWorkoutAction,
-  addSavedExerciseToWorkoutAction,
+  addUserExerciseToWorkoutAction,
   addWorkoutSetAction,
   completeWorkoutAction,
   createExerciseAndAddToWorkoutAction,
@@ -20,6 +21,8 @@ import {
   updateWorkoutSetAction,
 } from "@/app/(protected)/actions/training-actions";
 import type { ExerciseRow } from "@/lib/data/auth-context";
+import type { ExerciseCatalogRow } from "@/lib/data/exercise-catalog";
+import { filterCatalogExercises, buildCatalogFacets } from "@/lib/training/catalog";
 import {
   calculateExerciseVolume,
   evaluatePersonalRecordCandidate,
@@ -27,7 +30,7 @@ import {
 } from "@/lib/training/calculations";
 import type { TrainingWeightUnit, WorkoutSetLike, WorkoutSetRow } from "@/lib/training/types";
 
-type ComposerMode = "saved" | "custom" | "new";
+type ComposerMode = "catalog" | "custom";
 
 interface SetDraft {
   set_type: string;
@@ -42,6 +45,7 @@ interface SetDraft {
 interface WorkoutLoggerExercise {
   id: string;
   exerciseId: string | null;
+  catalogExerciseId: string | null;
   exerciseName: string;
   notes: string | null;
   position: number;
@@ -76,8 +80,9 @@ interface WorkoutLoggerProps {
   displayUnit: TrainingWeightUnit;
   preferredWeightUnit: TrainingWeightUnit;
   exercises: WorkoutLoggerExercise[];
-  availableExercises: ExerciseRow[];
-  recentExercises: ExerciseRow[];
+  catalogExercises: ExerciseCatalogRow[];
+  recentCatalogExerciseIds: string[];
+  customExercises: ExerciseRow[];
   summary: WorkoutLoggerSummary;
 }
 
@@ -134,13 +139,22 @@ function formatSetLine(set: WorkoutSetRow): string {
   return `${weight}${unit ? ` ${unit}` : ""} × ${reps}`;
 }
 
+function titleCase(value: string): string {
+  return value
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export function WorkoutLogger({
   workout,
   displayUnit,
   preferredWeightUnit,
   exercises,
-  availableExercises,
-  recentExercises,
+  catalogExercises,
+  recentCatalogExerciseIds,
+  customExercises,
   summary,
 }: WorkoutLoggerProps) {
   const router = useRouter();
@@ -163,34 +177,33 @@ export function WorkoutLogger({
   const [needsCompleteConfirm, setNeedsCompleteConfirm] = useState(false);
 
   const [composerOpen, setComposerOpen] = useState(false);
-  const [composerMode, setComposerMode] = useState<ComposerMode>("saved");
-  const [savedSearch, setSavedSearch] = useState("");
-  const [selectedSavedExerciseId, setSelectedSavedExerciseId] = useState<string | null>(
-    recentExercises[0]?.id ?? availableExercises[0]?.id ?? null,
+  const [composerMode, setComposerMode] = useState<ComposerMode>("catalog");
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [muscleFilter, setMuscleFilter] = useState("");
+  const [equipmentFilter, setEquipmentFilter] = useState("");
+  const [selectedCatalogExerciseId, setSelectedCatalogExerciseId] = useState<string | null>(
+    recentCatalogExerciseIds[0] ?? catalogExercises[0]?.id ?? null,
   );
   const [exerciseNotesDraft, setExerciseNotesDraft] = useState("");
   const [customExerciseName, setCustomExerciseName] = useState("");
-  const [newExerciseDraft, setNewExerciseDraft] = useState({
-    name: "",
-    muscle_group: "",
-    equipment: "",
-    notes: "",
-    workoutExerciseNotes: "",
-  });
+  const [selectedCustomExerciseId, setSelectedCustomExerciseId] = useState<string | null>(customExercises[0]?.id ?? null);
+  const [saveCustomToLibrary, setSaveCustomToLibrary] = useState(true);
 
   const isCompletedWorkout = Boolean(workout.completedAt);
-
-  const filteredSavedExercises = useMemo(() => {
-    const query = savedSearch.trim().toLowerCase();
-    if (!query) {
-      return availableExercises;
-    }
-
-    return availableExercises.filter((exercise) => {
-      const haystack = `${exercise.name} ${exercise.muscle_group ?? ""} ${exercise.equipment ?? ""}`.toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [availableExercises, savedSearch]);
+  const facets = useMemo(() => buildCatalogFacets(catalogExercises), [catalogExercises]);
+  const filteredCatalogExercises = useMemo(
+    () =>
+      filterCatalogExercises(catalogExercises, {
+        query: catalogSearch,
+        muscle: muscleFilter,
+        equipment: equipmentFilter,
+      }),
+    [catalogExercises, catalogSearch, muscleFilter, equipmentFilter],
+  );
+  const recentCatalogExercises = useMemo(() => {
+    const byId = new Map(catalogExercises.map((exercise) => [exercise.id, exercise]));
+    return recentCatalogExerciseIds.map((id) => byId.get(id)).filter(Boolean) as ExerciseCatalogRow[];
+  }, [catalogExercises, recentCatalogExerciseIds]);
 
   function setSuccessMessage(text: string) {
     setTone("success");
@@ -247,16 +260,16 @@ export function WorkoutLogger({
     });
   }
 
-  function handleAddSavedExercise() {
-    if (!selectedSavedExerciseId) {
-      setErrorMessage("Select a saved exercise first.");
+  function handleAddCatalogExercise() {
+    if (!selectedCatalogExerciseId) {
+      setErrorMessage("Select a catalog exercise first.");
       return;
     }
 
     setMessage(null);
     startTransition(async () => {
-      const result = await addSavedExerciseToWorkoutAction(workout.id, {
-        exerciseId: selectedSavedExerciseId,
+      const result = await addCatalogExerciseToWorkoutAction(workout.id, {
+        catalogExerciseId: selectedCatalogExerciseId,
         notes: exerciseNotesDraft,
       });
       if (result.status === "success") {
@@ -274,43 +287,56 @@ export function WorkoutLogger({
   function handleAddCustomExercise() {
     setMessage(null);
     startTransition(async () => {
+      if (selectedCustomExerciseId) {
+        const selectedCustom = customExercises.find((exercise) => exercise.id === selectedCustomExerciseId);
+        if (!selectedCustom) {
+          setErrorMessage("Selected custom exercise is unavailable.");
+          return;
+        }
+        const resultFromSavedCustom = await addUserExerciseToWorkoutAction(workout.id, {
+          exerciseId: selectedCustom.id,
+          notes: exerciseNotesDraft || selectedCustom.notes || undefined,
+        });
+        if (resultFromSavedCustom.status === "success") {
+          setSuccessMessage(resultFromSavedCustom.message);
+          setComposerOpen(false);
+          setExerciseNotesDraft("");
+          router.refresh();
+          return;
+        }
+        setErrorMessage(resultFromSavedCustom.message);
+        return;
+      }
+
+      if (saveCustomToLibrary && customExerciseName.trim()) {
+        const resultFromCreate = await createExerciseAndAddToWorkoutAction(workout.id, {
+          name: customExerciseName,
+          notes: exerciseNotesDraft,
+          workoutExerciseNotes: exerciseNotesDraft,
+        });
+        if (resultFromCreate.status === "success") {
+          setSuccessMessage("Custom exercise created and added.");
+          setComposerOpen(false);
+          setCustomExerciseName("");
+          setExerciseNotesDraft("");
+          router.refresh();
+          return;
+        }
+
+        setErrorMessage(resultFromCreate.message);
+        return;
+      }
+
       const result = await addCustomExerciseToWorkoutAction(workout.id, {
         exerciseName: customExerciseName,
         notes: exerciseNotesDraft,
       });
+
       if (result.status === "success") {
         setSuccessMessage(result.message);
         setComposerOpen(false);
         setCustomExerciseName("");
         setExerciseNotesDraft("");
-        router.refresh();
-        return;
-      }
-
-      setErrorMessage(result.message);
-    });
-  }
-
-  function handleCreateAndAddExercise() {
-    setMessage(null);
-    startTransition(async () => {
-      const result = await createExerciseAndAddToWorkoutAction(workout.id, {
-        name: newExerciseDraft.name,
-        muscle_group: newExerciseDraft.muscle_group,
-        equipment: newExerciseDraft.equipment,
-        notes: newExerciseDraft.notes,
-        workoutExerciseNotes: newExerciseDraft.workoutExerciseNotes,
-      });
-      if (result.status === "success") {
-        setSuccessMessage(result.message);
-        setComposerOpen(false);
-        setNewExerciseDraft({
-          name: "",
-          muscle_group: "",
-          equipment: "",
-          notes: "",
-          workoutExerciseNotes: "",
-        });
         router.refresh();
         return;
       }
@@ -559,9 +585,7 @@ export function WorkoutLogger({
           <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
             <p className="uppercase tracking-[0.08em] text-zinc-500">Potential PRs</p>
             <p className="mt-1 text-sm font-semibold text-zinc-100">{summary.potentialPrCount}</p>
-            {summary.durationMinutes !== null ? (
-              <p className="mt-0.5 text-[10px] text-zinc-500">{summary.durationMinutes} min</p>
-            ) : null}
+            {summary.durationMinutes !== null ? <p className="mt-0.5 text-[10px] text-zinc-500">{summary.durationMinutes} min</p> : null}
           </div>
         </div>
 
@@ -656,7 +680,7 @@ export function WorkoutLogger({
           </div>
         ) : (
           <p className="mt-3 text-xs text-zinc-500">
-            This workout is completed and shown as a read-only summary in Session 9.
+            This workout is completed and shown as a read-only summary.
           </p>
         )}
       </section>
@@ -673,75 +697,110 @@ export function WorkoutLogger({
               {composerOpen ? "Close" : "Open"}
             </button>
           </div>
+
           {composerOpen ? (
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2">
-                {([
-                  ["saved", "Saved Exercise"],
-                  ["custom", "Custom Snapshot"],
-                  ["new", "Create + Add"],
-                ] as const).map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setComposerMode(value)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                      composerMode === value ? "bg-white text-black" : "border border-white/15 text-zinc-200 hover:bg-white/10"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  onClick={() => setComposerMode("catalog")}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                    composerMode === "catalog" ? "bg-white text-black" : "border border-white/15 text-zinc-200 hover:bg-white/10"
+                  }`}
+                >
+                  Exercise Catalog
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setComposerMode("custom")}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                    composerMode === "custom" ? "bg-white text-black" : "border border-white/15 text-zinc-200 hover:bg-white/10"
+                  }`}
+                >
+                  Custom Fallback
+                </button>
               </div>
 
-              {composerMode === "saved" ? (
+              {composerMode === "catalog" ? (
                 <div className="space-y-2">
+                  <p className="text-xs text-zinc-500">Primary flow: search catalog, filter, and select a curated exercise.</p>
                   <label className="space-y-1 text-xs text-zinc-300">
-                    <span>Search saved exercises</span>
+                    <span>Search catalog</span>
                     <input
-                      value={savedSearch}
-                      onChange={(event) => setSavedSearch(event.target.value)}
+                      value={catalogSearch}
+                      onChange={(event) => setCatalogSearch(event.target.value)}
                       className="app-input"
-                      placeholder="Search by name, muscle, equipment"
+                      placeholder="bench, rdl, pulldown, side raise..."
                     />
                   </label>
-                  {recentExercises.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      {recentExercises.slice(0, 8).map((exercise) => (
-                        <button
-                          key={exercise.id}
-                          type="button"
-                          onClick={() => setSelectedSavedExerciseId(exercise.id)}
-                          className={`rounded-md border px-2.5 py-1 text-xs ${
-                            selectedSavedExerciseId === exercise.id
-                              ? "border-white bg-white text-black"
-                              : "border-white/15 text-zinc-200 hover:bg-white/10"
-                          }`}
-                        >
-                          {exercise.name}
-                        </button>
-                      ))}
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="space-y-1 text-xs text-zinc-300">
+                      <span>Muscle</span>
+                      <select value={muscleFilter} onChange={(event) => setMuscleFilter(event.target.value)} className="app-input">
+                        <option value="">All muscles</option>
+                        {facets.muscles.map((muscle) => (
+                          <option key={muscle} value={muscle}>
+                            {titleCase(muscle)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-xs text-zinc-300">
+                      <span>Equipment</span>
+                      <select value={equipmentFilter} onChange={(event) => setEquipmentFilter(event.target.value)} className="app-input">
+                        <option value="">All equipment</option>
+                        {facets.equipment.map((equipment) => (
+                          <option key={equipment} value={equipment}>
+                            {titleCase(equipment)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  {recentCatalogExercises.length ? (
+                    <div>
+                      <p className="mb-1 text-[11px] uppercase tracking-[0.08em] text-zinc-500">Recently used</p>
+                      <div className="flex flex-wrap gap-2">
+                        {recentCatalogExercises.slice(0, 10).map((exercise) => (
+                          <button
+                            key={exercise.id}
+                            type="button"
+                            onClick={() => setSelectedCatalogExerciseId(exercise.id)}
+                            className={`rounded-md border px-2.5 py-1 text-xs ${
+                              selectedCatalogExerciseId === exercise.id
+                                ? "border-white bg-white text-black"
+                                : "border-white/15 text-zinc-200 hover:bg-white/10"
+                            }`}
+                          >
+                            {exercise.name}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   ) : null}
-                  <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-white/10 bg-black/25 p-2">
-                    {filteredSavedExercises.length ? (
-                      filteredSavedExercises.slice(0, 40).map((exercise) => (
+                  <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-white/10 bg-black/25 p-2">
+                    {filteredCatalogExercises.length ? (
+                      filteredCatalogExercises.slice(0, 80).map((exercise) => (
                         <button
                           key={exercise.id}
                           type="button"
-                          onClick={() => setSelectedSavedExerciseId(exercise.id)}
+                          onClick={() => setSelectedCatalogExerciseId(exercise.id)}
                           className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs ${
-                            selectedSavedExerciseId === exercise.id
+                            selectedCatalogExerciseId === exercise.id
                               ? "bg-white text-black"
                               : "text-zinc-200 hover:bg-white/10"
                           }`}
                         >
-                          <span>{exercise.name}</span>
-                          <span className="text-[10px] opacity-70">{exercise.equipment ?? "No equipment"}</span>
+                          <span>
+                            {exercise.name}
+                            <span className="ml-1 text-[10px] opacity-75">
+                              ({titleCase(exercise.primary_muscle_group)} • {titleCase(exercise.equipment)})
+                            </span>
+                          </span>
                         </button>
                       ))
                     ) : (
-                      <p className="px-2 py-1 text-xs text-zinc-500">No matching exercises.</p>
+                      <p className="px-2 py-1 text-xs text-zinc-500">No catalog exercises match your search.</p>
                     )}
                   </div>
                   <label className="space-y-1 text-xs text-zinc-300">
@@ -754,25 +813,57 @@ export function WorkoutLogger({
                   </label>
                   <button
                     type="button"
-                    onClick={handleAddSavedExercise}
+                    onClick={handleAddCatalogExercise}
                     disabled={isPending}
                     className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black hover:bg-zinc-200 disabled:opacity-70"
                   >
-                    {isPending ? "Adding..." : "Add Saved Exercise"}
+                    {isPending ? "Adding..." : "Add Catalog Exercise"}
                   </button>
                 </div>
               ) : null}
 
               {composerMode === "custom" ? (
                 <div className="space-y-2">
+                  <p className="text-xs text-zinc-500">Can&apos;t find it? Add a custom exercise snapshot for this workout.</p>
+                  {customExercises.length ? (
+                    <label className="space-y-1 text-xs text-zinc-300">
+                      <span>Use existing custom exercise (optional)</span>
+                      <select
+                        value={selectedCustomExerciseId ?? ""}
+                        onChange={(event) => setSelectedCustomExerciseId(event.target.value || null)}
+                        className="app-input"
+                      >
+                        <option value="">Type a one-off custom name</option>
+                        {customExercises.map((exercise) => (
+                          <option key={exercise.id} value={exercise.id}>
+                            {exercise.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
                   <label className="space-y-1 text-xs text-zinc-300">
                     <span>Custom exercise name</span>
                     <input
                       value={customExerciseName}
-                      onChange={(event) => setCustomExerciseName(event.target.value)}
+                      onChange={(event) => {
+                        setSelectedCustomExerciseId(null);
+                        setCustomExerciseName(event.target.value);
+                      }}
                       className="app-input"
                     />
                   </label>
+                  {selectedCustomExerciseId === null ? (
+                    <label className="flex items-center gap-2 text-xs text-zinc-300">
+                      <input
+                        type="checkbox"
+                        checked={saveCustomToLibrary}
+                        onChange={(event) => setSaveCustomToLibrary(event.target.checked)}
+                        className="h-4 w-4 rounded border-white/20 bg-black/40 accent-white"
+                      />
+                      <span>Save to my custom exercise library</span>
+                    </label>
+                  ) : null}
                   <label className="space-y-1 text-xs text-zinc-300">
                     <span>Exercise notes (optional)</span>
                     <input
@@ -791,68 +882,6 @@ export function WorkoutLogger({
                   </button>
                 </div>
               ) : null}
-
-              {composerMode === "new" ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <label className="space-y-1 text-xs text-zinc-300 sm:col-span-2">
-                    <span>Name</span>
-                    <input
-                      value={newExerciseDraft.name}
-                      onChange={(event) => setNewExerciseDraft((state) => ({ ...state, name: event.target.value }))}
-                      className="app-input"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-zinc-300">
-                    <span>Muscle group</span>
-                    <input
-                      value={newExerciseDraft.muscle_group}
-                      onChange={(event) =>
-                        setNewExerciseDraft((state) => ({ ...state, muscle_group: event.target.value }))
-                      }
-                      className="app-input"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-zinc-300">
-                    <span>Equipment</span>
-                    <input
-                      value={newExerciseDraft.equipment}
-                      onChange={(event) =>
-                        setNewExerciseDraft((state) => ({ ...state, equipment: event.target.value }))
-                      }
-                      className="app-input"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-zinc-300 sm:col-span-2">
-                    <span>Library notes</span>
-                    <textarea
-                      value={newExerciseDraft.notes}
-                      onChange={(event) => setNewExerciseDraft((state) => ({ ...state, notes: event.target.value }))}
-                      rows={3}
-                      className="w-full rounded-xl border border-white/12 bg-black/25 px-3 py-2 text-sm text-white outline-none transition focus:border-white/20 focus:ring-2 focus:ring-accent/35"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-zinc-300 sm:col-span-2">
-                    <span>Workout exercise notes</span>
-                    <input
-                      value={newExerciseDraft.workoutExerciseNotes}
-                      onChange={(event) =>
-                        setNewExerciseDraft((state) => ({ ...state, workoutExerciseNotes: event.target.value }))
-                      }
-                      className="app-input"
-                    />
-                  </label>
-                  <div className="sm:col-span-2">
-                    <button
-                      type="button"
-                      onClick={handleCreateAndAddExercise}
-                      disabled={isPending}
-                      className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black hover:bg-zinc-200 disabled:opacity-70"
-                    >
-                      {isPending ? "Saving..." : "Create Exercise and Add"}
-                    </button>
-                  </div>
-                </div>
-              ) : null}
             </div>
           ) : null}
         </section>
@@ -862,12 +891,18 @@ export function WorkoutLogger({
         {exercises.length ? (
           exercises.map((exercise, exerciseIndex) => {
             const exerciseVolume = calculateExerciseVolume(exercise.sets, displayUnit);
+            const sourceLabel = exercise.catalogExerciseId
+              ? "Catalog"
+              : exercise.exerciseId
+                ? "Custom library"
+                : "Custom snapshot";
 
             return (
               <article key={exercise.id} className="rounded-[1.1rem] border border-white/10 bg-[#101215] p-3.5 sm:p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <h2 className="text-base font-semibold text-white">{exercise.exerciseName}</h2>
+                    <p className="mt-0.5 text-xs text-zinc-500">{sourceLabel}</p>
                     {exercise.notes ? <p className="mt-1 text-xs text-zinc-500">{exercise.notes}</p> : null}
                     <p className="mt-1 text-xs text-zinc-500">
                       Volume: {exerciseVolume === null ? "--" : `${exerciseVolume.toLocaleString()} ${displayUnit}`}
@@ -974,6 +1009,7 @@ export function WorkoutLogger({
                           set_type: draft.set_type,
                           is_completed: draft.is_completed,
                           notes: draft.notes || null,
+                          catalog_exercise_id: exercise.catalogExerciseId,
                           exercise_id: exercise.exerciseId,
                           exercise_name: exercise.exerciseName,
                         },
@@ -988,6 +1024,7 @@ export function WorkoutLogger({
                           set_type: draft.set_type,
                           is_completed: draft.is_completed,
                           notes: draft.notes || null,
+                          catalog_exercise_id: exercise.catalogExerciseId,
                           exercise_id: exercise.exerciseId,
                           exercise_name: exercise.exerciseName,
                         },
@@ -1179,7 +1216,7 @@ export function WorkoutLogger({
         ) : (
           <div className="rounded-xl border border-dashed border-white/15 bg-black/20 p-4">
             <p className="text-sm font-medium text-zinc-200">No exercises in this workout yet.</p>
-            <p className="mt-1 text-sm text-zinc-500">Use Add Exercise to begin logging sets.</p>
+            <p className="mt-1 text-sm text-zinc-500">Use Add Exercise to search the built-in catalog or add a custom fallback.</p>
           </div>
         )}
       </section>

@@ -78,10 +78,35 @@ describe("training validation - workout exercises", () => {
     expect(result.errors).toEqual({});
     expect(result.data).toEqual({
       exercise_id: "8f898f9f-c4d5-4cbc-a98a-4eb9003c1478",
+      catalog_exercise_id: null,
       exercise_name: "Incline Dumbbell Press",
       position: 2,
       notes: "keep elbows tucked",
     });
+  });
+
+  it("normalizes catalog exercise ids", () => {
+    const result = normalizeWorkoutExerciseInput({
+      catalog_exercise_id: "8f898f9f-c4d5-4cbc-a98a-4eb9003c1478",
+      exercise_name: "Lat Pulldown",
+      position: 1,
+    });
+
+    expect(result.errors).toEqual({});
+    expect(result.data?.catalog_exercise_id).toBe("8f898f9f-c4d5-4cbc-a98a-4eb9003c1478");
+  });
+
+  it("rejects supplying both user and catalog exercise ids", () => {
+    const result = normalizeWorkoutExerciseInput({
+      exercise_id: "8f898f9f-c4d5-4cbc-a98a-4eb9003c1478",
+      catalog_exercise_id: "7d8f8f9f-c4d5-4cbc-a98a-4eb9003c1478",
+      exercise_name: "Row",
+      position: 0,
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.errors.exercise_id).toContain("Only one exercise source");
+    expect(result.errors.catalog_exercise_id).toContain("Only one exercise source");
   });
 
   it("rejects invalid workout exercise position", () => {

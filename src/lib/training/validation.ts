@@ -51,6 +51,7 @@ export interface WorkoutNormalized {
 
 export interface WorkoutExerciseInput {
   exercise_id?: string | null;
+  catalog_exercise_id?: string | null;
   exercise_name: string;
   position: IntegerLike;
   notes?: string | null;
@@ -58,6 +59,7 @@ export interface WorkoutExerciseInput {
 
 export interface WorkoutExerciseNormalized {
   exercise_id: string | null;
+  catalog_exercise_id: string | null;
   exercise_name: string;
   position: number;
   notes: string | null;
@@ -92,7 +94,7 @@ export interface ValidationResult<T, F extends string> {
 
 export type ExerciseField = "name" | "muscle_group" | "equipment" | "notes";
 export type WorkoutField = "name" | "workout_date" | "started_at" | "completed_at" | "notes";
-export type WorkoutExerciseField = "exercise_id" | "exercise_name" | "position" | "notes";
+export type WorkoutExerciseField = "exercise_id" | "catalog_exercise_id" | "exercise_name" | "position" | "notes";
 export type WorkoutSetField =
   | "position"
   | "set_type"
@@ -304,6 +306,21 @@ export function normalizeWorkoutExerciseInput(
     }
   }
 
+  let catalogExerciseId: string | null = null;
+  const maybeCatalogExerciseId = input.catalog_exercise_id?.trim() ?? "";
+  if (maybeCatalogExerciseId) {
+    if (!UUID_PATTERN.test(maybeCatalogExerciseId)) {
+      errors.catalog_exercise_id = "Catalog exercise id must be a valid UUID.";
+    } else {
+      catalogExerciseId = maybeCatalogExerciseId;
+    }
+  }
+
+  if (exerciseId && catalogExerciseId) {
+    errors.exercise_id = "Only one exercise source can be selected.";
+    errors.catalog_exercise_id = "Only one exercise source can be selected.";
+  }
+
   const notes = parseOptionalText(input.notes, "Notes", WORKOUT_EXERCISE_NOTES_MAX_LENGTH);
   if (notes.error) errors.notes = notes.error;
 
@@ -314,6 +331,7 @@ export function normalizeWorkoutExerciseInput(
   return {
     data: {
       exercise_id: exerciseId,
+      catalog_exercise_id: catalogExerciseId,
       exercise_name: exerciseName.value!,
       position: position.value!,
       notes: notes.value,

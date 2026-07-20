@@ -1,39 +1,21 @@
 import Link from "next/link";
 
-import { ExerciseLibraryManager } from "@/components/training/exercise-library-manager";
+import { ExerciseCatalogBrowser } from "@/components/training/exercise-catalog-browser";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { getMyExercises } from "@/lib/data/exercises";
-import { getMyWorkoutExercisesForWorkoutIds, getMyWorkouts } from "@/lib/data/workouts";
+import { getExerciseCatalog, getFrequentCatalogExerciseIds, getRecentlyUsedCatalogExerciseIds } from "@/lib/data/exercise-catalog";
 
 export default async function TrainingExercisesPage() {
-  const [exercisesResult, workoutsResult] = await Promise.all([getMyExercises(), getMyWorkouts()]);
-  const workouts = workoutsResult.data ?? [];
-  const workoutDateById = new Map(workouts.map((workout) => [workout.id, workout.workout_date]));
-
-  const workoutExercisesResult = await getMyWorkoutExercisesForWorkoutIds(workouts.map((workout) => workout.id));
-  const lastUsedByExerciseId: Record<string, string | null> = {};
-  for (const workoutExercise of workoutExercisesResult.data ?? []) {
-    if (!workoutExercise.exercise_id) {
-      continue;
-    }
-    const workoutDate = workoutDateById.get(workoutExercise.workout_id) ?? null;
-    if (!workoutDate) {
-      continue;
-    }
-
-    const previous = lastUsedByExerciseId[workoutExercise.exercise_id];
-    if (!previous || workoutDate > previous) {
-      lastUsedByExerciseId[workoutExercise.exercise_id] = workoutDate;
-    }
-  }
-
-  const dataErrorMessage =
-    exercisesResult.error?.message ?? workoutsResult.error?.message ?? workoutExercisesResult.error?.message ?? null;
+  const [catalogResult, recentResult, frequentResult] = await Promise.all([
+    getExerciseCatalog({ limit: 600 }),
+    getRecentlyUsedCatalogExerciseIds(12),
+    getFrequentCatalogExerciseIds(12),
+  ]);
+  const dataErrorMessage = catalogResult.error?.message ?? recentResult.error?.message ?? frequentResult.error?.message ?? null;
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Exercise Library" subtitle="Manage reusable exercises for future workouts." />
+      <PageHeader title="Exercise Catalog" subtitle="Browse curated global exercises by muscle and equipment." />
       <div className="flex flex-wrap gap-2">
         <Link
           href="/training"
@@ -50,9 +32,10 @@ export default async function TrainingExercisesPage() {
       </div>
 
       <Card title="Exercises">
-        <ExerciseLibraryManager
-          exercises={exercisesResult.data ?? []}
-          lastUsedByExerciseId={lastUsedByExerciseId}
+        <ExerciseCatalogBrowser
+          exercises={catalogResult.data ?? []}
+          recentExerciseIds={recentResult.data ?? []}
+          frequentExerciseIds={frequentResult.data ?? []}
           loadErrorMessage={dataErrorMessage}
         />
       </Card>

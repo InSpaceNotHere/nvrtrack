@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, and 9)
+## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, and 9.5A)
 
 The app currently includes:
 
@@ -56,8 +56,14 @@ The app currently includes:
   - `/training/start` creates a live workout with name/date/optional notes and redirects into logger route
   - `/training/workouts/[workoutId]` supports active logging and completed summary view
   - `/training/history` lists workouts newest-first with status, counts, volume, and duration
-  - `/training/exercises` supports exercise library search/create/edit/delete with last-used metadata
+  - `/training/exercises` route exists for training exercise management
   - Home workout card now reflects live workout state (continue active, today completed, start workout, or no workout yet)
+- Session 9.5A built-in exercise catalog:
+  - adds global read-only `exercise_catalog` table
+  - `workout_exercises` can reference `catalog_exercise_id` (catalog), `exercise_id` (user custom), or snapshot-only custom name
+  - Add Exercise flow is catalog-first (search + muscle/equipment filters)
+  - `/training/exercises` is now a catalog browser with recent/frequent sections
+  - custom exercise remains a restrained fallback and historical snapshots stay immutable
 
 ## Technology
 
@@ -765,3 +771,81 @@ Implemented in this session:
 15. Rename/delete a library exercise and confirm previously completed workout snapshot names remain unchanged.
 16. Confirm Home workout card reflects active/completed/empty states from live workout data.
 17. Verify cross-user isolation (User B cannot access User A workout details or mutate User A rows).
+
+## Session 9.5A: Built-In Exercise Catalog
+
+### Scope
+
+Session 9.5A changes exercise selection from user-created-first to a global curated catalog-first experience.
+
+### Database architecture
+
+New migration:
+
+- `supabase/migrations/20260720100400_add_exercise_catalog.sql`
+
+Schema additions:
+
+- new global table `public.exercise_catalog` with:
+  - `id`, `name`, `normalized_name`, `aliases`
+  - `primary_muscle_group`, `secondary_muscle_groups`
+  - `equipment`, `movement_pattern`, `instructions`
+  - `is_active`, `created_at`, `updated_at`
+- `workout_exercises.catalog_exercise_id` nullable FK to catalog (`on delete set null`)
+- check constraint so each workout exercise references at most one source:
+  - `exercise_id` (user-owned custom exercise)
+  - `catalog_exercise_id` (global catalog)
+  - or neither (snapshot-only custom)
+
+### Catalog security model
+
+- RLS enabled on `exercise_catalog`.
+- Authenticated users can read active catalog rows.
+- No insert/update/delete policy is granted to normal authenticated users.
+- Existing RLS for user-owned workout/exercise tables remains unchanged.
+
+### Catalog content and search
+
+- Catalog is seeded with curated practical exercises spanning:
+  - barbell, dumbbell, cable, machine, smith machine, bodyweight, plate-loaded, cardio
+- Canonical names and aliases support common query forms such as:
+  - `rdl`
+  - `bench`
+  - `pulldown`
+  - `side raise`
+  - `tricep pressdown`
+
+### UX changes
+
+- Workout Add Exercise flow is now catalog-first:
+  1. search
+  2. muscle filter
+  3. equipment filter
+  4. select catalog exercise
+  5. add to workout
+- “Can’t find it?” custom fallback remains available and clearly marked as custom source.
+- `/training/exercises` is now catalog browser (not primary CRUD form) with:
+  - search
+  - muscle/equipment filters
+  - recently used catalog exercises
+  - frequently used catalog exercises
+
+### Matching and snapshot behavior
+
+- Previous-performance matching order:
+  1. `catalog_exercise_id`
+  2. `exercise_id`
+  3. normalized `exercise_name` snapshot fallback
+- Historical workout display remains snapshot-based via `exercise_name`.
+- Catalog updates/deactivation do not rewrite historical workout names.
+
+### Manual Session 9.5A Checklist
+
+1. Open `/training/exercises` and verify catalog search + filters work.
+2. Confirm alias searches (`rdl`, `pulldown`, `side raise`, `tricep pressdown`) return expected exercises.
+3. Start a workout and add exercise directly from catalog.
+4. Add custom fallback exercise and verify it is labeled as custom in logger.
+5. Confirm previous-performance still appears for repeated catalog exercises.
+6. Confirm Home and `/training` workout cards remain live and accurate.
+7. Verify User A cannot read/modify User B custom exercise rows.
+8. Verify catalog rows are readable but not writable by authenticated non-admin users.

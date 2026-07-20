@@ -155,6 +155,41 @@ describe("training session helpers", () => {
     expect(map.get("current-2")?.previousBestEstimatedOneRepMax).toBeGreaterThan(100);
   });
 
+  it("matches previous performance by catalog exercise id", () => {
+    const currentExercises = [
+      makeWorkoutExercise({
+        id: "current-catalog",
+        workout_id: "current-workout",
+        exercise_id: null,
+        exercise_name: "Lat Pulldown",
+      }) as WorkoutExerciseRow & { catalog_exercise_id: string | null },
+    ];
+    currentExercises[0].catalog_exercise_id = "catalog-lat-pulldown";
+
+    const historicalWorkouts = [
+      makeWorkout({ id: "history-catalog", workout_date: "2026-07-10", completed_at: "2026-07-10T10:00:00.000Z" }),
+    ];
+
+    const historicalExercise = makeWorkoutExercise({
+      id: "history-catalog-exercise",
+      workout_id: "history-catalog",
+      exercise_id: null,
+      exercise_name: "Wide Grip Pulldown",
+    }) as WorkoutExerciseRow & { catalog_exercise_id: string | null };
+    historicalExercise.catalog_exercise_id = "catalog-lat-pulldown";
+
+    const map = buildPreviousPerformanceMap({
+      currentExercises,
+      historicalWorkouts,
+      historicalExercises: [historicalExercise],
+      historicalSets: [makeWorkoutSet({ workout_exercise_id: "history-catalog-exercise", weight: 180, reps: 8 })],
+      displayUnit: "lb",
+    });
+
+    expect(map.get("current-catalog")?.latestWorkoutDate).toBe("2026-07-10");
+    expect(map.get("current-catalog")?.previousBestEstimatedOneRepMax).toBeGreaterThan(220);
+  });
+
   it("builds workout summary totals and potential PR count", () => {
     const workout = makeWorkout({
       id: "current-workout",

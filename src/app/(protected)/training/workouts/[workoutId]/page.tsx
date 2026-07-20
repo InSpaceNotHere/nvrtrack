@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 
 import { WorkoutLogger } from "@/components/training/workout-logger";
 import { PageHeader } from "@/components/ui/page-header";
-import { getMyExercises, getMyRecentExercises } from "@/lib/data/exercises";
+import { getMyExercises } from "@/lib/data/exercises";
+import { getExerciseCatalog, getRecentlyUsedCatalogExerciseIds } from "@/lib/data/exercise-catalog";
 import { getMyProfile } from "@/lib/data/profile";
 import {
   getMyWorkoutById,
@@ -28,13 +29,14 @@ export default async function WorkoutDetailPage({ params, searchParams }: Workou
   const resolvedSearchParams = (await Promise.resolve(searchParams)) ?? {};
   const summaryMode = resolvedSearchParams.view === "summary";
 
-  const [workoutResult, profileResult, allWorkoutsResult, availableExercisesResult, recentExercisesResult] =
+  const [workoutResult, profileResult, allWorkoutsResult, customExercisesResult, catalogExercisesResult, recentCatalogIdsResult] =
     await Promise.all([
       getMyWorkoutById(workoutId),
       getMyProfile(),
       getMyWorkouts(),
       getMyExercises(),
-      getMyRecentExercises(12),
+      getExerciseCatalog({ limit: 600 }),
+      getRecentlyUsedCatalogExerciseIds(12),
     ]);
 
   if (workoutResult.error) {
@@ -70,6 +72,7 @@ export default async function WorkoutDetailPage({ params, searchParams }: Workou
   const loggerExercises = currentExercises.map((exercise) => ({
     id: exercise.id,
     exerciseId: exercise.exercise_id,
+    catalogExerciseId: (exercise as typeof exercise & { catalog_exercise_id?: string | null }).catalog_exercise_id ?? null,
     exerciseName: exercise.exercise_name,
     notes: exercise.notes,
     position: exercise.position,
@@ -114,8 +117,9 @@ export default async function WorkoutDetailPage({ params, searchParams }: Workou
         displayUnit={displayUnit}
         preferredWeightUnit={displayUnit}
         exercises={loggerExercises}
-        availableExercises={availableExercisesResult.data ?? []}
-        recentExercises={recentExercisesResult.data ?? []}
+        catalogExercises={catalogExercisesResult.data ?? []}
+        recentCatalogExerciseIds={recentCatalogIdsResult.data ?? []}
+        customExercises={customExercisesResult.data ?? []}
         summary={summary}
       />
     </div>

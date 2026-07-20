@@ -11,6 +11,7 @@ export type WorkoutSetRow = Database["public"]["Tables"]["workout_sets"]["Row"];
 
 export interface WorkoutSetLike {
   id?: string;
+  catalog_exercise_id?: string | null;
   exercise_id?: string | null;
   exercise_name?: string | null;
   position: number;

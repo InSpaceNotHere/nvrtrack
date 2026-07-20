@@ -113,6 +113,13 @@ export function hasMeaningfulCompletedSet(sets: WorkoutSetRow[]): boolean {
 }
 
 function matchesExerciseForHistory(current: WorkoutExerciseRow, historical: WorkoutExerciseRow): boolean {
+  const currentCatalogId = (current as WorkoutExerciseRow & { catalog_exercise_id?: string | null }).catalog_exercise_id ?? null;
+  const historicalCatalogId =
+    (historical as WorkoutExerciseRow & { catalog_exercise_id?: string | null }).catalog_exercise_id ?? null;
+  if (currentCatalogId && historicalCatalogId) {
+    return currentCatalogId === historicalCatalogId;
+  }
+
   if (current.exercise_id) {
     if (historical.exercise_id === current.exercise_id) {
       return true;
@@ -131,8 +138,10 @@ function matchesExerciseForHistory(current: WorkoutExerciseRow, historical: Work
 }
 
 function enrichSet(set: WorkoutSetRow, exercise: WorkoutExerciseRow): WorkoutSetLike {
+  const catalogExerciseId = (exercise as WorkoutExerciseRow & { catalog_exercise_id?: string | null }).catalog_exercise_id ?? null;
   return {
     ...set,
+    catalog_exercise_id: catalogExerciseId,
     exercise_id: exercise.exercise_id,
     exercise_name: exercise.exercise_name,
   };

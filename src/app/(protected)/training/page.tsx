@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { getMyRecentExercises } from "@/lib/data/exercises";
 import { getMyProfile } from "@/lib/data/profile";
 import {
   getMyWorkoutExercisesForWorkoutIds,
@@ -31,9 +30,8 @@ function formatDate(date: string): string {
 }
 
 export default async function TrainingPage() {
-  const [workoutsResult, recentExercisesResult, profileResult] = await Promise.all([
+  const [workoutsResult, profileResult] = await Promise.all([
     getMyWorkouts(),
-    getMyRecentExercises(8),
     getMyProfile(),
   ]);
   const workouts = sortWorkoutsForHistory(workoutsResult.data ?? []);
@@ -49,6 +47,11 @@ export default async function TrainingPage() {
 
   const setsByExerciseId = groupSetsByWorkoutExerciseId(workoutSetsResult.data ?? []);
   const exercisesByWorkoutId = new Map<string, WorkoutExerciseRow[]>();
+  const recentExerciseSnapshots: Array<{
+    name: string;
+    source: string;
+  }> = [];
+  const seenRecentExerciseName = new Set<string>();
   for (const exercise of workoutExercisesResult.data ?? []) {
     const list = exercisesByWorkoutId.get(exercise.workout_id);
     if (list) {
@@ -56,11 +59,20 @@ export default async function TrainingPage() {
     } else {
       exercisesByWorkoutId.set(exercise.workout_id, [exercise]);
     }
+
+    const normalizedName = exercise.exercise_name.trim().toLowerCase();
+    if (!seenRecentExerciseName.has(normalizedName) && recentExerciseSnapshots.length < 8) {
+      seenRecentExerciseName.add(normalizedName);
+      const catalogSource = (exercise as WorkoutExerciseRow & { catalog_exercise_id?: string | null }).catalog_exercise_id;
+      recentExerciseSnapshots.push({
+        name: exercise.exercise_name,
+        source: catalogSource ? "Catalog" : exercise.exercise_id ? "Custom library" : "Custom snapshot",
+      });
+    }
   }
 
   const dataErrorMessage =
     workoutsResult.error?.message ??
-    recentExercisesResult.error?.message ??
     workoutExercisesResult.error?.message ??
     workoutSetsResult.error?.message ??
     profileResult.error?.message ??
@@ -175,14 +187,12 @@ export default async function TrainingPage() {
       )}
 
       <Card title="Recent Exercises">
-        {(recentExercisesResult.data ?? []).length ? (
+        {recentExerciseSnapshots.length ? (
           <ul className="space-y-2">
-            {(recentExercisesResult.data ?? []).map((exercise) => (
-              <li key={exercise.id} className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
+            {recentExerciseSnapshots.map((exercise) => (
+              <li key={`${exercise.name}-${exercise.source}`} className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
                 <p className="text-sm font-medium text-zinc-100">{exercise.name}</p>
-                <p className="mt-0.5 text-xs text-zinc-500">
-                  {exercise.muscle_group || "No muscle group"} • {exercise.equipment || "No equipment"}
-                </p>
+                <p className="mt-0.5 text-xs text-zinc-500">{exercise.source}</p>
               </li>
             ))}
           </ul>
@@ -193,7 +203,7 @@ export default async function TrainingPage() {
           href="/training/exercises"
           className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
         >
-          Manage Exercise Library
+          Browse Exercise Catalog
         </Link>
       </Card>
     </div>

@@ -328,7 +328,32 @@ export async function deleteExerciseAction(exerciseId: string): Promise<BaseActi
   };
 }
 
-export async function addSavedExerciseToWorkoutAction(
+export async function addCatalogExerciseToWorkoutAction(
+  workoutId: string,
+  input: { catalogExerciseId: string; notes?: string },
+): Promise<WorkoutExerciseActionResult> {
+  const result = await addExerciseToWorkout(workoutId, {
+    catalog_exercise_id: input.catalogExerciseId,
+    notes: input.notes,
+  });
+
+  if (result.error) {
+    return {
+      ...asActionError(result.error.message),
+      workoutExercise: null,
+    };
+  }
+
+  revalidateTrainingViews(workoutId);
+  return {
+    status: "success",
+    message: "Catalog exercise added to workout.",
+    errors: {},
+    workoutExercise: result.data,
+  };
+}
+
+export async function addUserExerciseToWorkoutAction(
   workoutId: string,
   input: { exerciseId: string; notes?: string },
 ): Promise<WorkoutExerciseActionResult> {
@@ -347,7 +372,7 @@ export async function addSavedExerciseToWorkoutAction(
   revalidateTrainingViews(workoutId);
   return {
     status: "success",
-    message: "Exercise added to workout.",
+    message: "Custom library exercise added to workout.",
     errors: {},
     workoutExercise: result.data,
   };
