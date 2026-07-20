@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, 2, and 3)
+## Current Scope (Sessions 1, 1.5, 2, 3, and 4)
 
 The app currently includes:
 
@@ -21,7 +21,13 @@ The app currently includes:
   - existing-user profile backfill migration
   - reusable `updated_at` trigger function
   - RLS policies on both new tables
-  - typed server data helpers (not yet wired into UI)
+  - typed server data helpers
+- Session 4 body-weight tracking:
+  - live body-weight CRUD (create, edit, delete, history) for authenticated users
+  - duplicate-date handling tied to `(user_id, entry_date)` uniqueness
+  - live Home + Progress weight metrics
+  - live responsive weight trend chart using real entries
+  - tested seven-day and previous-period weight calculations with unit conversion support
 
 ## Technology
 
@@ -136,6 +142,12 @@ npm run dev
 npm run build
 ```
 
+## Tests
+
+```bash
+npm run test
+```
+
 ## Routes
 
 ### Public routes
@@ -179,7 +191,87 @@ After configuring `.env.local` and running `npm run dev`:
 7. Use **Log Out** on `/profile` → confirm redirect to `/login`.
 8. Try opening `/login` while authenticated → confirm redirect to `/`.
 
-## Static Data Notice
+## Session 4: Body-Weight Tracking
 
-All fitness metrics and app content outside auth are still **static sample data** in this session.  
-Session 3 adds database foundations only; the existing UI still uses static sample data until Session 4 wiring.
+### Scope
+
+Body-weight features are now connected to live Supabase data for authenticated users.
+
+Implemented in this session:
+
+- Log a weight entry (weight, unit, entry date, optional note)
+- View weight history (newest first)
+- Edit existing entries
+- Delete entries with confirmation
+- Live metrics on Home and Progress:
+  - current/latest weight (by `entry_date`)
+  - change from previous entry
+  - current seven-day average
+  - comparison vs previous seven-day period
+- Responsive live trend chart based on actual entries
+
+### How weight logging works
+
+- Mutations run through server actions with authenticated server-side Supabase context.
+- User identity is derived from the server session; browser input never supplies trusted `user_id`.
+- After successful create/edit/delete, Home and Progress are revalidated so refreshed metrics show immediately.
+
+### Calculation definitions
+
+- **Latest weight**: newest row by `entry_date` (not insertion timestamp).
+- **Previous-entry change**: `latest - previous` using chronological entries.
+- **Current seven-day average window**: today plus previous six calendar days.
+- **Previous seven-day average window**: the seven calendar days immediately before the current window.
+- **Comparison minimum-data rule**: previous-period comparison is shown only when **both** windows have at least **2 entries**; otherwise a neutral unavailable state is shown.
+- Missing days are not imputed; averages use only entries that exist in each window.
+
+### Unit-conversion behavior
+
+- Stored entries may be `lb` or `kg`.
+- For calculations, entries are converted into the user display unit (profile preference, default `lb`) before averaging/comparison.
+- Conversion helpers:
+  - pounds → kilograms
+  - kilograms → pounds
+- Input is normalized and rounded to practical precision before save.
+
+### Duplicate-date behavior
+
+The database enforces one row per `(user_id, entry_date)`.
+
+When creating a row for an existing date:
+
+- the UI shows a clear duplicate-date message
+- users can explicitly choose **Update Existing Entry**
+- raw unique-constraint errors are not shown to the end user
+
+### Live vs static dashboard sections
+
+**Live in Session 4**
+
+- Home: all weight-related metrics and trend
+- Progress Overview: weight metrics, trend, and weight history CRUD
+
+**Still static in Session 4**
+
+- calories and macros
+- meals
+- workouts and training blocks
+- strength PR cards / 1000 LB Club
+- profile goal persistence beyond auth/logout controls
+- photos/measurements tabs
+
+## Manual Session 4 Test Checklist
+
+After configuring `.env.local` and running `npm run dev`:
+
+1. Log in and open `/progress`.
+2. Create first weight entry.
+3. Refresh page and confirm entry persists.
+4. Create second entry on a different date and confirm latest/change metrics update.
+5. Try creating another entry for the same date and confirm duplicate-date prompt appears.
+6. Use **Update Existing Entry** path and confirm data updates.
+7. Edit an existing entry and confirm values/history refresh.
+8. Delete an entry via confirmation and confirm it is removed.
+9. Confirm Home (`/`) and Progress (`/progress`) reflect updated live weight values after mutations.
+10. Confirm `/profile` still loads for authenticated users.
+11. Verify a different authenticated user cannot read or mutate another user’s entries (RLS ownership behavior).

@@ -20,6 +20,38 @@ export interface UpdateWeightEntryInput {
   note?: string | null;
 }
 
+export async function getWeightEntryByDate(entryDate: string): Promise<DataAccessResult<WeightEntryRow | null>> {
+  if (!entryDate) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: "Entry date is required.",
+    });
+  }
+
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
+  }
+
+  const { supabase, user } = auth.data;
+  const { data, error } = await supabase
+    .from("weight_entries")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("entry_date", entryDate)
+    .maybeSingle();
+
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to load weight entry by date.",
+      cause: error.message,
+    });
+  }
+
+  return ok(data);
+}
+
 export async function getWeightEntries(): Promise<DataAccessResult<WeightEntryRow[]>> {
   const auth = await getAuthenticatedContext();
   if (auth.error) {

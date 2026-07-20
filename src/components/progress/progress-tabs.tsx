@@ -32,7 +32,7 @@ export function ProgressTabs({ overview }: ProgressTabsProps) {
     return (
       <EmptyState
         title="Measurements are empty"
-        description="Body measurement logging is not active in Session 1. This tab is a polished static placeholder."
+          description="Body measurement logging is not active in Session 4. This tab remains a polished static placeholder."
       />
     );
   }, [overview, tab]);
