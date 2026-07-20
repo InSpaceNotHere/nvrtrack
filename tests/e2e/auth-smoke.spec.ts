@@ -1,16 +1,9 @@
 import { expect, test } from "@playwright/test";
-
-function requiredEnv(name: "E2E_TEST_EMAIL" | "E2E_TEST_PASSWORD"): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} is required for auth smoke tests.`);
-  }
-  return value;
-}
+import { requiredE2EEnv } from "./e2e-env";
 
 test("authentication smoke flow", async ({ page }) => {
-  const email = requiredEnv("E2E_TEST_EMAIL");
-  const password = requiredEnv("E2E_TEST_PASSWORD");
+  const email = requiredE2EEnv("E2E_TEST_EMAIL");
+  const password = requiredE2EEnv("E2E_TEST_PASSWORD");
 
   // 1) Logged-out access to / redirects to /login
   await page.goto("/");

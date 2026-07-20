@@ -165,6 +165,7 @@ export function WorkoutLogger({
   const [workoutName, setWorkoutName] = useState(workout.name);
   const [workoutDate, setWorkoutDate] = useState(workout.workoutDate);
   const [workoutNotes, setWorkoutNotes] = useState(workout.notes ?? "");
+  const [optimisticExercises, setOptimisticExercises] = useState<WorkoutLoggerExercise[]>([]);
 
   const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>(() =>
     Object.fromEntries(
@@ -181,9 +182,7 @@ export function WorkoutLogger({
   const [catalogSearch, setCatalogSearch] = useState("");
   const [muscleFilter, setMuscleFilter] = useState("");
   const [equipmentFilter, setEquipmentFilter] = useState("");
-  const [selectedCatalogExerciseId, setSelectedCatalogExerciseId] = useState<string | null>(
-    recentCatalogExerciseIds[0] ?? catalogExercises[0]?.id ?? null,
-  );
+  const [selectedCatalogExerciseId, setSelectedCatalogExerciseId] = useState<string | null>(null);
   const [exerciseNotesDraft, setExerciseNotesDraft] = useState("");
   const [customExerciseName, setCustomExerciseName] = useState("");
   const [selectedCustomExerciseId, setSelectedCustomExerciseId] = useState<string | null>(customExercises[0]?.id ?? null);
@@ -204,6 +203,25 @@ export function WorkoutLogger({
     const byId = new Map(catalogExercises.map((exercise) => [exercise.id, exercise]));
     return recentCatalogExerciseIds.map((id) => byId.get(id)).filter(Boolean) as ExerciseCatalogRow[];
   }, [catalogExercises, recentCatalogExerciseIds]);
+  const selectedCatalogExercise = useMemo(
+    () =>
+      selectedCatalogExerciseId
+        ? catalogExercises.find((exercise) => exercise.id === selectedCatalogExerciseId) ?? null
+        : null,
+    [catalogExercises, selectedCatalogExerciseId],
+  );
+  const displayExercises = useMemo(() => {
+    const byId = new Map<string, WorkoutLoggerExercise>();
+    for (const exercise of exercises) {
+      byId.set(exercise.id, exercise);
+    }
+    for (const exercise of optimisticExercises) {
+      if (!byId.has(exercise.id)) {
+        byId.set(exercise.id, exercise);
+      }
+    }
+    return Array.from(byId.values()).sort((a, b) => a.position - b.position);
+  }, [exercises, optimisticExercises]);
 
   function setSuccessMessage(text: string) {
     setTone("success");
@@ -213,6 +231,22 @@ export function WorkoutLogger({
   function setErrorMessage(text: string) {
     setTone("error");
     setMessage(text);
+  }
+
+  function resetComposerState() {
+    setCatalogSearch("");
+    setMuscleFilter("");
+    setEquipmentFilter("");
+    setSelectedCatalogExerciseId(null);
+    setExerciseNotesDraft("");
+    setCustomExerciseName("");
+    setSelectedCustomExerciseId(customExercises[0]?.id ?? null);
+    setSaveCustomToLibrary(true);
+  }
+
+  function closeComposer() {
+    setComposerOpen(false);
+    resetComposerState();
   }
 
   function getDraft(set: WorkoutSetRow): SetDraft {
@@ -265,6 +299,12 @@ export function WorkoutLogger({
       setErrorMessage("Select a catalog exercise first.");
       return;
     }
+    const selectedExercise =
+      catalogExercises.find((exercise) => exercise.id === selectedCatalogExerciseId) ?? null;
+    if (!selectedExercise) {
+      setErrorMessage("Selected catalog exercise is unavailable.");
+      return;
+    }
 
     setMessage(null);
     startTransition(async () => {
@@ -274,8 +314,34 @@ export function WorkoutLogger({
       });
       if (result.status === "success") {
         setSuccessMessage(result.message);
-        setComposerOpen(false);
-        setExerciseNotesDraft("");
+        const addedWorkoutExercise = result.workoutExercise;
+        if (addedWorkoutExercise) {
+          setOptimisticExercises((current) => {
+            if (current.some((exercise) => exercise.id === addedWorkoutExercise.id)) {
+              return current;
+            }
+
+            return [
+              ...current,
+              {
+                id: addedWorkoutExercise.id,
+                exerciseId: addedWorkoutExercise.exercise_id,
+                catalogExerciseId: addedWorkoutExercise.catalog_exercise_id,
+                exerciseName: addedWorkoutExercise.exercise_name,
+                notes: addedWorkoutExercise.notes,
+                position: addedWorkoutExercise.position,
+                sets: [],
+                previousPerformance: {
+                  latestWorkoutDate: null,
+                  latestCompletedSets: [],
+                  previousBestEstimatedOneRepMax: null,
+                  comparableHistoricalSets: [],
+                },
+              },
+            ].sort((a, b) => a.position - b.position);
+          });
+        }
+        closeComposer();
         router.refresh();
         return;
       }
@@ -299,8 +365,7 @@ export function WorkoutLogger({
         });
         if (resultFromSavedCustom.status === "success") {
           setSuccessMessage(resultFromSavedCustom.message);
-          setComposerOpen(false);
-          setExerciseNotesDraft("");
+          closeComposer();
           router.refresh();
           return;
         }
@@ -316,9 +381,7 @@ export function WorkoutLogger({
         });
         if (resultFromCreate.status === "success") {
           setSuccessMessage("Custom exercise created and added.");
-          setComposerOpen(false);
-          setCustomExerciseName("");
-          setExerciseNotesDraft("");
+          closeComposer();
           router.refresh();
           return;
         }
@@ -334,9 +397,7 @@ export function WorkoutLogger({
 
       if (result.status === "success") {
         setSuccessMessage(result.message);
-        setComposerOpen(false);
-        setCustomExerciseName("");
-        setExerciseNotesDraft("");
+        closeComposer();
         router.refresh();
         return;
       }
@@ -686,12 +747,18 @@ export function WorkoutLogger({
       </section>
 
       {!isCompletedWorkout ? (
-        <section className="rounded-[1.1rem] border border-white/10 bg-[#101215] p-3.5 sm:p-4">
+        <section data-testid="add-exercise-panel" className="rounded-[1.1rem] border border-white/10 bg-[#101215] p-3.5 sm:p-4">
           <div className="mb-2 flex items-center justify-between gap-2">
             <h2 className="text-sm font-medium uppercase tracking-[0.09em] text-zinc-300">Add Exercise</h2>
             <button
               type="button"
-              onClick={() => setComposerOpen((open) => !open)}
+              onClick={() => {
+                if (composerOpen) {
+                  closeComposer();
+                  return;
+                }
+                setComposerOpen(true);
+              }}
               className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 hover:bg-white/10"
             >
               {composerOpen ? "Close" : "Open"}
@@ -765,6 +832,7 @@ export function WorkoutLogger({
                           <button
                             key={exercise.id}
                             type="button"
+                            aria-pressed={selectedCatalogExerciseId === exercise.id}
                             onClick={() => setSelectedCatalogExerciseId(exercise.id)}
                             className={`rounded-md border px-2.5 py-1 text-xs ${
                               selectedCatalogExerciseId === exercise.id
@@ -784,6 +852,7 @@ export function WorkoutLogger({
                         <button
                           key={exercise.id}
                           type="button"
+                          aria-pressed={selectedCatalogExerciseId === exercise.id}
                           onClick={() => setSelectedCatalogExerciseId(exercise.id)}
                           className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs ${
                             selectedCatalogExerciseId === exercise.id
@@ -803,6 +872,11 @@ export function WorkoutLogger({
                       <p className="px-2 py-1 text-xs text-zinc-500">No catalog exercises match your search.</p>
                     )}
                   </div>
+                  <p className="text-xs text-zinc-500">
+                    {selectedCatalogExercise
+                      ? `Selected: ${selectedCatalogExercise.name}`
+                      : "Select one catalog exercise to enable Add Catalog Exercise."}
+                  </p>
                   <label className="space-y-1 text-xs text-zinc-300">
                     <span>Exercise notes (optional)</span>
                     <input
@@ -814,7 +888,7 @@ export function WorkoutLogger({
                   <button
                     type="button"
                     onClick={handleAddCatalogExercise}
-                    disabled={isPending}
+                    disabled={isPending || !selectedCatalogExerciseId}
                     className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black hover:bg-zinc-200 disabled:opacity-70"
                   >
                     {isPending ? "Adding..." : "Add Catalog Exercise"}
@@ -888,8 +962,8 @@ export function WorkoutLogger({
       ) : null}
 
       <section className="space-y-3">
-        {exercises.length ? (
-          exercises.map((exercise, exerciseIndex) => {
+        {displayExercises.length ? (
+          displayExercises.map((exercise, exerciseIndex) => {
             const exerciseVolume = calculateExerciseVolume(exercise.sets, displayUnit);
             const sourceLabel = exercise.catalogExerciseId
               ? "Catalog"
@@ -921,7 +995,7 @@ export function WorkoutLogger({
                       <button
                         type="button"
                         onClick={() => moveExercise(exercise.id, "down")}
-                        disabled={isPending || exerciseIndex === exercises.length - 1}
+                        disabled={isPending || exerciseIndex === displayExercises.length - 1}
                         className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 hover:bg-white/10 disabled:opacity-50"
                       >
                         Move Down
