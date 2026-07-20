@@ -11,7 +11,7 @@ export interface NavigationItem {
 export interface MacroStat {
   name: "Protein" | "Carbohydrates" | "Fat";
   consumed: number;
-  goal: number;
+  goal: number | null;
   unit: "g";
 }
 

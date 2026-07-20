@@ -11,6 +11,7 @@ import { getWeightEntries } from "@/lib/data/weight";
 import { MIN_ENTRIES_FOR_PERIOD_COMPARISON, formatDeltaLabel, computeWeightMetrics, shortDateLabel } from "@/lib/weight/metrics";
 import type { WeightUnit } from "@/lib/weight/conversions";
 import { HOME_DATA, CLUB_TARGETS, MACRO_STATS } from "@/lib/sample-data";
+import type { MacroStat } from "@/types/fitness";
 
 function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightUnit {
   return preferredWeightUnit === "kg" ? "kg" : "lb";
@@ -18,11 +19,24 @@ function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightU
 
 export default async function HomePage() {
   const [profileResult, weightEntriesResult] = await Promise.all([getMyProfile(), getWeightEntries()]);
-  const weightLoadError = weightEntriesResult.error?.message ?? profileResult.error?.message ?? null;
+  const profileLoadError = profileResult.error?.message ?? null;
+  const weightLoadError = weightEntriesResult.error?.message ?? null;
 
   const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
   const weightEntries = weightEntriesResult.data ?? [];
   const weightMetrics = computeWeightMetrics(weightEntries, displayUnit);
+  const displayName = profileResult.data?.display_name?.trim() || null;
+
+  const calorieGoal = profileResult.data?.calorie_goal ?? null;
+  const macroGoals: Record<MacroStat["name"], number | null> = {
+    Protein: profileResult.data?.protein_goal ?? null,
+    Carbohydrates: profileResult.data?.carbohydrate_goal ?? null,
+    Fat: profileResult.data?.fat_goal ?? null,
+  };
+  const macroStats: MacroStat[] = MACRO_STATS.map((macro) => ({
+    ...macro,
+    goal: macroGoals[macro.name],
+  }));
 
   const currentWeight = weightMetrics.latest?.weight ?? null;
   const currentChange = formatDeltaLabel(weightMetrics.previousEntryDelta, displayUnit);
@@ -40,9 +54,17 @@ export default async function HomePage() {
     <div className="space-y-4">
       <header className="mb-1">
         <p className="text-xs font-medium uppercase tracking-[0.13em] text-zinc-500">NVRTRACK</p>
-        <h1 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">Today Overview</h1>
+        <h1 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">
+          {displayName ? `Today Overview, ${displayName}` : "Today Overview"}
+        </h1>
       </header>
 
+      {profileLoadError ? (
+        <Card>
+          <p className="text-sm text-rose-200">Profile data is temporarily unavailable.</p>
+          <p className="mt-1 text-xs text-zinc-500">{profileLoadError}</p>
+        </Card>
+      ) : null}
       {weightLoadError ? (
         <Card>
           <p className="text-sm text-rose-200">Weight data is temporarily unavailable.</p>
@@ -55,17 +77,35 @@ export default async function HomePage() {
           <div>
             <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.2rem]">
               {HOME_DATA.calories.consumed.toLocaleString()}
-              <span className="text-xl text-zinc-400"> / {HOME_DATA.calories.goal.toLocaleString()}</span>
+              <span className="text-xl text-zinc-400">
+                {" / "}
+                {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"}
+              </span>
             </p>
-            <p className="mt-2 text-xs uppercase tracking-[0.08em] text-zinc-500">Daily intake</p>
+            <p className="mt-2 text-xs uppercase tracking-[0.08em] text-zinc-500">
+              Daily intake (consumed values are static this session)
+            </p>
+            {calorieGoal === null ? (
+              <p className="mt-1 text-xs text-zinc-500">Set a calorie goal in Profile to activate progress.</p>
+            ) : null}
           </div>
-          <CalorieRing consumed={HOME_DATA.calories.consumed} goal={HOME_DATA.calories.goal} size={108} />
+          {calorieGoal !== null ? (
+            <CalorieRing consumed={HOME_DATA.calories.consumed} goal={calorieGoal} size={108} />
+          ) : (
+            <div className="flex h-[108px] w-[108px] items-center justify-center rounded-full border border-white/10 text-[11px] uppercase tracking-[0.08em] text-zinc-500">
+              Goal not set
+            </div>
+          )}
         </div>
         <div className="mt-3">
-          <ProgressBar value={HOME_DATA.calories.consumed} max={HOME_DATA.calories.goal} />
+          {calorieGoal !== null ? (
+            <ProgressBar value={HOME_DATA.calories.consumed} max={calorieGoal} />
+          ) : (
+            <div className="h-2 w-full rounded-full bg-white/8" aria-hidden="true" />
+          )}
         </div>
         <div className="mt-3 border-t border-white/8 pt-3">
-          <MacroSummary macros={MACRO_STATS} />
+          <MacroSummary macros={macroStats} />
         </div>
       </Card>
 

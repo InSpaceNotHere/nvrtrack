@@ -4,12 +4,33 @@ import { MacroSummary } from "@/components/dashboard/macro-summary";
 import { Card } from "@/components/ui/card";
 import { CalorieRing } from "@/components/ui/calorie-ring";
 import { PageHeader } from "@/components/ui/page-header";
+import { getMyProfile } from "@/lib/data/profile";
 import { RECENT_MEALS, HOME_DATA, MACRO_STATS } from "@/lib/sample-data";
+import type { MacroStat } from "@/types/fitness";
 
-export default function NutritionPage() {
+export default async function NutritionPage() {
+  const profileResult = await getMyProfile();
+  const profile = profileResult.data;
+  const calorieGoal = profile?.calorie_goal ?? null;
+  const macroGoals: Record<MacroStat["name"], number | null> = {
+    Protein: profile?.protein_goal ?? null,
+    Carbohydrates: profile?.carbohydrate_goal ?? null,
+    Fat: profile?.fat_goal ?? null,
+  };
+  const macroStats: MacroStat[] = MACRO_STATS.map((macro) => ({
+    ...macro,
+    goal: macroGoals[macro.name],
+  }));
+
   return (
     <div className="space-y-4">
       <PageHeader title="Nutrition" />
+      {profileResult.error ? (
+        <Card>
+          <p className="text-sm text-rose-200">Nutrition goals are temporarily unavailable.</p>
+          <p className="mt-1 text-xs text-zinc-500">{profileResult.error.message}</p>
+        </Card>
+      ) : null}
 
       <Card title="Today&apos;s Calories">
         <div className="flex items-center justify-between gap-3">
@@ -17,13 +38,22 @@ export default function NutritionPage() {
             <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.2rem]">
               {HOME_DATA.calories.consumed.toLocaleString()}
             </p>
-            <p className="mt-1 text-sm text-zinc-400">of {HOME_DATA.calories.goal.toLocaleString()} kcal</p>
+            <p className="mt-1 text-sm text-zinc-400">
+              of {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"} kcal
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">Consumed totals remain static until nutrition logging is built.</p>
           </div>
-          <CalorieRing consumed={HOME_DATA.calories.consumed} goal={HOME_DATA.calories.goal} size={96} />
+          {calorieGoal !== null ? (
+            <CalorieRing consumed={HOME_DATA.calories.consumed} goal={calorieGoal} size={96} />
+          ) : (
+            <div className="flex h-[96px] w-[96px] items-center justify-center rounded-full border border-white/10 text-[10px] uppercase tracking-[0.08em] text-zinc-500">
+              Goal not set
+            </div>
+          )}
         </div>
 
         <div className="mt-3 border-t border-white/8 pt-3">
-          <MacroSummary macros={MACRO_STATS} />
+          <MacroSummary macros={macroStats} />
         </div>
       </Card>
 

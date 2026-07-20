@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, 2, 3, and 4)
+## Current Scope (Sessions 1, 1.5, 2, 3, 4, and 5)
 
 The app currently includes:
 
@@ -28,6 +28,11 @@ The app currently includes:
   - live Home + Progress weight metrics
   - live responsive weight trend chart using real entries
   - tested seven-day and previous-period weight calculations with unit conversion support
+- Session 5 profile and goal persistence:
+  - live Profile form persistence for account/body/nutrition goal fields in `public.profiles`
+  - server-side profile validation + normalized null handling for optional fields
+  - Home and Nutrition now use live profile goals while consumed nutrition remains static sample data
+  - preferred weight unit drives weight display unit across Home/Progress calculations without rewriting stored entries
 
 ## Technology
 
@@ -253,11 +258,10 @@ When creating a row for an existing date:
 
 **Still static in Session 4**
 
-- calories and macros
+- consumed calories and consumed macro totals
 - meals
 - workouts and training blocks
 - strength PR cards / 1000 LB Club
-- profile goal persistence beyond auth/logout controls
 - photos/measurements tabs
 
 ## Manual Session 4 Test Checklist
@@ -275,3 +279,72 @@ After configuring `.env.local` and running `npm run dev`:
 9. Confirm Home (`/`) and Progress (`/progress`) reflect updated live weight values after mutations.
 10. Confirm `/profile` still loads for authenticated users.
 11. Verify a different authenticated user cannot read or mutate another user’s entries (RLS ownership behavior).
+
+## Session 5: Profile and Goal Persistence
+
+### Scope
+
+Profile fields are now persisted to `public.profiles` for authenticated users:
+
+- `display_name`
+- `height_inches`
+- `calorie_goal`
+- `protein_goal`
+- `carbohydrate_goal`
+- `fat_goal`
+- `preferred_weight_unit`
+
+The `/profile` page now loads existing values, saves updates, and reflects saved values after refresh.
+
+### Height storage behavior
+
+- Height is stored and edited as total inches (`height_inches`).
+- The Profile form displays helper text in imperial style when valid (for example, `69` → `5 ft 9 in`).
+- Blank height is normalized to `null` (not coerced to `0`).
+
+### Preferred-unit behavior
+
+- Supported units are `lb` and `kg`.
+- Saving a new preferred unit does **not** rewrite historical `weight_entries` rows.
+- Session 4 weight utilities convert entries for display/calculation using the selected profile unit.
+- Home and Progress reflect the preferred unit after save + revalidation.
+
+### Live goals vs static consumed nutrition
+
+- **Live from profile:** calorie/macronutrient goal values.
+- **Still static sample data:** consumed calories, consumed macros, and meal rows.
+- When a goal is unset (`null`), UI shows neutral setup state (`Goal not set`) instead of fake defaults.
+
+### Validation rules
+
+Validation runs in shared utilities and is enforced by server-side save actions:
+
+- Display name: trimmed, max 60 characters
+- Height inches: optional whole number between 36 and 96
+- Calorie goal: optional whole number between 0 and 10,000
+- Protein/carbohydrate/fat goals: optional whole number between 0 and 1,000
+- Preferred unit: must be `lb` or `kg`
+- Blank optional numeric fields are saved as `null`
+
+### Mutation and cache behavior
+
+- Profile updates run through authenticated server actions (no trusted client user IDs).
+- Successful saves revalidate:
+  - `/`
+  - `/nutrition`
+  - `/progress`
+  - `/profile`
+
+### Manual Session 5 Test Checklist
+
+After configuring `.env.local` and running `npm run dev`:
+
+1. Open `/profile` while authenticated and confirm existing values load.
+2. Update display name, height, goals, and preferred unit, then save.
+3. Refresh `/profile` and confirm values persist.
+4. Set at least one optional goal blank, save, and confirm neutral goal state appears on dashboards.
+5. Confirm Home shows greeting with display name and live goal values.
+6. Confirm Nutrition goal labels reflect profile values while consumed/meal data stays static.
+7. Change preferred unit and confirm weight cards on Home/Progress display the new unit.
+8. Enter invalid profile values and confirm useful validation feedback appears.
+9. Verify a different authenticated user cannot read or modify another user’s profile row (RLS ownership behavior).
