@@ -9,9 +9,13 @@ import {
 } from "@/lib/data/foods";
 import {
   createMyFoodEntry,
+  createMyCatalogFoodEntry,
   deleteMyFoodEntry,
+  updateMyCatalogFoodEntry,
   updateMyFoodEntry,
   type CreateMyFoodEntryInput,
+  type CreateMyCatalogFoodEntryInput,
+  type UpdateMyCatalogFoodEntryInput,
   type UpdateMyFoodEntryInput,
 } from "@/lib/data/nutrition";
 import {
@@ -24,6 +28,8 @@ import {
   type SavedFoodInput,
 } from "@/lib/nutrition/validation";
 import type { FoodEntryRow, FoodRow } from "@/lib/data/auth-context";
+import { parseAmountUnit, parseAmountValue } from "@/lib/nutrition/catalog-entry";
+import type { SupportedAmountUnit } from "@/lib/nutrition/serving";
 
 type BaseActionResult = {
   status: "success" | "error";
@@ -40,6 +46,15 @@ export interface SavedFoodActionResult extends BaseActionResult {
 
 export interface FoodEntryActionResult extends BaseActionResult {
   errors: FoodEntryFormErrors;
+  entry: FoodEntryRow | null;
+}
+
+export type CatalogFoodEntryFormErrors = Partial<
+  Record<FoodEntryBaseField | "catalog_food_id" | "amount_value" | "amount_unit", string>
+>;
+
+export interface CatalogFoodEntryActionResult extends BaseActionResult {
+  errors: CatalogFoodEntryFormErrors;
   entry: FoodEntryRow | null;
 }
 
@@ -70,10 +85,65 @@ export interface FoodEntryEditActionInput {
   note?: string;
 }
 
+export interface CatalogFoodEntryActionInput {
+  catalog_food_id: string;
+  amount_value: string;
+  amount_unit: string;
+  entry_date: string;
+  meal_type: string;
+  note?: string;
+}
+
+export interface CatalogFoodEntryEditActionInput {
+  amount_value: string;
+  amount_unit: string;
+  entry_date: string;
+  meal_type: string;
+  note?: string;
+}
+
 function revalidateNutritionViews() {
   revalidatePath("/");
   revalidatePath("/nutrition");
   revalidatePath("/nutrition/foods");
+}
+
+function normalizeCatalogFoodEntryInput(
+  input: CatalogFoodEntryActionInput | CatalogFoodEntryEditActionInput,
+): {
+  data: {
+    amount_value: number;
+    amount_unit: SupportedAmountUnit;
+  } | null;
+  errors: CatalogFoodEntryFormErrors;
+} {
+  const errors: CatalogFoodEntryFormErrors = {};
+  let amountValue: number | null = null;
+  let amountUnit: SupportedAmountUnit | null = null;
+
+  try {
+    amountValue = parseAmountValue(input.amount_value);
+  } catch (error) {
+    errors.amount_value = error instanceof Error ? error.message : "Amount must be greater than 0.";
+  }
+
+  try {
+    amountUnit = parseAmountUnit(input.amount_unit);
+  } catch (error) {
+    errors.amount_unit = error instanceof Error ? error.message : "Unsupported amount unit.";
+  }
+
+  if (Object.keys(errors).length) {
+    return { data: null, errors };
+  }
+
+  return {
+    data: {
+      amount_value: amountValue!,
+      amount_unit: amountUnit!,
+    },
+    errors: {},
+  };
 }
 
 export async function createSavedFoodAction(input: SavedFoodActionInput): Promise<SavedFoodActionResult> {
@@ -289,5 +359,117 @@ export async function deleteFoodEntryAction(entryId: string): Promise<BaseAction
   return {
     status: "success",
     message: "Food entry deleted.",
+  };
+}
+
+export async function createCatalogFoodEntryAction(
+  input: CatalogFoodEntryActionInput,
+): Promise<CatalogFoodEntryActionResult> {
+  const baseValidation = normalizeFoodEntryBaseInput({
+    entry_date: input.entry_date,
+    meal_type: input.meal_type,
+    servings: 1,
+    note: input.note,
+  });
+  const amountValidation = normalizeCatalogFoodEntryInput(input);
+
+  const errors: CatalogFoodEntryFormErrors = {
+    ...baseValidation.errors,
+    ...amountValidation.errors,
+  };
+
+  const catalogFoodId = input.catalog_food_id?.trim();
+  if (!catalogFoodId) {
+    errors.catalog_food_id = "Select a common food.";
+  } else if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(catalogFoodId)) {
+    errors.catalog_food_id = "Select a valid common food.";
+  }
+
+  if (Object.keys(errors).length > 0 || !baseValidation.data || !amountValidation.data) {
+    return {
+      status: "error",
+      message: "Please fix the highlighted fields.",
+      errors,
+      entry: null,
+    };
+  }
+
+  const payload: CreateMyCatalogFoodEntryInput = {
+    catalog_food_id: catalogFoodId!,
+    entry_date: baseValidation.data.entry_date,
+    meal_type: baseValidation.data.meal_type,
+    note: baseValidation.data.note,
+    amount_value: amountValidation.data.amount_value,
+    amount_unit: amountValidation.data.amount_unit,
+  };
+
+  const result = await createMyCatalogFoodEntry(payload);
+  if (result.error) {
+    return {
+      status: "error",
+      message: result.error.message,
+      errors: {},
+      entry: null,
+    };
+  }
+
+  revalidateNutritionViews();
+  return {
+    status: "success",
+    message: "Common food entry logged.",
+    errors: {},
+    entry: result.data,
+  };
+}
+
+export async function updateCatalogFoodEntryAction(
+  entryId: string,
+  input: CatalogFoodEntryEditActionInput,
+): Promise<CatalogFoodEntryActionResult> {
+  const baseValidation = normalizeFoodEntryBaseInput({
+    entry_date: input.entry_date,
+    meal_type: input.meal_type,
+    servings: 1,
+    note: input.note,
+  });
+  const amountValidation = normalizeCatalogFoodEntryInput(input);
+
+  const errors: CatalogFoodEntryFormErrors = {
+    ...baseValidation.errors,
+    ...amountValidation.errors,
+  };
+  if (Object.keys(errors).length > 0 || !baseValidation.data || !amountValidation.data) {
+    return {
+      status: "error",
+      message: "Please fix the highlighted fields.",
+      errors,
+      entry: null,
+    };
+  }
+
+  const payload: UpdateMyCatalogFoodEntryInput = {
+    entry_date: baseValidation.data.entry_date,
+    meal_type: baseValidation.data.meal_type,
+    note: baseValidation.data.note,
+    amount_value: amountValidation.data.amount_value,
+    amount_unit: amountValidation.data.amount_unit,
+  };
+
+  const result = await updateMyCatalogFoodEntry(entryId, payload);
+  if (result.error) {
+    return {
+      status: "error",
+      message: result.error.message,
+      errors: {},
+      entry: null,
+    };
+  }
+
+  revalidateNutritionViews();
+  return {
+    status: "success",
+    message: "Common food entry updated.",
+    errors: {},
+    entry: result.data,
   };
 }
