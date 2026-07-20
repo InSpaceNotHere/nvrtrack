@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
+import type { Database } from "@/types/database";
 
 const AUTH_ROUTES = new Set(["/login", "/signup"]);
 const PROTECTED_ROUTE_PREFIXES = ["/", "/nutrition", "/training", "/progress", "/profile"] as const;
@@ -31,7 +32,7 @@ export async function updateSession(request: NextRequest) {
 
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(env.url, env.anonKey, {
+  const supabase = createServerClient<Database>(env.url, env.anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

@@ -4,10 +4,11 @@ import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
+import type { Database } from "@/types/database";
 
-let browserClient: SupabaseClient | null = null;
+let browserClient: SupabaseClient<Database> | null = null;
 
-export function createBrowserSupabaseClient(): SupabaseClient | null {
+export function createBrowserSupabaseClient(): SupabaseClient<Database> | null {
   if (browserClient) {
     return browserClient;
   }
@@ -17,6 +18,6 @@ export function createBrowserSupabaseClient(): SupabaseClient | null {
     return null;
   }
 
-  browserClient = createBrowserClient(env.url, env.anonKey);
+  browserClient = createBrowserClient<Database>(env.url, env.anonKey);
   return browserClient;
 }

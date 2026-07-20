@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, and 2)
+## Current Scope (Sessions 1, 1.5, 2, and 3)
 
 The app currently includes:
 
@@ -14,6 +14,14 @@ The app currently includes:
   - Server-side route protection for app routes
   - Redirects between public auth routes and protected app routes
   - Logout from the Profile screen
+- Session 3 database foundation:
+  - `profiles` table with per-user ownership model
+  - `weight_entries` table with per-user ownership model
+  - automatic profile creation trigger on new auth users
+  - existing-user profile backfill migration
+  - reusable `updated_at` trigger function
+  - RLS policies on both new tables
+  - typed server data helpers (not yet wired into UI)
 
 ## Technology
 
@@ -49,6 +57,65 @@ cp .env.example .env.local
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+## Database Foundation (Session 3)
+
+### Tables added
+
+- `public.profiles`
+- `public.weight_entries`
+
+### Migrations in repository
+
+- `supabase/migrations/20260720042756_create_profiles_and_weight_entries.sql`
+
+This migration defines:
+
+- table schemas
+- validation constraints
+- unique/index strategy
+- reusable `updated_at` trigger function
+- profile auto-create trigger on `auth.users`
+- profile backfill for existing users
+- row-level security and ownership policies
+
+### Privacy model (RLS)
+
+- `profiles`: users can select/insert/update/delete **only** rows where `auth.uid() = id`
+- `weight_entries`: users can select/insert/update/delete **only** rows where `auth.uid() = user_id`
+
+No broad public access policies are created.
+
+### Automatic profile creation
+
+When a new auth user is created, a trigger inserts a matching profile row.
+The migration also backfills profile rows for users created before Session 3.
+
+### Applying migrations
+
+Local (CLI + local stack):
+
+```bash
+npx supabase start
+npx supabase db reset
+```
+
+Remote project (after CLI auth/link):
+
+```bash
+npx supabase link --project-ref <your-project-ref>
+npx supabase db push
+```
+
+### Generating database types
+
+The app currently uses `src/types/database.ts` for typed Supabase access.
+
+Recommended regeneration from live schema (when CLI is authenticated and linked):
+
+```bash
+npx supabase gen types typescript --linked --schema public > src/types/database.ts
 ```
 
 ## Local Installation
@@ -115,4 +182,4 @@ After configuring `.env.local` and running `npm run dev`:
 ## Static Data Notice
 
 All fitness metrics and app content outside auth are still **static sample data** in this session.  
-No fitness domain persistence tables (profiles, workouts, meals, weight entries, etc.) were added yet.
+Session 3 adds database foundations only; the existing UI still uses static sample data until Session 4 wiring.
