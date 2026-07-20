@@ -1,19 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
   createCatalogFoodEntryAction,
   createFoodEntryAction,
+  createLiveUsdaFoodEntryAction,
   deleteFoodEntryAction,
+  resolveUsdaFoodDetailAction,
   searchCatalogFoodsAction,
   updateCatalogFoodEntryAction,
   type CatalogFoodEntryActionInput,
   type CatalogFoodEntryFormErrors,
   type FoodEntryActionInput,
   type FoodEntryFormErrors,
+  type LiveUsdaFoodDetailActionResult,
+  type LiveUsdaFoodEntryActionInput,
+  type LiveUsdaEntryFormErrors,
   updateFoodEntryAction,
 } from "@/app/(protected)/actions/nutrition-actions";
 import { Card } from "@/components/ui/card";
@@ -29,7 +34,7 @@ import {
 import { calculateCatalogEntrySnapshot } from "@/lib/nutrition/catalog-entry";
 import { addDaysToDateString } from "@/lib/nutrition/date";
 import type { MealType } from "@/lib/nutrition/types";
-import type { SupportedAmountUnit } from "@/lib/nutrition/serving";
+import { calculateNutritionForAmount, type SupportedAmountUnit } from "@/lib/nutrition/serving";
 
 interface NutritionLogViewProps {
   selectedDate: string;
@@ -47,7 +52,58 @@ interface NutritionLogViewProps {
   dataErrorMessage?: string | null;
 }
 
-type ComposerMode = "common" | "saved" | "custom";
+type LiveUsdaDetail = NonNullable<LiveUsdaFoodDetailActionResult["detail"]>;
+
+type ComposerMode = "common" | "usda" | "saved" | "custom";
+type UsdaSearchGroup = "generic" | "branded";
+
+interface UsdaSearchApiSuccess {
+  status: "success" | "empty";
+  query: string;
+  group: UsdaSearchGroup;
+  totalHits: number;
+  truncated: boolean;
+  items: Array<{
+    fdcId: number;
+    description: string;
+    dataType: string;
+    brandOwner: string | null;
+    brandName: string | null;
+    gtinUpc: string | null;
+    foodCategory: string | null;
+    servingSize: number | null;
+    servingUnit: string | null;
+    servingWeightGrams: number | null;
+    sourcePublishedDate: string | null;
+    sourceModifiedDate: string | null;
+    coreNutrients: {
+      calories_kcal: number | null;
+      protein_g: number | null;
+      carbohydrate_g: number | null;
+      fat_g: number | null;
+    };
+    hasRequiredCoreNutrients: boolean;
+  }>;
+}
+
+interface UsdaSearchApiError {
+  status: "error";
+  code:
+    | "unauthenticated"
+    | "invalid_query"
+    | "invalid_group"
+    | "invalid_fdc_id"
+    | "rate_limited"
+    | "timeout"
+    | "service_unavailable"
+    | "invalid_response"
+    | "upstream_error"
+    | "not_configured"
+    | "invalid_request";
+  message: string;
+}
+
+type UsdaSearchApiResponse = UsdaSearchApiSuccess | UsdaSearchApiError;
 
 interface CustomEntryFormState {
   food_name: string;
@@ -68,6 +124,7 @@ const MEAL_LABELS: Record<MealType, string> = {
   dinner: "Dinner",
   snack: "Snacks",
 };
+const USDA_SEARCH_MIN_QUERY_LENGTH = 2;
 
 function defaultCustomEntryState(): CustomEntryFormState {
   return {
@@ -128,6 +185,24 @@ export function NutritionLogView({
   const [catalogSearchBusy, setCatalogSearchBusy] = useState(false);
   const [catalogSearchError, setCatalogSearchError] = useState<string | null>(null);
   const catalogSearchRequestRef = useRef(0);
+  const [usdaSearchQuery, setUsdaSearchQuery] = useState("");
+  const [usdaSearchGroup, setUsdaSearchGroup] = useState<UsdaSearchGroup>("generic");
+  const [usdaSearchResults, setUsdaSearchResults] = useState<UsdaSearchApiSuccess["items"]>([]);
+  const [usdaSearchBusy, setUsdaSearchBusy] = useState(false);
+  const [usdaSearchError, setUsdaSearchError] = useState<string | null>(null);
+  const [usdaSearchErrorCode, setUsdaSearchErrorCode] = useState<UsdaSearchApiError["code"] | null>(null);
+  const [usdaSearchTotalHits, setUsdaSearchTotalHits] = useState(0);
+  const [selectedUsdaFdcId, setSelectedUsdaFdcId] = useState<number | null>(null);
+  const [usdaDetail, setUsdaDetail] = useState<LiveUsdaDetail | null>(null);
+  const [usdaDetailBusy, setUsdaDetailBusy] = useState(false);
+  const [usdaDetailError, setUsdaDetailError] = useState<string | null>(null);
+  const [usdaAmountValue, setUsdaAmountValue] = useState("100");
+  const [usdaAmountUnit, setUsdaAmountUnit] = useState<SupportedAmountUnit>("g");
+  const [usdaSourcePortionId, setUsdaSourcePortionId] = useState<string | null>(null);
+  const [saveUsdaToMyFoods, setSaveUsdaToMyFoods] = useState(false);
+  const [usdaErrors, setUsdaErrors] = useState<LiveUsdaEntryFormErrors>({});
+  const usdaSearchRequestRef = useRef(0);
+  const usdaSearchAbortRef = useRef<AbortController | null>(null);
   const [selectedSavedFoodId, setSelectedSavedFoodId] = useState<string | null>(recentFoods[0]?.id ?? foods[0]?.id ?? null);
   const [servings, setServings] = useState("1");
   const [mealType, setMealType] = useState<MealType>("breakfast");
@@ -179,6 +254,94 @@ export function NutritionLogView({
     });
   }, [foods, search]);
 
+  const runUsdaSearch = useCallback(async (queryOverride?: string) => {
+    const query = (queryOverride ?? usdaSearchQuery).trim();
+    if (query.length < USDA_SEARCH_MIN_QUERY_LENGTH) {
+      setUsdaSearchResults([]);
+      setUsdaSearchError(
+        query.length === 0
+          ? null
+          : `Enter at least ${USDA_SEARCH_MIN_QUERY_LENGTH} characters to search USDA foods.`,
+      );
+      setUsdaSearchErrorCode(query.length === 0 ? null : "invalid_query");
+      setUsdaSearchTotalHits(0);
+      return;
+    }
+
+    const requestId = usdaSearchRequestRef.current + 1;
+    usdaSearchRequestRef.current = requestId;
+    usdaSearchAbortRef.current?.abort();
+
+    const controller = new AbortController();
+    usdaSearchAbortRef.current = controller;
+
+    setUsdaSearchBusy(true);
+    setUsdaSearchError(null);
+    setUsdaSearchErrorCode(null);
+
+    try {
+      const response = await fetch("/api/usda/search", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          query,
+          group: usdaSearchGroup,
+          limit: 16,
+        }),
+        signal: controller.signal,
+      });
+
+      const payload = (await response.json()) as UsdaSearchApiResponse;
+      if (requestId !== usdaSearchRequestRef.current) {
+        return;
+      }
+
+      if (payload.status === "error") {
+        setUsdaSearchResults([]);
+        setUsdaSearchTotalHits(0);
+        setSelectedUsdaFdcId(null);
+        setUsdaDetail(null);
+        setUsdaSearchError(payload.message);
+        setUsdaSearchErrorCode(payload.code);
+        return;
+      }
+
+      setUsdaSearchResults(payload.items);
+      setUsdaSearchTotalHits(payload.totalHits);
+      setUsdaSearchError(null);
+      setUsdaSearchErrorCode(null);
+      const preferredFdc = payload.items[0]?.fdcId ?? null;
+      setSelectedUsdaFdcId((current) => {
+        if (current !== null && payload.items.some((item) => item.fdcId === current)) {
+          return current;
+        }
+        return preferredFdc;
+      });
+      if (!payload.items.length) {
+        setUsdaDetail(null);
+      }
+    } catch (error) {
+      if (requestId !== usdaSearchRequestRef.current) {
+        return;
+      }
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+      setUsdaSearchResults([]);
+      setUsdaSearchTotalHits(0);
+      setSelectedUsdaFdcId(null);
+      setUsdaDetail(null);
+      setUsdaSearchError("USDA search is temporarily unavailable.");
+      setUsdaSearchErrorCode("service_unavailable");
+    } finally {
+      if (requestId === usdaSearchRequestRef.current) {
+        setUsdaSearchBusy(false);
+      }
+    }
+  }, [usdaSearchGroup, usdaSearchQuery]);
+
   useEffect(() => {
     const normalizedQuery = catalogSearch.trim();
     const requestId = catalogSearchRequestRef.current + 1;
@@ -210,6 +373,72 @@ export function NutritionLogView({
       window.clearTimeout(timeout);
     };
   }, [catalogSearch]);
+
+  useEffect(() => {
+    if (composerMode !== "usda") {
+      usdaSearchAbortRef.current?.abort();
+      return;
+    }
+
+    const query = usdaSearchQuery.trim();
+    if (!query) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void runUsdaSearch(query);
+    }, 450);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [composerMode, runUsdaSearch, usdaSearchGroup, usdaSearchQuery]);
+
+  useEffect(() => {
+    if (composerMode !== "usda" || selectedUsdaFdcId === null) {
+      return;
+    }
+
+    let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      setUsdaDetailBusy(true);
+      setUsdaDetailError(null);
+      setUsdaErrors({});
+
+      void resolveUsdaFoodDetailAction(selectedUsdaFdcId)
+        .then((result) => {
+          if (cancelled) {
+            return;
+          }
+          if (result.status === "success" && result.detail) {
+            setUsdaDetail(result.detail);
+            setUsdaSourcePortionId(result.detail.defaultPortionId);
+            if (!result.detail.portionOptions.length) {
+              setUsdaAmountUnit("g");
+            }
+            return;
+          }
+          setUsdaDetail(null);
+          setUsdaDetailError(result.message);
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setUsdaDetailBusy(false);
+          }
+        });
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [composerMode, selectedUsdaFdcId]);
+
+  useEffect(() => {
+    return () => {
+      usdaSearchAbortRef.current?.abort();
+    };
+  }, []);
 
   const displayedCatalogFoods = useMemo(() => {
     return catalogSearch.trim() ? catalogSearchResults : catalogFoods;
@@ -262,6 +491,50 @@ export function NutritionLogView({
     }
   }, [selectedCatalogFood, catalogAmountValue, catalogAmountUnit]);
 
+  const selectedUsdaResult = useMemo(
+    () => usdaSearchResults.find((item) => item.fdcId === selectedUsdaFdcId) ?? null,
+    [selectedUsdaFdcId, usdaSearchResults],
+  );
+
+  const selectedUsdaPortion = useMemo(() => {
+    if (!usdaDetail || usdaAmountUnit !== "source_serving") {
+      return null;
+    }
+    const targetId = usdaSourcePortionId ?? usdaDetail.defaultPortionId;
+    if (!targetId) {
+      return null;
+    }
+    return usdaDetail.portionOptions.find((option) => option.id === targetId) ?? null;
+  }, [usdaAmountUnit, usdaDetail, usdaSourcePortionId]);
+
+  const usdaAmountPreview = useMemo(() => {
+    if (!usdaDetail || !usdaDetail.hasRequiredCoreNutrients) {
+      return null;
+    }
+    const amountValue = Number(usdaAmountValue);
+    if (!Number.isFinite(amountValue) || amountValue <= 0) {
+      return null;
+    }
+
+    try {
+      return calculateNutritionForAmount({
+        amountValue,
+        amountUnit: usdaAmountUnit,
+        nutrientsPer100g: usdaDetail.nutrientsPer100g,
+        sourceServing:
+          usdaAmountUnit === "source_serving" && selectedUsdaPortion
+            ? {
+                quantity: selectedUsdaPortion.quantity,
+                unit: selectedUsdaPortion.unit,
+                weightGrams: selectedUsdaPortion.gramWeight,
+              }
+            : null,
+      });
+    } catch {
+      return null;
+    }
+  }, [selectedUsdaPortion, usdaAmountUnit, usdaAmountValue, usdaDetail]);
+
   const recentLoggedDistinct = useMemo(() => {
     const seen = new Set<string>();
     const distinct: FoodEntryRow[] = [];
@@ -301,10 +574,26 @@ export function NutritionLogView({
   }
 
   function resetEntryState() {
+    usdaSearchAbortRef.current?.abort();
     setServings("1");
     setCatalogAmountValue("100");
     setCatalogAmountUnit("g");
     setCatalogSearch("");
+    setUsdaSearchQuery("");
+    setUsdaSearchResults([]);
+    setUsdaSearchError(null);
+    setUsdaSearchErrorCode(null);
+    setUsdaSearchBusy(false);
+    setUsdaSearchTotalHits(0);
+    setSelectedUsdaFdcId(null);
+    setUsdaDetail(null);
+    setUsdaDetailError(null);
+    setUsdaDetailBusy(false);
+    setUsdaAmountValue("100");
+    setUsdaAmountUnit("g");
+    setUsdaSourcePortionId(null);
+    setSaveUsdaToMyFoods(false);
+    setUsdaErrors({});
     setEntryNote("");
     setEntryErrors({});
     setCatalogErrors({});
@@ -314,6 +603,7 @@ export function NutritionLogView({
   function handleCreateEntry(mode: "saved" | "custom") {
     setEntryErrors({});
     setCatalogErrors({});
+    setUsdaErrors({});
     setMessage(null);
 
     const payload: FoodEntryActionInput = {
@@ -343,6 +633,7 @@ export function NutritionLogView({
 
   function handleCreateCatalogEntry() {
     setCatalogErrors({});
+    setUsdaErrors({});
     setMessage(null);
     const payload: CatalogFoodEntryActionInput = {
       catalog_food_id: effectiveSelectedCatalogFoodId ?? "",
@@ -364,6 +655,36 @@ export function NutritionLogView({
       }
       setErrorMessage(result.message);
       setCatalogErrors(result.errors);
+    });
+  }
+
+  function handleCreateLiveUsdaEntry() {
+    setUsdaErrors({});
+    setMessage(null);
+
+    const payload: LiveUsdaFoodEntryActionInput = {
+      fdc_id: selectedUsdaFdcId === null ? "" : String(selectedUsdaFdcId),
+      amount_value: usdaAmountValue,
+      amount_unit: usdaAmountUnit,
+      source_portion_id: usdaAmountUnit === "source_serving" ? usdaSourcePortionId : null,
+      entry_date: entryDate,
+      meal_type: mealType,
+      note: entryNote,
+      save_to_my_foods: saveUsdaToMyFoods,
+    };
+
+    startTransition(async () => {
+      const result = await createLiveUsdaFoodEntryAction(payload);
+      if (result.status === "success") {
+        setSuccessMessage(result.message);
+        resetEntryState();
+        setComposerOpen(false);
+        router.refresh();
+        return;
+      }
+
+      setErrorMessage(result.message);
+      setUsdaErrors(result.errors);
     });
   }
 
@@ -452,7 +773,10 @@ export function NutritionLogView({
   }
 
   function isCatalogEntry(entry: FoodEntryRow): boolean {
-    return entry.source_status === "usda_catalog" && entry.catalog_food_id !== null;
+    return (
+      (entry.source_status === "usda_catalog" && entry.catalog_food_id !== null) ||
+      entry.source_status === "usda_live"
+    );
   }
 
   return (
@@ -558,6 +882,7 @@ export function NutritionLogView({
             <div className="flex flex-wrap gap-2">
               {([
                 ["common", "Common"],
+                ["usda", "Search USDA"],
                 ["saved", "My Foods"],
                 ["custom", "Manual Label"],
               ] as const).map(([value, label]) => (
@@ -677,6 +1002,235 @@ export function NutritionLogView({
                     ) : (
                       <p className="text-xs text-zinc-500">Enter a valid amount to preview nutrition.</p>
                     )}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {composerMode === "usda" ? (
+              <div className="space-y-3">
+                <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+                  <label className="space-y-1 text-sm text-zinc-300">
+                    <span>Search USDA foods</span>
+                    <input
+                      value={usdaSearchQuery}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setUsdaSearchQuery(value);
+                        if (!value.trim()) {
+                          setUsdaSearchResults([]);
+                          setUsdaSearchError(null);
+                          setUsdaSearchErrorCode(null);
+                          setUsdaSearchTotalHits(0);
+                          setSelectedUsdaFdcId(null);
+                          setUsdaDetail(null);
+                          setUsdaDetailError(null);
+                        }
+                      }}
+                      className="app-input"
+                      placeholder="Try: chicken breast, white rice, greek yogurt"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm text-zinc-300">
+                    <span>Group</span>
+                    <select
+                      value={usdaSearchGroup}
+                      onChange={(event) => setUsdaSearchGroup(event.target.value as UsdaSearchGroup)}
+                      className="app-input"
+                    >
+                      <option value="generic">Generic</option>
+                      <option value="branded">Branded</option>
+                    </select>
+                  </label>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => void runUsdaSearch()}
+                      disabled={usdaSearchBusy}
+                      className="inline-flex h-10 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-100 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {usdaSearchBusy ? "Searching..." : "Search"}
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-zinc-500">
+                  USDA results are server-fetched and never expose the API key to the browser.
+                </p>
+                {usdaErrors.fdc_id ? <p className="text-xs text-rose-300">{usdaErrors.fdc_id}</p> : null}
+
+                <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-white/8 bg-black/25 p-2">
+                  {usdaSearchBusy ? (
+                    <p className="px-2 py-1 text-xs text-zinc-500">Searching USDA…</p>
+                  ) : usdaSearchError ? (
+                    <div className="space-y-2 px-2 py-1">
+                      <p className="text-xs text-rose-300">{usdaSearchError}</p>
+                      {usdaSearchErrorCode === "rate_limited" ? (
+                        <p className="text-[11px] text-zinc-500">
+                          USDA search is temporarily rate-limited. Common, My Foods, and Manual Label are still
+                          available.
+                        </p>
+                      ) : null}
+                      {(usdaSearchErrorCode === "service_unavailable" ||
+                        usdaSearchErrorCode === "timeout" ||
+                        usdaSearchErrorCode === "upstream_error") ? (
+                        <button
+                          type="button"
+                          onClick={() => void runUsdaSearch()}
+                          className="rounded-md border border-white/15 px-2 py-1 text-[11px] text-zinc-200 hover:bg-white/10"
+                        >
+                          Retry
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : usdaSearchQuery.trim().length < USDA_SEARCH_MIN_QUERY_LENGTH ? (
+                    <p className="px-2 py-1 text-xs text-zinc-500">
+                      Enter at least {USDA_SEARCH_MIN_QUERY_LENGTH} characters to search.
+                    </p>
+                  ) : usdaSearchResults.length ? (
+                    usdaSearchResults.map((item) => (
+                      <button
+                        key={item.fdcId}
+                        type="button"
+                        onClick={() => setSelectedUsdaFdcId(item.fdcId)}
+                        className={`w-full rounded-md border p-2 text-left text-xs ${
+                          selectedUsdaFdcId === item.fdcId
+                            ? "border-white bg-white/10 text-white"
+                            : "border-white/10 text-zinc-200 hover:bg-white/10"
+                        }`}
+                      >
+                        <p className="font-medium">{item.description}</p>
+                        <p className="mt-1 text-[11px] text-zinc-400">
+                          {item.dataType}
+                          {item.brandName || item.brandOwner
+                            ? ` • ${item.brandName ?? item.brandOwner}`
+                            : ""}
+                          {item.gtinUpc ? ` • GTIN/UPC ${item.gtinUpc}` : ""}
+                        </p>
+                        <p className="text-[11px] text-zinc-500">
+                          {item.coreNutrients.calories_kcal !== null
+                            ? `${roundNutritionValue(item.coreNutrients.calories_kcal, 1)} kcal`
+                            : "Calories unavailable"}{" "}
+                          • P {item.coreNutrients.protein_g !== null ? roundNutritionValue(item.coreNutrients.protein_g, 1) : "--"} •
+                          C {item.coreNutrients.carbohydrate_g !== null ? roundNutritionValue(item.coreNutrients.carbohydrate_g, 1) : "--"} •
+                          F {item.coreNutrients.fat_g !== null ? roundNutritionValue(item.coreNutrients.fat_g, 1) : "--"}
+                        </p>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="px-2 py-1 text-xs text-zinc-500">No USDA foods matched this query.</p>
+                  )}
+                </div>
+
+                {usdaSearchResults.length ? (
+                  <p className="text-[11px] text-zinc-500">
+                    Showing {usdaSearchResults.length} result(s){usdaSearchTotalHits ? ` of ${usdaSearchTotalHits}` : ""}.
+                  </p>
+                ) : null}
+
+                {selectedUsdaResult ? (
+                  <div className="space-y-2 rounded-lg border border-white/10 bg-black/30 p-2.5">
+                    <p className="text-sm font-medium text-white">{selectedUsdaResult.description}</p>
+                    <p className="text-xs text-zinc-400">
+                      Source: USDA {selectedUsdaResult.dataType} • FDC ID {selectedUsdaResult.fdcId}
+                    </p>
+                    {selectedUsdaResult.brandName || selectedUsdaResult.brandOwner ? (
+                      <p className="text-xs text-zinc-500">
+                        Brand: {selectedUsdaResult.brandName ?? selectedUsdaResult.brandOwner}
+                      </p>
+                    ) : null}
+                    {selectedUsdaResult.gtinUpc ? (
+                      <p className="text-xs text-zinc-500">GTIN/UPC: {selectedUsdaResult.gtinUpc}</p>
+                    ) : null}
+                    {usdaDetailBusy ? <p className="text-xs text-zinc-500">Loading USDA detail…</p> : null}
+                    {usdaDetailError ? <p className="text-xs text-rose-300">{usdaDetailError}</p> : null}
+                    {usdaDetail ? (
+                      <>
+                        {usdaDetail.ingredients ? (
+                          <p className="text-[11px] text-zinc-500">Ingredients: {usdaDetail.ingredients}</p>
+                        ) : null}
+                        <p className="text-[11px] text-zinc-500">
+                          Published: {usdaDetail.sourcePublishedDate ?? "--"} • Modified:{" "}
+                          {usdaDetail.sourceModifiedDate ?? "--"}
+                        </p>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <label className="space-y-1 text-sm text-zinc-300">
+                            <span>Amount</span>
+                            <input
+                              value={usdaAmountValue}
+                              onChange={(event) => setUsdaAmountValue(event.target.value)}
+                              className="app-input"
+                            />
+                            {usdaErrors.amount_value ? <p className="text-xs text-rose-300">{usdaErrors.amount_value}</p> : null}
+                          </label>
+                          <label className="space-y-1 text-sm text-zinc-300">
+                            <span>Unit</span>
+                            <select
+                              value={usdaAmountUnit}
+                              onChange={(event) => setUsdaAmountUnit(event.target.value as SupportedAmountUnit)}
+                              className="app-input"
+                            >
+                              <option value="g">grams (g)</option>
+                              <option value="oz">ounces (oz)</option>
+                              {usdaDetail.portionOptions.length ? <option value="source_serving">USDA portion</option> : null}
+                            </select>
+                            {usdaErrors.amount_unit ? <p className="text-xs text-rose-300">{usdaErrors.amount_unit}</p> : null}
+                          </label>
+                        </div>
+                        {usdaAmountUnit === "source_serving" ? (
+                          <label className="space-y-1 text-sm text-zinc-300">
+                            <span>USDA portion</span>
+                            <select
+                              value={usdaSourcePortionId ?? usdaDetail.defaultPortionId ?? ""}
+                              onChange={(event) => setUsdaSourcePortionId(event.target.value || null)}
+                              className="app-input"
+                            >
+                              {usdaDetail.portionOptions.map((portion) => (
+                                <option key={portion.id} value={portion.id}>
+                                  {portion.label}
+                                </option>
+                              ))}
+                            </select>
+                            {usdaErrors.source_portion_id ? (
+                              <p className="text-xs text-rose-300">{usdaErrors.source_portion_id}</p>
+                            ) : null}
+                          </label>
+                        ) : null}
+                        {usdaDetail.warnings.length ? (
+                          <div className="rounded-lg border border-amber-400/35 bg-amber-500/10 p-2 text-xs text-amber-100">
+                            {usdaDetail.warnings.map((warning) => (
+                              <p key={warning}>{warning}</p>
+                            ))}
+                          </div>
+                        ) : null}
+                        {usdaAmountPreview ? (
+                          <div className="rounded-lg border border-white/10 bg-black/35 p-2 text-xs text-zinc-300">
+                            <p>{roundNutritionValue(usdaAmountPreview.amountGrams, 2)} g total</p>
+                            <p>Calories: {roundNutritionValue(usdaAmountPreview.nutrients.calories_kcal.value ?? 0, 1)} kcal</p>
+                            <p>
+                              P {roundNutritionValue(usdaAmountPreview.nutrients.protein_g.value ?? 0, 1)} • C{" "}
+                              {roundNutritionValue(usdaAmountPreview.nutrients.carbohydrate_g.value ?? 0, 1)} • F{" "}
+                              {roundNutritionValue(usdaAmountPreview.nutrients.fat_g.value ?? 0, 1)}
+                            </p>
+                            {usdaAmountPreview.nutrients.fiber_g.value !== null ? (
+                              <p>Fiber: {roundNutritionValue(usdaAmountPreview.nutrients.fiber_g.value, 1)} g</p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-zinc-500">
+                            Enter a valid amount and select a supported unit to preview nutrition.
+                          </p>
+                        )}
+                        <label className="flex items-center gap-2 text-xs text-zinc-300">
+                          <input
+                            type="checkbox"
+                            checked={saveUsdaToMyFoods}
+                            onChange={(event) => setSaveUsdaToMyFoods(event.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-white/20 bg-black"
+                          />
+                          Save this USDA food to My Foods
+                        </label>
+                      </>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -868,7 +1422,7 @@ export function NutritionLogView({
             ) : null}
 
             <div className="grid gap-3 sm:grid-cols-2">
-              {composerMode !== "common" ? (
+              {composerMode === "saved" || composerMode === "custom" ? (
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Servings</span>
                   <input value={servings} onChange={(event) => setServings(event.target.value)} className="app-input" />
@@ -900,6 +1454,8 @@ export function NutritionLogView({
                   />
                   {composerMode === "common" ? (
                     catalogErrors.entry_date ? <p className="text-xs text-rose-300">{catalogErrors.entry_date}</p> : null
+                  ) : composerMode === "usda" ? (
+                    usdaErrors.entry_date ? <p className="text-xs text-rose-300">{usdaErrors.entry_date}</p> : null
                   ) : entryErrors.entry_date ? (
                     <p className="text-xs text-rose-300">{entryErrors.entry_date}</p>
                   ) : null}
@@ -924,6 +1480,22 @@ export function NutritionLogView({
                   className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-300"
                 >
                   {isPending ? "Saving..." : "Log Common Food"}
+                </button>
+              ) : null}
+              {composerMode === "usda" ? (
+                <button
+                  type="button"
+                  onClick={handleCreateLiveUsdaEntry}
+                  disabled={
+                    isPending ||
+                    !selectedUsdaResult ||
+                    !usdaDetail ||
+                    usdaDetailBusy ||
+                    !usdaDetail.hasRequiredCoreNutrients
+                  }
+                  className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                >
+                  {isPending ? "Saving..." : "Log USDA Food"}
                 </button>
               ) : null}
               {composerMode === "saved" ? (
