@@ -92,68 +92,231 @@ export type Database = {
         }
         Relationships: []
       }
+      food_catalog: {
+        Row: {
+          aliases: string[]
+          brand_name: string | null
+          brand_owner: string | null
+          calories_per_100g: number | null
+          carbohydrate_g_per_100g: number | null
+          created_at: string
+          data_type: string
+          description: string
+          fat_g_per_100g: number | null
+          fdc_id: number
+          fiber_g_per_100g: number | null
+          food_category: string | null
+          gtin_upc: string | null
+          id: string
+          ingredients: string | null
+          is_active: boolean
+          normalized_name: string
+          protein_g_per_100g: number | null
+          retrieved_at: string
+          serving_size: number | null
+          serving_unit: string | null
+          serving_weight_grams: number | null
+          sodium_mg_per_100g: number | null
+          source_modified_date: string | null
+          source_published_date: string | null
+          sugar_g_per_100g: number | null
+          updated_at: string
+        }
+        Insert: {
+          aliases?: string[]
+          brand_name?: string | null
+          brand_owner?: string | null
+          calories_per_100g?: number | null
+          carbohydrate_g_per_100g?: number | null
+          created_at?: string
+          data_type: string
+          description: string
+          fat_g_per_100g?: number | null
+          fdc_id: number
+          fiber_g_per_100g?: number | null
+          food_category?: string | null
+          gtin_upc?: string | null
+          id?: string
+          ingredients?: string | null
+          is_active?: boolean
+          normalized_name: string
+          protein_g_per_100g?: number | null
+          retrieved_at?: string
+          serving_size?: number | null
+          serving_unit?: string | null
+          serving_weight_grams?: number | null
+          sodium_mg_per_100g?: number | null
+          source_modified_date?: string | null
+          source_published_date?: string | null
+          sugar_g_per_100g?: number | null
+          updated_at?: string
+        }
+        Update: {
+          aliases?: string[]
+          brand_name?: string | null
+          brand_owner?: string | null
+          calories_per_100g?: number | null
+          carbohydrate_g_per_100g?: number | null
+          created_at?: string
+          data_type?: string
+          description?: string
+          fat_g_per_100g?: number | null
+          fdc_id?: number
+          fiber_g_per_100g?: number | null
+          food_category?: string | null
+          gtin_upc?: string | null
+          id?: string
+          ingredients?: string | null
+          is_active?: boolean
+          normalized_name?: string
+          protein_g_per_100g?: number | null
+          retrieved_at?: string
+          serving_size?: number | null
+          serving_unit?: string | null
+          serving_weight_grams?: number | null
+          sodium_mg_per_100g?: number | null
+          source_modified_date?: string | null
+          source_published_date?: string | null
+          sugar_g_per_100g?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       food_entries: {
         Row: {
+          amount_grams: number | null
+          amount_unit: string | null
+          amount_value: number | null
           brand_name: string | null
+          calories_per_100g: number | null
           calories_per_serving: number
+          carbohydrate_g_per_100g: number | null
           carbohydrate_per_serving_g: number
+          catalog_food_id: string | null
           created_at: string
           entry_date: string
+          fat_g_per_100g: number | null
           fat_per_serving_g: number
+          fdc_id: number | null
+          fiber_g_per_100g: number | null
           fiber_per_serving_g: number | null
           food_id: string | null
           food_name: string
           id: string
           meal_type: string
           note: string | null
+          protein_g_per_100g: number | null
           protein_per_serving_g: number
           serving_size: number
           serving_unit: string
           servings: number
+          sodium_mg_per_100g: number | null
+          source_brand: string | null
+          source_data_type: string | null
+          source_description: string | null
+          source_gtin_upc: string | null
+          source_name: string | null
+          source_retrieved_at: string | null
+          source_serving_quantity: number | null
+          source_serving_unit: string | null
+          source_serving_weight_grams: number | null
+          source_status: string | null
+          sugar_g_per_100g: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          amount_grams?: number | null
+          amount_unit?: string | null
+          amount_value?: number | null
           brand_name?: string | null
+          calories_per_100g?: number | null
           calories_per_serving: number
+          carbohydrate_g_per_100g?: number | null
           carbohydrate_per_serving_g?: number
+          catalog_food_id?: string | null
           created_at?: string
           entry_date: string
+          fat_g_per_100g?: number | null
           fat_per_serving_g?: number
+          fdc_id?: number | null
+          fiber_g_per_100g?: number | null
           fiber_per_serving_g?: number | null
           food_id?: string | null
           food_name: string
           id?: string
           meal_type: string
           note?: string | null
+          protein_g_per_100g?: number | null
           protein_per_serving_g?: number
           serving_size: number
           serving_unit: string
           servings?: number
+          sodium_mg_per_100g?: number | null
+          source_brand?: string | null
+          source_data_type?: string | null
+          source_description?: string | null
+          source_gtin_upc?: string | null
+          source_name?: string | null
+          source_retrieved_at?: string | null
+          source_serving_quantity?: number | null
+          source_serving_unit?: string | null
+          source_serving_weight_grams?: number | null
+          source_status?: string | null
+          sugar_g_per_100g?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          amount_grams?: number | null
+          amount_unit?: string | null
+          amount_value?: number | null
           brand_name?: string | null
+          calories_per_100g?: number | null
           calories_per_serving?: number
+          carbohydrate_g_per_100g?: number | null
           carbohydrate_per_serving_g?: number
+          catalog_food_id?: string | null
           created_at?: string
           entry_date?: string
+          fat_g_per_100g?: number | null
           fat_per_serving_g?: number
+          fdc_id?: number | null
+          fiber_g_per_100g?: number | null
           fiber_per_serving_g?: number | null
           food_id?: string | null
           food_name?: string
           id?: string
           meal_type?: string
           note?: string | null
+          protein_g_per_100g?: number | null
           protein_per_serving_g?: number
           serving_size?: number
           serving_unit?: string
           servings?: number
+          sodium_mg_per_100g?: number | null
+          source_brand?: string | null
+          source_data_type?: string | null
+          source_description?: string | null
+          source_gtin_upc?: string | null
+          source_name?: string | null
+          source_retrieved_at?: string | null
+          source_serving_quantity?: number | null
+          source_serving_unit?: string | null
+          source_serving_weight_grams?: number | null
+          source_status?: string | null
+          sugar_g_per_100g?: number | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "food_entries_catalog_food_id_fkey"
+            columns: ["catalog_food_id"]
+            isOneToOne: false
+            referencedRelation: "food_catalog"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "food_entries_food_id_fkey"
             columns: ["food_id"]
@@ -167,49 +330,108 @@ export type Database = {
         Row: {
           brand: string | null
           calories: number
+          calories_per_100g: number | null
           carbohydrate_g: number
+          carbohydrate_g_per_100g: number | null
+          catalog_food_id: string | null
           created_at: string
           fat_g: number
+          fat_g_per_100g: number | null
+          fdc_id: number | null
           fiber_g: number | null
+          fiber_g_per_100g: number | null
           id: string
           name: string
           protein_g: number
+          protein_g_per_100g: number | null
           serving_size: number
           serving_unit: string
+          serving_weight_grams: number | null
+          sodium_mg_per_100g: number | null
+          source_brand: string | null
+          source_data_type: string | null
+          source_description: string | null
+          source_gtin_upc: string | null
+          source_name: string | null
+          source_retrieved_at: string | null
+          source_status: string | null
+          sugar_g_per_100g: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           brand?: string | null
           calories: number
+          calories_per_100g?: number | null
           carbohydrate_g?: number
+          carbohydrate_g_per_100g?: number | null
+          catalog_food_id?: string | null
           created_at?: string
           fat_g?: number
+          fat_g_per_100g?: number | null
+          fdc_id?: number | null
           fiber_g?: number | null
+          fiber_g_per_100g?: number | null
           id?: string
           name: string
           protein_g?: number
+          protein_g_per_100g?: number | null
           serving_size: number
           serving_unit: string
+          serving_weight_grams?: number | null
+          sodium_mg_per_100g?: number | null
+          source_brand?: string | null
+          source_data_type?: string | null
+          source_description?: string | null
+          source_gtin_upc?: string | null
+          source_name?: string | null
+          source_retrieved_at?: string | null
+          source_status?: string | null
+          sugar_g_per_100g?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           brand?: string | null
           calories?: number
+          calories_per_100g?: number | null
           carbohydrate_g?: number
+          carbohydrate_g_per_100g?: number | null
+          catalog_food_id?: string | null
           created_at?: string
           fat_g?: number
+          fat_g_per_100g?: number | null
+          fdc_id?: number | null
           fiber_g?: number | null
+          fiber_g_per_100g?: number | null
           id?: string
           name?: string
           protein_g?: number
+          protein_g_per_100g?: number | null
           serving_size?: number
           serving_unit?: string
+          serving_weight_grams?: number | null
+          sodium_mg_per_100g?: number | null
+          source_brand?: string | null
+          source_data_type?: string | null
+          source_description?: string | null
+          source_gtin_upc?: string | null
+          source_name?: string | null
+          source_retrieved_at?: string | null
+          source_status?: string | null
+          sugar_g_per_100g?: number | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "foods_catalog_food_id_fkey"
+            columns: ["catalog_food_id"]
+            isOneToOne: false
+            referencedRelation: "food_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
