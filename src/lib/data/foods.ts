@@ -7,6 +7,7 @@ import {
   type SavedFoodInput,
   type SavedFoodNormalized,
 } from "@/lib/nutrition/validation";
+import { resolveFoodSourceStatusAfterNutritionEdit } from "@/lib/nutrition/source-status";
 
 type FoodInsert = Database["public"]["Tables"]["foods"]["Insert"];
 type FoodUpdate = Database["public"]["Tables"]["foods"]["Update"];
@@ -246,6 +247,26 @@ export async function updateMyFood(foodId: string, input: UpdateMyFoodInput): Pr
     carbohydrate_g: normalized.data.carbohydrate_g,
     fat_g: normalized.data.fat_g,
     fiber_g: normalized.data.fiber_g,
+    source_status: resolveFoodSourceStatusAfterNutritionEdit({
+      currentStatus: existing.source_status,
+      hasUsdaSource:
+        existing.fdc_id !== null ||
+        existing.source_status === "usda_catalog" ||
+        existing.source_status === "usda_live" ||
+        existing.source_status === "usda_modified",
+      previousCoreNutrition: {
+        calories: existing.calories,
+        protein_g: existing.protein_g,
+        carbohydrate_g: existing.carbohydrate_g,
+        fat_g: existing.fat_g,
+      },
+      nextCoreNutrition: {
+        calories: normalized.data.calories,
+        protein_g: normalized.data.protein_g,
+        carbohydrate_g: normalized.data.carbohydrate_g,
+        fat_g: normalized.data.fat_g,
+      },
+    }),
   };
 
   const { data, error } = await auth.data.supabase

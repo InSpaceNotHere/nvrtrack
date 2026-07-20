@@ -59,6 +59,22 @@ function rowToDraft(food: FoodRow): FoodDraft {
   };
 }
 
+function sourceStatusLabel(status: string | null): string | null {
+  if (status === "usda_live") {
+    return "USDA Live";
+  }
+  if (status === "usda_modified") {
+    return "USDA Modified";
+  }
+  if (status === "usda_catalog") {
+    return "USDA Catalog";
+  }
+  if (status === "manual") {
+    return "Manual";
+  }
+  return null;
+}
+
 export function SavedFoodManager({ foods, loadErrorMessage }: SavedFoodManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -373,6 +389,12 @@ export function SavedFoodManager({ foods, loadErrorMessage }: SavedFoodManagerPr
                       <div>
                         <p className="text-sm font-semibold text-white">{food.name}</p>
                         {food.brand ? <p className="text-xs text-zinc-500">{food.brand}</p> : null}
+                        {sourceStatusLabel(food.source_status) ? (
+                          <p className="mt-0.5 text-[11px] text-zinc-500">
+                            {sourceStatusLabel(food.source_status)}
+                            {food.fdc_id ? ` • FDC ${food.fdc_id}` : ""}
+                          </p>
+                        ) : null}
                         <p className="text-[11px] text-zinc-500">
                           {roundNutritionValue(food.serving_size, 2)} {food.serving_unit}
                         </p>
