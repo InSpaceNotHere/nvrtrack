@@ -10,6 +10,9 @@ import {
   deleteWorkoutSet,
   getMyWorkoutById,
   getMyWorkoutExercises,
+  getMyWorkoutExercisesForWorkoutIds,
+  getMyWorkouts,
+  getWorkoutSetsForWorkoutExerciseIds,
   getWorkoutSets,
   removeWorkoutExercise,
   reorderWorkoutExercises,
@@ -22,7 +25,11 @@ import {
   deleteMyExercise,
   updateMyExercise,
 } from "@/lib/data/exercises";
-import { buildDuplicateSetInput, countMeaningfulCompletedSets } from "@/lib/training/session";
+import { createMyNotification } from "@/lib/data/notifications";
+import { setScheduleOverride } from "@/lib/data/workout-planner";
+import { buildDuplicateSetInput, countMeaningfulCompletedSets, groupSetsByWorkoutExerciseId } from "@/lib/training/session";
+import { computeWorkoutDayStreak } from "@/lib/training/streaks";
+import { buildStrengthDashboardSummary } from "@/lib/training/strength";
 import { normalizeWorkoutInput } from "@/lib/training/validation";
 import type { ExerciseRow, WorkoutExerciseRow, WorkoutRow, WorkoutSetRow } from "@/lib/data/auth-context";
 
@@ -251,6 +258,57 @@ export async function completeWorkoutAction(
   }
 
   revalidateTrainingViews(workoutId);
+  await setScheduleOverride(workoutResult.data.workout_date, {
+    status: "completed",
+    workout_id: workoutId,
+    is_rest_day: false,
+    template_id: null,
+  });
+  const allWorkoutsResult = await getMyWorkouts();
+  if (!allWorkoutsResult.error) {
+    const allWorkouts = allWorkoutsResult.data;
+    const completedStreak = computeWorkoutDayStreak(allWorkouts, workoutResult.data.workout_date);
+    if (completedStreak >= 2) {
+      await createMyNotification({
+        type: "workout_streak",
+        title: "Workout streak active",
+        body: `You're on a ${completedStreak}-day workout streak.`,
+        metadata: {
+          workout_id: workoutId,
+          streak: completedStreak,
+        },
+      });
+    }
+
+    const workoutIds = allWorkouts.map((workout) => workout.id);
+    const allExercisesResult = await getMyWorkoutExercisesForWorkoutIds(workoutIds);
+    if (!allExercisesResult.error) {
+      const allSetsResult = await getWorkoutSetsForWorkoutExerciseIds(allExercisesResult.data.map((exercise) => exercise.id));
+      if (!allSetsResult.error) {
+        const strengthSummary = buildStrengthDashboardSummary({
+          workouts: allWorkouts,
+          exercises: allExercisesResult.data,
+          setsByExerciseId: groupSetsByWorkoutExerciseId(allSetsResult.data),
+          displayUnit: "lb",
+        });
+        if (strengthSummary.latest_pr && strengthSummary.latest_pr.workout_date === workoutResult.data.workout_date) {
+          await createMyNotification({
+            type: "new_pr",
+            title: "New PR detected",
+            body: `${strengthSummary.latest_pr.exercise_name} reached ${strengthSummary.latest_pr.estimated_one_rep_max.toFixed(
+              1,
+            )} lb estimated 1RM.`,
+            metadata: {
+              workout_id: workoutId,
+              exercise_name: strengthSummary.latest_pr.exercise_name,
+              estimated_one_rep_max: strengthSummary.latest_pr.estimated_one_rep_max,
+            },
+          });
+        }
+      }
+    }
+  }
+
   return {
     status: "success",
     message: meaningfulSetCount

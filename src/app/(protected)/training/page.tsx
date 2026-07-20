@@ -1,9 +1,19 @@
 import Link from "next/link";
 
 import { MuscleMap } from "@/components/training/muscle-map";
+import { WorkoutPlanner } from "@/components/training/workout-planner";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { getExerciseCatalog } from "@/lib/data/exercise-catalog";
+import { getMyExercises } from "@/lib/data/exercises";
 import { getMyProfile } from "@/lib/data/profile";
+import {
+  getMyScheduleOverridesForRange,
+  getMyWeekdaySchedule,
+  getMyWorkoutTemplateExercises,
+  getMyWorkoutTemplates,
+  initializePlannerDefaultsIfNeeded,
+} from "@/lib/data/workout-planner";
 import {
   getMyWorkoutExercisesForWorkoutIds,
   getMyWorkouts,
@@ -11,6 +21,7 @@ import {
 } from "@/lib/data/workouts";
 import { sortWorkoutsForHistory } from "@/lib/training/calculations";
 import { aggregateWorkoutMuscles, buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
+import { buildWeekDates, buildPlannerWeek, findPlannerDayForDate } from "@/lib/training/planner";
 import {
   buildWorkoutSummaryStats,
   countCompletedWorkoutsThisWeek,
@@ -41,6 +52,7 @@ function titleCase(value: string): string {
 }
 
 export default async function TrainingPage() {
+  await initializePlannerDefaultsIfNeeded();
   const [workoutsResult, profileResult] = await Promise.all([
     getMyWorkouts(),
     getMyProfile(),
@@ -93,11 +105,65 @@ export default async function TrainingPage() {
     })),
   );
   const previewFocusLabel = buildPrimaryFocusLabel(previewWorkoutTargeting);
+  const weekDates = buildWeekDates(new Date());
+  const weekStart = weekDates[0];
+  const weekEnd = weekDates[weekDates.length - 1];
+
+  const [templatesResult, templateExercisesResult, weekdayScheduleResult, scheduleOverridesResult, catalogResult, customExercisesResult] =
+    await Promise.all([
+      getMyWorkoutTemplates(),
+      getMyWorkoutTemplateExercises(),
+      getMyWeekdaySchedule(),
+      getMyScheduleOverridesForRange(weekStart, weekEnd),
+      getExerciseCatalog({ limit: 400 }),
+      getMyExercises(),
+    ]);
+  const plannerWeek = buildPlannerWeek({
+    templates: templatesResult.data ?? [],
+    templateExercises: templateExercisesResult.data ?? [],
+    weekdayScheduleRows: weekdayScheduleResult.data ?? [],
+    scheduleOverrideRows: scheduleOverridesResult.data ?? [],
+    completedWorkouts: workouts
+      .filter((workout) => workout.completed_at !== null)
+      .map((workout) => ({ id: workout.id, workout_date: workout.workout_date, name: workout.name })),
+  });
+  const todayPlan = findPlannerDayForDate(
+    plannerWeek,
+    new Date().toISOString().slice(0, 10),
+  );
+  const plannerExerciseOptions = [
+    ...(catalogResult.data ?? []).map((exercise) => ({
+      id: `catalog:${exercise.id}`,
+      name: exercise.name,
+      catalog_exercise_id: exercise.id,
+      exercise_id: null,
+      primary_muscles: exercise.primary_muscles ?? [],
+      secondary_muscles: exercise.secondary_muscles ?? [],
+      body_region: exercise.body_region ?? null,
+      movement_pattern: exercise.movement_pattern ?? null,
+    })),
+    ...(customExercisesResult.data ?? []).map((exercise) => ({
+      id: `custom:${exercise.id}`,
+      name: exercise.name,
+      catalog_exercise_id: null,
+      exercise_id: exercise.id,
+      primary_muscles: exercise.primary_muscles ?? [],
+      secondary_muscles: exercise.secondary_muscles ?? [],
+      body_region: exercise.body_region ?? null,
+      movement_pattern: exercise.movement_pattern ?? null,
+    })),
+  ];
 
   const dataErrorMessage =
     workoutsResult.error?.message ??
     workoutExercisesResult.error?.message ??
     workoutSetsResult.error?.message ??
+    templatesResult.error?.message ??
+    templateExercisesResult.error?.message ??
+    weekdayScheduleResult.error?.message ??
+    scheduleOverridesResult.error?.message ??
+    catalogResult.error?.message ??
+    customExercisesResult.error?.message ??
     profileResult.error?.message ??
     null;
 
@@ -111,6 +177,14 @@ export default async function TrainingPage() {
           <p className="mt-1 text-xs text-zinc-500">{dataErrorMessage}</p>
         </Card>
       ) : null}
+
+      <WorkoutPlanner
+        templates={templatesResult.data ?? []}
+        templateExercises={templateExercisesResult.data ?? []}
+        weekPlans={plannerWeek}
+        todayPlan={todayPlan}
+        exerciseOptions={plannerExerciseOptions}
+      />
 
       {!workouts.length ? (
         <Card title="Start Your First Workout">

@@ -5,15 +5,19 @@ import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 
 type ProgressTab = "Overview" | "Photos" | "Measurements";
+type ExtendedProgressTab = ProgressTab | "Journal";
 
 interface ProgressTabsProps {
   overview: React.ReactNode;
+  photos: React.ReactNode;
+  measurements: React.ReactNode;
+  journal: React.ReactNode;
 }
 
-const TAB_OPTIONS: ProgressTab[] = ["Overview", "Photos", "Measurements"];
+const TAB_OPTIONS: ExtendedProgressTab[] = ["Overview", "Photos", "Measurements", "Journal"];
 
-export function ProgressTabs({ overview }: ProgressTabsProps) {
-  const [tab, setTab] = useState<ProgressTab>("Overview");
+export function ProgressTabs({ overview, photos, measurements, journal }: ProgressTabsProps) {
+  const [tab, setTab] = useState<ExtendedProgressTab>("Overview");
 
   const content = useMemo(() => {
     if (tab === "Overview") {
@@ -21,21 +25,19 @@ export function ProgressTabs({ overview }: ProgressTabsProps) {
     }
 
     if (tab === "Photos") {
-      return (
-        <EmptyState
-          title="Progress photos are empty"
-          description="Photo check-ins will be added in a later session. This placeholder reflects the future upload view."
-        />
-      );
+      return photos;
     }
 
-    return (
-      <EmptyState
-        title="Measurements are empty"
-          description="Body measurement logging is not active in Session 4. This tab remains a polished static placeholder."
-      />
-    );
-  }, [overview, tab]);
+    if (tab === "Measurements") {
+      return measurements;
+    }
+
+    if (tab === "Journal") {
+      return journal;
+    }
+
+    return <EmptyState title="Unknown tab" description="This tab is not available." />;
+  }, [journal, measurements, overview, photos, tab]);
 
   return (
     <section className="space-y-4">
