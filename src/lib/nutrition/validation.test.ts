@@ -77,6 +77,19 @@ describe("food entry validation", () => {
     });
   });
 
+  it("normalizes blank notes to null for entry edits", () => {
+    const result = normalizeFoodEntryBaseInput({
+      entry_date: "2026-07-20",
+      meal_type: "dinner",
+      servings: "2",
+      note: "   ",
+    });
+
+    expect(result.errors).toEqual({});
+    expect(result.data?.note).toBeNull();
+    expect(result.data?.servings).toBe(2);
+  });
+
   it("rejects invalid meal types and dates", () => {
     const result = normalizeFoodEntryBaseInput({
       entry_date: "invalid-date",

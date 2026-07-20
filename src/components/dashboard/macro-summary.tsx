@@ -5,6 +5,10 @@ interface MacroSummaryProps {
   macros: MacroStat[];
 }
 
+function formatValue(value: number): string {
+  return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+}
+
 export function MacroSummary({ macros }: MacroSummaryProps) {
   return (
     <ul className="space-y-3">
@@ -13,10 +17,13 @@ export function MacroSummary({ macros }: MacroSummaryProps) {
           <div className="flex items-center justify-between text-sm">
             <span className="text-zinc-400">{macro.name}</span>
             {macro.goal === null ? (
-              <span className="font-medium text-zinc-500">Goal not set</span>
+              <span className="font-medium text-zinc-500">
+                {formatValue(macro.consumed)}
+                {macro.unit} / -- {macro.unit}
+              </span>
             ) : (
               <span className="font-medium text-zinc-100">
-                {macro.consumed}
+                {formatValue(macro.consumed)}
                 {macro.unit} / {macro.goal}
                 {macro.unit}
               </span>

@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, and 6)
+## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, and 7)
 
 The app currently includes:
 
@@ -31,14 +31,20 @@ The app currently includes:
 - Session 5 profile and goal persistence:
   - live Profile form persistence for account/body/nutrition goal fields in `public.profiles`
   - server-side profile validation + normalized null handling for optional fields
-  - Home and Nutrition now use live profile goals while consumed nutrition remains static sample data
+  - Home and Nutrition use live profile goals
   - preferred weight unit drives weight display unit across Home/Progress calculations without rewriting stored entries
 - Session 6 nutrition database foundation:
   - migration adds `foods` and `food_entries` with ownership/RLS policies
   - food-entry snapshot model preserves historical nutrition values
   - typed nutrition calculations + validation utilities and tests
   - typed secure server data helpers for saved foods and food entries
-  - nutrition UI remains static until Session 7 wiring
+  - schema + helper foundation for Session 7 UI wiring
+- Session 7 food and meal logging UI:
+  - live `/nutrition` daily intake totals, meal groups, and date navigation from `food_entries`
+  - Add Food flow supports saved-food logging, quick custom entries, servings, date, meal type, and optional notes
+  - logged entries can be edited (servings, meal, date, note) or deleted with confirmation
+  - saved-food management route at `/nutrition/foods` supports search/create/edit/delete
+  - Home calorie and macro consumed values are now sourced from today’s live food entries
 
 ## Technology
 
@@ -460,7 +466,63 @@ npx supabase gen types typescript --linked --schema public > src/types/database.
   - `src/lib/nutrition/calculations.test.ts`
   - `src/lib/nutrition/validation.test.ts`
 
-### UI status
+## Session 7: Food and Meal Logging UI
 
-Nutrition page intake/meal interface remains intentionally static in Session 6.  
-Session 7 will connect the UI to live `food_entries` data.
+### Scope
+
+Session 7 connects Nutrition and Home consumed-intake views to live Supabase nutrition data.
+
+Implemented in this session:
+
+- `/nutrition` now loads live entries for a selected date (`?date=YYYY-MM-DD`) using server-side authenticated helpers.
+- Daily calories, macros, and fiber are calculated from `food_entries` snapshots (`per-serving × servings`).
+- Meal sections (Breakfast, Lunch, Dinner, Snacks) render live grouped entries and meal calorie totals.
+- Entry-level actions:
+  - create from saved food
+  - create direct custom entry (without saving)
+  - edit servings/meal/date/note while keeping snapshot nutrition unchanged
+  - delete with confirmation
+- Add Food flow includes:
+  - recent saved foods
+  - recent logged foods quick-fill
+  - client-side search over authenticated user foods
+  - create new saved food inline
+- `/nutrition/foods` route adds saved-food management:
+  - search
+  - create
+  - edit
+  - delete with explicit historical snapshot warning
+- Home dashboard consumed calories/macros now reflect live totals for today’s logged entries.
+
+### Date navigation behavior
+
+- Date source of truth is the `date` query parameter on `/nutrition`.
+- Invalid or malformed date query values safely fall back to today.
+- Previous/Today/Next controls update the `date` query.
+- A shared utility module handles:
+  - date-string validation
+  - fallback normalization
+  - day offset navigation
+
+### Snapshot behavior in UI
+
+- Logged entries always display snapshot nutrition values stored on the entry row.
+- Editing a logged entry does not refresh snapshot values from current saved-food data.
+- Deleting a saved food does not erase historical entries; `food_id` is detached while snapshot nutrition remains.
+
+### Manual Session 7 Test Checklist
+
+After configuring `.env.local` and running `npm run dev`:
+
+1. Open `/nutrition` and confirm totals initialize from live data (or zero when no entries exist).
+2. Create a saved food from the Add Food flow and verify it appears in search/recent lists.
+3. Log that saved food to Breakfast and verify daily + meal totals update.
+4. Log a fractional serving and verify totals reflect decimal servings.
+5. Log a Quick Custom Entry and verify it appears in the selected meal.
+6. Edit an entry’s servings, meal, date, and note; verify totals and grouping update.
+7. Delete an entry and verify it disappears and totals recalculate.
+8. Navigate dates via Previous/Next/Today and confirm the URL query updates and data reloads.
+9. Open `/nutrition/foods`, search foods, edit a saved food, and confirm historical logged entries keep old snapshot values.
+10. Delete a saved food and confirm existing historical entries remain visible with nutrition intact.
+11. Refresh `/nutrition` and `/nutrition/foods` and confirm data persists.
+12. Open `/` and verify calorie/macro consumed values match today’s live entry totals.

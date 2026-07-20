@@ -127,6 +127,25 @@ describe("nutrition calculations", () => {
     expect(mealTotals.snack.calories).toBe(0);
   });
 
+  it("ignores entries with unexpected meal labels", () => {
+    const mealTotals = calculateMealTotals([
+      {
+        meal_type: "brunch",
+        servings: 1,
+        calories_per_serving: 500,
+        protein_per_serving_g: 20,
+        carbohydrate_per_serving_g: 40,
+        fat_per_serving_g: 10,
+        fiber_per_serving_g: 5,
+      },
+    ]);
+
+    expect(mealTotals.breakfast.calories).toBe(0);
+    expect(mealTotals.lunch.calories).toBe(0);
+    expect(mealTotals.dinner.calories).toBe(0);
+    expect(mealTotals.snack.calories).toBe(0);
+  });
+
   it("handles goal progress with null goals", () => {
     const progress = calculateGoalProgress(1300, null);
     expect(progress.state).toBe("no-goal");

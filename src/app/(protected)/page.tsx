@@ -6,8 +6,11 @@ import { Card } from "@/components/ui/card";
 import { CalorieRing } from "@/components/ui/calorie-ring";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { WeightLogManager } from "@/components/weight/weight-log-manager";
+import { getMyFoodEntriesForDate } from "@/lib/data/nutrition";
 import { getMyProfile } from "@/lib/data/profile";
 import { getWeightEntries } from "@/lib/data/weight";
+import { calculateDailyTotals } from "@/lib/nutrition/calculations";
+import { getTodayDateString } from "@/lib/nutrition/date";
 import { MIN_ENTRIES_FOR_PERIOD_COMPARISON, formatDeltaLabel, computeWeightMetrics, shortDateLabel } from "@/lib/weight/metrics";
 import type { WeightUnit } from "@/lib/weight/conversions";
 import { HOME_DATA, CLUB_TARGETS, MACRO_STATS } from "@/lib/sample-data";
@@ -18,14 +21,21 @@ function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightU
 }
 
 export default async function HomePage() {
-  const [profileResult, weightEntriesResult] = await Promise.all([getMyProfile(), getWeightEntries()]);
+  const todayDate = getTodayDateString();
+  const [profileResult, weightEntriesResult, nutritionEntriesResult] = await Promise.all([
+    getMyProfile(),
+    getWeightEntries(),
+    getMyFoodEntriesForDate(todayDate),
+  ]);
   const profileLoadError = profileResult.error?.message ?? null;
   const weightLoadError = weightEntriesResult.error?.message ?? null;
+  const nutritionLoadError = nutritionEntriesResult.error?.message ?? null;
 
   const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
   const weightEntries = weightEntriesResult.data ?? [];
   const weightMetrics = computeWeightMetrics(weightEntries, displayUnit);
   const displayName = profileResult.data?.display_name?.trim() || null;
+  const nutritionTotals = calculateDailyTotals(nutritionEntriesResult.data ?? []);
 
   const calorieGoal = profileResult.data?.calorie_goal ?? null;
   const macroGoals: Record<MacroStat["name"], number | null> = {
@@ -33,8 +43,14 @@ export default async function HomePage() {
     Carbohydrates: profileResult.data?.carbohydrate_goal ?? null,
     Fat: profileResult.data?.fat_goal ?? null,
   };
+  const macroConsumed: Record<MacroStat["name"], number> = {
+    Protein: nutritionTotals.protein_g,
+    Carbohydrates: nutritionTotals.carbohydrate_g,
+    Fat: nutritionTotals.fat_g,
+  };
   const macroStats: MacroStat[] = MACRO_STATS.map((macro) => ({
     ...macro,
+    consumed: macroConsumed[macro.name],
     goal: macroGoals[macro.name],
   }));
 
@@ -71,26 +87,32 @@ export default async function HomePage() {
           <p className="mt-1 text-xs text-zinc-500">{weightLoadError}</p>
         </Card>
       ) : null}
+      {nutritionLoadError ? (
+        <Card>
+          <p className="text-sm text-rose-200">Nutrition totals are temporarily unavailable.</p>
+          <p className="mt-1 text-xs text-zinc-500">{nutritionLoadError}</p>
+        </Card>
+      ) : null}
 
       <Card title="Calories" subtitle="Today">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.2rem]">
-              {HOME_DATA.calories.consumed.toLocaleString()}
+              {nutritionTotals.calories.toLocaleString()}
               <span className="text-xl text-zinc-400">
                 {" / "}
                 {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"}
               </span>
             </p>
             <p className="mt-2 text-xs uppercase tracking-[0.08em] text-zinc-500">
-              Daily intake (consumed values are static this session)
+              Daily intake from nutrition log entries
             </p>
             {calorieGoal === null ? (
               <p className="mt-1 text-xs text-zinc-500">Set a calorie goal in Profile to activate progress.</p>
             ) : null}
           </div>
           {calorieGoal !== null ? (
-            <CalorieRing consumed={HOME_DATA.calories.consumed} goal={calorieGoal} size={108} />
+            <CalorieRing consumed={nutritionTotals.calories} goal={calorieGoal} size={108} />
           ) : (
             <div className="flex h-[108px] w-[108px] items-center justify-center rounded-full border border-white/10 text-[11px] uppercase tracking-[0.08em] text-zinc-500">
               Goal not set
@@ -99,7 +121,7 @@ export default async function HomePage() {
         </div>
         <div className="mt-3">
           {calorieGoal !== null ? (
-            <ProgressBar value={HOME_DATA.calories.consumed} max={calorieGoal} />
+            <ProgressBar value={nutritionTotals.calories} max={calorieGoal} />
           ) : (
             <div className="h-2 w-full rounded-full bg-white/8" aria-hidden="true" />
           )}

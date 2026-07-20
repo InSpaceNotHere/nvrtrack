@@ -9,6 +9,7 @@ import {
   type FoodEntrySnapshotInput,
   type FoodEntrySnapshotNormalized,
 } from "@/lib/nutrition/validation";
+import { isValidDateString } from "@/lib/nutrition/date";
 
 type FoodEntryInsert = Database["public"]["Tables"]["food_entries"]["Insert"];
 type FoodEntryUpdate = Database["public"]["Tables"]["food_entries"]["Update"];
@@ -21,10 +22,6 @@ export interface CreateMyFoodEntryInput extends FoodEntryBaseInput {
 export interface UpdateMyFoodEntryInput extends Partial<FoodEntryBaseInput> {
   food_id?: string | null;
   snapshot?: FoodEntrySnapshotInput;
-}
-
-function isValidDate(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`));
 }
 
 function sanitizeLimit(limit: number, fallback = 20): number {
@@ -112,7 +109,7 @@ async function getOwnedFoodEntryById(entryId: string): Promise<DataAccessResult<
 }
 
 export async function getMyFoodEntriesForDate(entryDate: string): Promise<DataAccessResult<FoodEntryRow[]>> {
-  if (!isValidDate(entryDate)) {
+  if (!isValidDateString(entryDate)) {
     return fail({
       code: "INVALID_INPUT",
       message: "Entry date must be valid.",
@@ -146,7 +143,7 @@ export async function getMyFoodEntriesForDateRange(
   startDate: string,
   endDate: string,
 ): Promise<DataAccessResult<FoodEntryRow[]>> {
-  if (!isValidDate(startDate) || !isValidDate(endDate) || startDate > endDate) {
+  if (!isValidDateString(startDate) || !isValidDateString(endDate) || startDate > endDate) {
     return fail({
       code: "INVALID_INPUT",
       message: "Date range is invalid.",
