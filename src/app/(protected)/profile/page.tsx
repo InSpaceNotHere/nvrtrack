@@ -1,3 +1,4 @@
+import { LogoutButton } from "@/components/auth/logout-button";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { PROFILE_DEFAULTS } from "@/lib/sample-data";
@@ -12,23 +13,18 @@ export default function ProfilePage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1.5 text-sm text-zinc-300">
               <span>Display name</span>
-              <input
-                type="text"
-                name="displayName"
-                defaultValue={PROFILE_DEFAULTS.displayName}
-                className="app-input"
-              />
+              <input type="text" name="displayName" defaultValue={PROFILE_DEFAULTS.displayName} className="app-input" />
             </label>
 
             <label className="space-y-1.5 text-sm text-zinc-300">
               <span>Height</span>
-              <input
-                type="text"
-                name="height"
-                defaultValue={PROFILE_DEFAULTS.height}
-                className="app-input"
-              />
+              <input type="text" name="height" defaultValue={PROFILE_DEFAULTS.height} className="app-input" />
             </label>
+          </div>
+
+          <div className="mt-4 border-t border-white/8 pt-3">
+            <p className="mb-2 text-xs uppercase tracking-[0.08em] text-zinc-500">Session</p>
+            <LogoutButton />
           </div>
         </Card>
 
@@ -36,21 +32,11 @@ export default function ProfilePage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1.5 text-sm text-zinc-300">
               <span>Calorie goal</span>
-              <input
-                type="number"
-                name="calorieGoal"
-                defaultValue={PROFILE_DEFAULTS.calorieGoal}
-                className="app-input"
-              />
+              <input type="number" name="calorieGoal" defaultValue={PROFILE_DEFAULTS.calorieGoal} className="app-input" />
             </label>
             <label className="space-y-1.5 text-sm text-zinc-300">
               <span>Protein goal (g)</span>
-              <input
-                type="number"
-                name="proteinGoal"
-                defaultValue={PROFILE_DEFAULTS.proteinGoal}
-                className="app-input"
-              />
+              <input type="number" name="proteinGoal" defaultValue={PROFILE_DEFAULTS.proteinGoal} className="app-input" />
             </label>
             <label className="space-y-1.5 text-sm text-zinc-300">
               <span>Carbohydrate goal (g)</span>
@@ -63,12 +49,7 @@ export default function ProfilePage() {
             </label>
             <label className="space-y-1.5 text-sm text-zinc-300">
               <span>Fat goal (g)</span>
-              <input
-                type="number"
-                name="fatGoal"
-                defaultValue={PROFILE_DEFAULTS.fatGoal}
-                className="app-input"
-              />
+              <input type="number" name="fatGoal" defaultValue={PROFILE_DEFAULTS.fatGoal} className="app-input" />
             </label>
           </div>
         </Card>
@@ -77,11 +58,7 @@ export default function ProfilePage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1.5 text-sm text-zinc-300">
               <span>Preferred unit</span>
-              <select
-                name="unit"
-                defaultValue={PROFILE_DEFAULTS.unit}
-                className="app-input"
-              >
+              <select name="unit" defaultValue={PROFILE_DEFAULTS.unit} className="app-input">
                 <option>Imperial (lb, in)</option>
                 <option>Metric (kg, cm)</option>
               </select>
@@ -89,11 +66,7 @@ export default function ProfilePage() {
 
             <label className="space-y-1.5 text-sm text-zinc-300">
               <span>Appearance</span>
-              <select
-                name="appearance"
-                defaultValue={PROFILE_DEFAULTS.appearance}
-                className="app-input"
-              >
+              <select name="appearance" defaultValue={PROFILE_DEFAULTS.appearance} className="app-input">
                 <option>Dark</option>
                 <option>System</option>
               </select>
