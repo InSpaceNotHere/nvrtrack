@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, 2, 3, 4, and 5)
+## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, and 6)
 
 The app currently includes:
 
@@ -33,6 +33,12 @@ The app currently includes:
   - server-side profile validation + normalized null handling for optional fields
   - Home and Nutrition now use live profile goals while consumed nutrition remains static sample data
   - preferred weight unit drives weight display unit across Home/Progress calculations without rewriting stored entries
+- Session 6 nutrition database foundation:
+  - migration adds `foods` and `food_entries` with ownership/RLS policies
+  - food-entry snapshot model preserves historical nutrition values
+  - typed nutrition calculations + validation utilities and tests
+  - typed secure server data helpers for saved foods and food entries
+  - nutrition UI remains static until Session 7 wiring
 
 ## Technology
 
@@ -348,3 +354,113 @@ After configuring `.env.local` and running `npm run dev`:
 7. Change preferred unit and confirm weight cards on Home/Progress display the new unit.
 8. Enter invalid profile values and confirm useful validation feedback appears.
 9. Verify a different authenticated user cannot read or modify another user’s profile row (RLS ownership behavior).
+
+## Session 6: Nutrition Database Foundation
+
+### Scope
+
+Session 6 adds secure nutrition database infrastructure and typed server-side helpers.  
+It does **not** connect Nutrition UI intake cards to live log data yet.
+
+### New tables
+
+- `public.foods`
+  - user-owned saved foods
+  - name/serving/nutrition validation checks
+  - per-user query indexes (recency + name search)
+- `public.food_entries`
+  - user-owned logged food entries by date + meal type
+  - supports optional reference to saved food (`food_id`)
+  - stores immutable nutrition snapshot fields
+
+### Meal types
+
+Allowed `meal_type` values:
+
+- `breakfast`
+- `lunch`
+- `dinner`
+- `snack`
+
+### Snapshot history model
+
+Food entries store snapshot values (name, serving, calories/macros/fiber per serving) at log time.
+
+Implications:
+
+- Editing a saved food later does **not** rewrite historical entries.
+- Deleting a saved food sets `food_entries.food_id` to `null` (`on delete set null`), while historical snapshot values remain intact.
+
+### Ownership and RLS model
+
+Both `foods` and `food_entries` are RLS-protected with owner-only policies:
+
+- select own rows
+- insert own rows (`with check`)
+- update own rows (`using` + `with check`)
+- delete own rows
+
+No public access policies are added.
+
+### Updated timestamp behavior
+
+Both tables use the existing reusable `public.set_updated_at()` trigger function for `updated_at`.
+
+### Typed nutrition utilities
+
+Added reusable modules:
+
+- `src/lib/nutrition/types.ts`
+- `src/lib/nutrition/validation.ts`
+- `src/lib/nutrition/calculations.ts`
+
+Utilities support:
+
+- per-entry totals (`per-serving × servings`)
+- daily totals aggregation
+- per-meal grouping totals
+- goal progress handling for null/zero/under/over-goal cases
+- saved-food and food-entry validation
+
+### Typed server data helpers
+
+Added secure server-side data helpers:
+
+- `src/lib/data/foods.ts`
+  - `getMyFoods`, `searchMyFoods`, `getMyRecentFoods`, `getMyFoodById`
+  - `createMyFood`, `updateMyFood`, `deleteMyFood`
+- `src/lib/data/nutrition.ts`
+  - `getMyFoodEntriesForDate`, `getMyFoodEntriesForDateRange`, `getMyRecentFoodEntries`
+  - `createMyFoodEntry`, `updateMyFoodEntry`, `deleteMyFoodEntry`
+
+When creating from a saved food ID, helpers load the authenticated user’s food and server-copy snapshot values.
+
+### Migration and type generation commands
+
+Migration file:
+
+- `supabase/migrations/20260720054800_create_foods_and_food_entries.sql`
+
+Apply to linked remote project:
+
+```bash
+npx supabase migration list
+npx supabase db push
+```
+
+Regenerate database types after migration:
+
+```bash
+npx supabase gen types typescript --linked --schema public > src/types/database.ts
+```
+
+### Session 6 test scope
+
+- Added nutrition utility and validation tests:
+  - `src/lib/nutrition/calculations.test.ts`
+  - `src/lib/nutrition/validation.test.ts`
+
+### UI status
+
+Nutrition page intake/meal interface remains intentionally static in Session 6.  
+Session 7 will connect the UI to live `food_entries` data.

@@ -11,7 +11,7 @@ import {
 type FoodInsert = Database["public"]["Tables"]["foods"]["Insert"];
 type FoodUpdate = Database["public"]["Tables"]["foods"]["Update"];
 
-export interface CreateMyFoodInput extends SavedFoodInput {}
+export type CreateMyFoodInput = SavedFoodInput;
 
 export interface UpdateMyFoodInput {
   name?: string;
