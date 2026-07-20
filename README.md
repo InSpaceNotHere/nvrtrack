@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, and 9.5A)
+## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 9.5A, and 9.5B Phase 2A)
 
 The app currently includes:
 
@@ -64,6 +64,12 @@ The app currently includes:
   - Add Exercise flow is catalog-first (search + muscle/equipment filters)
   - `/training/exercises` is now a catalog browser with recent/frequent sections
   - custom exercise remains a restrained fallback and historical snapshots stay immutable
+- Session 9.5B Phase 2A USDA pilot catalog pipeline:
+  - reviewed USDA candidate discovery script for exact FDC selection
+  - checked-in reviewed pilot manifest (20 exact records)
+  - checked-in normalized lock file with provenance + nutrient diagnostics
+  - deterministic SQL seed generation from manifest + lock (no live API dependency at generation time)
+  - additive migration that upserts only approved pilot FDC IDs into `public.food_catalog`
 
 ## Technology
 
@@ -849,3 +855,78 @@ Schema additions:
 6. Confirm Home and `/training` workout cards remain live and accurate.
 7. Verify User A cannot read/modify User B custom exercise rows.
 8. Verify catalog rows are readable but not writable by authenticated non-admin users.
+
+## Session 9.5B Phase 2A: Reviewed USDA Pilot Catalog Seed
+
+### Scope
+
+Phase 2A adds a **reviewed, deterministic USDA pilot-catalog seeding workflow**.  
+This phase does **not** add Nutrition UI changes, browser USDA search, or direct food logging flows yet.
+
+### USDA attribution
+
+Nutrition source data in this phase comes from **USDA FoodData Central**.
+
+### Pipeline overview
+
+The pilot catalog generation is a three-stage workflow:
+
+1. **Candidate discovery (live USDA search)**
+   - `scripts/usda/discover-candidates.ts`
+   - Outputs temporary review reports (not committed) under `scripts/usda/generated/`.
+2. **Reviewed manifest + locked normalized records**
+   - Reviewed manifest: `scripts/usda/food-catalog-manifest.ts`
+   - Detail fetch + lock generation: `scripts/usda/fetch-reviewed-foods.ts`
+   - Lock file: `scripts/usda/generated/food-catalog-pilot.lock.json`
+   - Review table: `scripts/usda/generated/food-catalog-pilot.review.md`
+3. **Deterministic SQL generation**
+   - Generator: `scripts/usda/generate-food-catalog-seed.ts`
+   - Seed SQL: `scripts/usda/generated/food-catalog-pilot.sql`
+   - Migration output: `supabase/migrations/20260720201500_seed_usda_food_catalog_pilot.sql`
+
+### Why lock data is checked in
+
+- USDA upstream records can change over time.
+- Seed SQL generation is intentionally deterministic from checked-in inputs:
+  - reviewed manifest
+  - normalized lock data
+- Routine generation does **not** refetch USDA automatically.
+- To refresh data intentionally, run discovery/review/fetch again and commit updated lock + SQL outputs.
+
+### Raw-versus-cooked and source precision rules
+
+- Manifest records explicitly preserve raw/cooked/preparation wording from USDA descriptions.
+- Raw and cooked records are intentionally separate entries (for example chicken and ground beef pairs).
+- Aliases improve search only; they do not collapse distinct preparation states.
+
+### Missing-versus-zero nutrient handling
+
+- Core nutrients required for pilot approval:
+  - calories (kcal), protein, carbohydrate, fat
+- Optional nutrients (fiber, sugar, sodium) may remain `null` when USDA does not provide them.
+- Missing optional nutrients are **not** coerced to zero.
+- kJ values are not treated as kcal.
+
+### Commands
+
+Run the pilot pipeline commands:
+
+```bash
+npm run usda:discover
+npm run usda:fetch-pilot
+npm run usda:generate-pilot
+npm run usda:verify-pilot
+```
+
+Then verify code health:
+
+```bash
+npm run test
+npm run lint
+npm run build
+```
+
+### Required environment variable
+
+- `USDA_FDC_API_KEY` must be present in server environment (`.env.local` for local development).
+- Never expose this key to browser code or commit it to git.
