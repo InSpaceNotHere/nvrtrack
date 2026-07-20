@@ -21,5 +21,9 @@ export default defineConfig({
     url: "http://localhost:3000/login",
     timeout: 120_000,
     reuseExistingServer: true,
+    env: {
+      ...process.env,
+      USDA_FDC_FIXTURE_MODE: process.env.USDA_FDC_FIXTURE_MODE ?? "1",
+    },
   },
 });
