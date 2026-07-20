@@ -399,7 +399,8 @@ export async function searchFixtureUsdaFoods(input: {
     .filter((record) => dataTypeMatches(record.detail.dataType, allowedDataTypes))
     .filter((record) => matchesFixtureQuery(record, normalizedQuery))
     .map((record) => {
-      const { sourcePortions: _ignoredPortions, ...summary } = record.detail;
+      const { sourcePortions, ...summary } = record.detail;
+      void sourcePortions;
       return summary;
     });
 

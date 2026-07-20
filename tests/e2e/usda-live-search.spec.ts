@@ -31,13 +31,37 @@ async function openUsdaMode(page: Page) {
 }
 
 async function removeEntryByName(page: Page, foodName: string) {
-  const entry = page.locator("li").filter({ hasText: foodName }).first();
-  if ((await entry.count()) === 0) {
+  const allEntries = page.locator("li").filter({ hasText: foodName });
+  const before = await allEntries.count();
+  if (before === 0) {
     return;
   }
+  const entry = allEntries.first();
   await entry.getByRole("button", { name: "Delete" }).click();
   await entry.getByRole("button", { name: "Confirm Delete" }).click();
-  await expect(page.locator("li").filter({ hasText: foodName })).toHaveCount(0);
+  await expect.poll(async () => await allEntries.count()).toBeLessThan(before);
+}
+
+async function removeSavedFoodByName(page: Page, foodName: string) {
+  const rows = page.locator("li").filter({ hasText: foodName });
+  const before = await rows.count();
+  if (before === 0) {
+    return;
+  }
+  const row = rows.first();
+  await row.getByRole("button", { name: "Delete saved food" }).click();
+  await row.getByRole("button", { name: "Confirm Delete" }).click();
+  await expect.poll(async () => await rows.count()).toBeLessThan(before);
+}
+
+async function removeAllMatching(page: Page, foodName: string, removeOne: (page: Page, name: string) => Promise<void>) {
+  for (let index = 0; index < 8; index += 1) {
+    const count = await page.locator("li").filter({ hasText: foodName }).count();
+    if (count === 0) {
+      return;
+    }
+    await removeOne(page, foodName);
+  }
 }
 
 test("USDA live search and trusted logging flow", async ({ page }) => {
@@ -51,18 +75,23 @@ test("USDA live search and trusted logging flow", async ({ page }) => {
   });
 
   const date = uniqueTestDate();
+  await page.goto("/nutrition/foods");
+  await removeAllMatching(page, BRANDED_LABEL, removeSavedFoodByName);
+
   await page.goto(`/nutrition?date=${date}`);
   await expect(page.getByRole("heading", { name: "Nutrition" })).toBeVisible();
+  await removeAllMatching(page, BRANDED_LABEL, removeEntryByName);
 
   await openUsdaMode(page);
+  const usdaResults = page.locator("div.max-h-56").first();
   await page.getByLabel("Search USDA foods").fill("chicken breast raw");
-  await expect(page.getByText(GENERIC_LABEL)).toBeVisible();
+  await expect(usdaResults.getByText(GENERIC_LABEL).first()).toBeVisible();
 
   await page.getByLabel("Group").selectOption("branded");
   await page.getByLabel("Search USDA foods").fill("protein bar");
-  await expect(page.getByText(BRANDED_LABEL)).toBeVisible();
+  await expect(usdaResults.getByText(BRANDED_LABEL).first()).toBeVisible();
 
-  const brandedResult = page
+  const brandedResult = usdaResults
     .locator("button")
     .filter({ hasText: BRANDED_LABEL })
     .first();
@@ -93,8 +122,8 @@ test("USDA live search and trusted logging flow", async ({ page }) => {
   await openUsdaMode(page);
   await page.getByLabel("Group").selectOption("branded");
   await page.getByLabel("Search USDA foods").fill("protein bar");
-  await expect(page.getByText(BRANDED_LABEL)).toBeVisible();
-  await page
+  await expect(usdaResults.getByText(BRANDED_LABEL).first()).toBeVisible();
+  await usdaResults
     .locator("button")
     .filter({ hasText: BRANDED_LABEL })
     .first()
@@ -103,6 +132,7 @@ test("USDA live search and trusted logging flow", async ({ page }) => {
   await page.getByLabel("Unit").selectOption("g");
   await page.getByLabel("Save this USDA food to My Foods").check();
   await page.getByRole("button", { name: "Log USDA Food" }).click();
+  await expect(page.getByText(/saved to My Foods/i)).toBeVisible();
 
   await page.goto("/nutrition/foods");
   await expect(page.getByText(BRANDED_LABEL).first()).toBeVisible();
@@ -110,9 +140,9 @@ test("USDA live search and trusted logging flow", async ({ page }) => {
 
   const savedFood = page.locator("li").filter({ hasText: BRANDED_LABEL }).first();
   await savedFood.getByRole("button", { name: "Edit saved food" }).click();
-  await savedFood.getByLabel("Calories").fill("401");
-  await savedFood.getByRole("button", { name: "Save" }).click();
-  await expect(savedFood.getByText("USDA Modified • FDC 2000001")).toBeVisible();
+  await page.getByLabel(/^Calories$/).fill("401");
+  await page.getByRole("button", { name: "Save" }).first().click();
+  await expect(page.getByText("USDA Modified • FDC 2000001").first()).toBeVisible();
 
   await page.goto(`/nutrition?date=${date}`);
   await openComposer(page);
@@ -150,15 +180,11 @@ test("USDA live search and trusted logging flow", async ({ page }) => {
   await page.getByLabel("Fat g").fill("4");
   await page.getByRole("button", { name: "Log Custom Entry" }).click();
 
-  await removeEntryByName(page, BRANDED_LABEL);
-  await removeEntryByName(page, BRANDED_LABEL);
-  await removeEntryByName(page, BRANDED_LABEL);
-  await removeEntryByName(page, "Manual USDA E2E");
+  await removeAllMatching(page, BRANDED_LABEL, removeEntryByName);
+  await removeAllMatching(page, "Manual USDA E2E", removeEntryByName);
 
   await page.goto("/nutrition/foods");
-  const savedFoodRow = page.locator("li").filter({ hasText: BRANDED_LABEL }).first();
-  await savedFoodRow.getByRole("button", { name: "Delete saved food" }).click();
-  await savedFoodRow.getByRole("button", { name: "Confirm Delete" }).click();
+  await removeAllMatching(page, BRANDED_LABEL, removeSavedFoodByName);
   await expect(page.locator("li").filter({ hasText: BRANDED_LABEL })).toHaveCount(0);
 
   expect(usdaNetworkRequests).toEqual([]);
