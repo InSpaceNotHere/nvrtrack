@@ -6,7 +6,6 @@ import {
   createMyFood,
   deleteMyFood,
   updateMyFood,
-  type UpdateMyFoodInput,
 } from "@/lib/data/foods";
 import {
   createMyFoodEntry,
@@ -107,8 +106,18 @@ export async function createSavedFoodAction(input: SavedFoodActionInput): Promis
   };
 }
 
-export async function updateSavedFoodAction(foodId: string, input: UpdateMyFoodInput): Promise<SavedFoodActionResult> {
-  const result = await updateMyFood(foodId, input);
+export async function updateSavedFoodAction(foodId: string, input: SavedFoodActionInput): Promise<SavedFoodActionResult> {
+  const normalized = normalizeSavedFoodInput(input);
+  if (!normalized.data) {
+    return {
+      status: "error",
+      message: "Please fix the highlighted fields.",
+      errors: normalized.errors,
+      food: null,
+    };
+  }
+
+  const result = await updateMyFood(foodId, normalized.data);
   if (result.error) {
     return {
       status: "error",
