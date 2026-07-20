@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 9.5A, 9.5B Phase 2A, and 9.5B Phase 2B)
+## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 9.5A, 9.5B Phase 2A, 9.5B Phase 2B, and 9.5B Phase 2C)
 
 The app currently includes:
 
@@ -76,6 +76,11 @@ The app currently includes:
   - trusted server actions log/edit catalog entries using snapshotted source + per-100g nutrition
   - catalog amount units support grams, ounces, and source serving only when trusted gram weight exists
   - Home and Nutrition totals stay compatible through the existing per-serving snapshot model (`servings = 1` for catalog amount entries)
+- Session 9.5B Phase 2C expanded reviewed common catalog + scaled local search:
+  - reviewed local Common catalog expanded to 167 exact USDA-backed rows (20 locked pilot + 147 reviewed expansion rows)
+  - batch-oriented reviewed target workflow (`scripts/usda/catalog-target-batches.ts`) with deterministic lock + SQL generation
+  - Nutrition Common mode now uses **server-side bounded local search** (no full-catalog browser preload)
+  - initial Common results are capped featured rows; typed search queries return bounded ranked rows from local `food_catalog`
 
 ## Technology
 
@@ -1025,3 +1030,112 @@ npm run build
 7. Confirm Home totals reflect nutrition changes.
 8. Confirm My Foods logging and Manual Label logging still work.
 9. Confirm browser traffic does not call USDA directly.
+
+## Session 9.5B Phase 2C: Expanded Reviewed Common Catalog + Scaled Local Search
+
+### Expanded Common catalog scope
+
+Phase 2C expands the reviewed Common catalog from the original 20 pilot records to **167 total reviewed USDA-backed rows**:
+
+- **20** locked pilot records (unchanged from Phase 2A)
+- **147** reviewed expansion records
+
+Catalog rows are grouped under app-facing categories:
+
+- `protein`
+- `seafood`
+- `dairy`
+- `grains_and_starches`
+- `fruit`
+- `vegetables`
+- `fats_and_extras`
+
+### Reviewed batch workflow (no uncontrolled bulk approval)
+
+Common catalog expansion follows reviewed batches with deterministic artifacts:
+
+1. Define target concepts in `scripts/usda/catalog-target-batches.ts`
+2. Run candidate discovery (optionally by `--batch=<batch-id>`)
+3. Review exact USDA candidate descriptions and reject noisy matches
+4. Approve exact FDC IDs into `scripts/usda/food-catalog-manifest.ts`
+5. Fetch exact detail records into a normalized lock file
+6. Generate deterministic SQL from manifest + lock
+7. Verify deterministic regeneration before migration
+
+### Exact FDC approval and pilot stability
+
+- Every approved row must keep:
+  - exact USDA FDC ID
+  - exact USDA description
+  - exact USDA data type
+- Existing pilot FDC IDs are intentionally locked in `PILOT_LOCKED_RECORDS` and must not be silently replaced.
+- Raw/cooked, skin state, and lean-percentage distinctions are preserved as separate rows when USDA source rows are distinct.
+
+### Data-type selection rules
+
+Selection favors exact identity and preparation clarity over forcing one source type:
+
+- Prefer **Foundation** or **Survey (FNDDS)** when they are the best exact match.
+- Use **SR Legacy** when it is the clearest defensible exact record.
+- Avoid branded rows for generic Common foods unless a specific reviewed exception is documented.
+
+### Nutrient trust model
+
+For every approved catalog row:
+
+- calories, protein, carbohydrate, and fat per 100g are required
+- optional nutrients (fiber, sugar, sodium) may remain `null` when unavailable upstream
+- no fabricated nutrient values or guessed conversions are introduced
+
+### Deterministic refresh model
+
+The three-stage model remains intact:
+
+1. **Live discovery**
+2. **Reviewed manifest + normalized lock file**
+3. **Deterministic SQL generation from checked-in inputs**
+
+Deterministic guarantees:
+
+- generated SQL is byte-stable when inputs are unchanged
+- lock/SQL records are sorted deterministically
+- lock `retrievedAt` timestamps are pinned in checked-in artifacts
+- generation does not inject secrets or private user data
+
+Primary artifacts:
+
+- Manifest: `scripts/usda/food-catalog-manifest.ts`
+- Lock file: `scripts/usda/generated/food-catalog-reviewed.lock.json`
+- Seed SQL: `scripts/usda/generated/food-catalog-reviewed.sql`
+- Migration SQL: `supabase/migrations/20260721003000_seed_usda_food_catalog_phase2c_common_expansion.sql`
+
+### Scaled local Common search behavior
+
+Phase 2C keeps Common search local to `public.food_catalog` and avoids full-catalog preload on page load:
+
+- initial Nutrition Common panel loads a bounded featured subset (capped)
+- typed queries run server-side search against bounded candidates
+- deterministic ranking remains:
+  1. exact normalized-name
+  2. exact alias
+  3. starts-with normalized-name
+  4. all terms in normalized-name
+  5. all terms in aliases
+  6. recent-usage tie-break
+  7. stable alphabetical/FDC tie-break
+- client includes loading/no-results behavior and stale-request prevention
+
+### USDA attribution
+
+Catalog source nutrition data is derived from **USDA FoodData Central** and stored as reviewed local snapshots for Common logging.
+
+### Common catalog limitations vs live USDA search
+
+Phase 2C intentionally keeps Common mode local and reviewed:
+
+- no browser-side live USDA querying
+- no live save/import workflow for new USDA rows
+- no barcode flow
+- branded coverage remains limited in Common mode
+
+These capabilities belong to the later live USDA search phase, not this deterministic reviewed catalog phase.
