@@ -4,6 +4,13 @@ import { requiredE2EEnv } from "./e2e-env";
 
 const COOKED_CHICKEN_LABEL = "Chicken, broiler or fryers, breast, skinless, boneless, meat only, cooked, braised";
 const RAW_CHICKEN_LABEL = "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw";
+const POULTRY_EXPANDED_LABEL = "Chicken, broilers or fryers, wing, meat and skin, cooked, roasted";
+const GROUND_BEEF_85_LABEL = "Beef, ground, 85% lean meat / 15% fat, raw (Includes foods for USDA's Food Distribution Program)";
+const RICE_EXPANDED_LABEL = "Rice, white, medium-grain, enriched, cooked";
+const FRUIT_EXPANDED_LABEL = "Blueberries, raw";
+const DAIRY_EXPANDED_LABEL = "Yogurt, Greek, plain, lowfat";
+const SALMON_RAW_LABEL = "Fish, salmon, Atlantic, farmed, raw";
+const SALMON_COOKED_LABEL = "Fish, salmon, Atlantic, farmed, cooked, dry heat";
 
 function uniqueTestDate(): string {
   const day = (Math.floor(Date.now() / 1000) % 27) + 1;
@@ -40,18 +47,43 @@ test("common catalog logging flow with amount edit/delete and manual fallback", 
   await expect(page.getByRole("heading", { name: "Nutrition" })).toBeVisible();
 
   await openComposer(page);
+  const initialCommonButtons = page.locator("div.max-h-56 button");
+  const initialCount = await initialCommonButtons.count();
+  expect(initialCount).toBeGreaterThan(0);
+  expect(initialCount).toBeLessThanOrEqual(40);
+
+  await page.getByLabel("Search Common foods").fill("chicken wing cooked");
+  await expect(page.getByText(POULTRY_EXPANDED_LABEL)).toBeVisible();
+
+  await page.getByLabel("Search Common foods").fill("ground beef 85");
+  await expect(page.getByText(GROUND_BEEF_85_LABEL)).toBeVisible();
+
+  await page.getByLabel("Search Common foods").fill("rice medium");
+  await expect(page.getByText(RICE_EXPANDED_LABEL)).toBeVisible();
+
+  await page.getByLabel("Search Common foods").fill("blueberries");
+  await expect(page.getByText(FRUIT_EXPANDED_LABEL)).toBeVisible();
+
+  await page.getByLabel("Search Common foods").fill("greek yogurt lowfat");
+  await expect(page.getByText(DAIRY_EXPANDED_LABEL)).toBeVisible();
+
+  await page.getByLabel("Search Common foods").fill("salmon atlantic farmed");
+  await expect(page.getByText(SALMON_RAW_LABEL)).toBeVisible();
+  await expect(page.getByText(SALMON_COOKED_LABEL)).toBeVisible();
+
   await page.getByLabel("Search Common foods").fill("chicken breast");
 
   await expect(page.getByText(COOKED_CHICKEN_LABEL)).toBeVisible();
   await expect(page.getByText(RAW_CHICKEN_LABEL)).toBeVisible();
 
-  await page.getByRole("button", { name: new RegExp(COOKED_CHICKEN_LABEL, "i") }).click();
+  await page.getByLabel("Search Common foods").fill("ground beef 85");
+  await page.getByRole("button", { name: new RegExp(GROUND_BEEF_85_LABEL, "i") }).click();
   await page.getByLabel("Amount").fill("100");
   await page.getByLabel("Unit").selectOption("g");
   await expect(page.getByText(/Calories:/i)).toBeVisible();
   await page.getByRole("button", { name: "Log Common Food" }).click();
 
-  const cookedEntry = page.locator("li").filter({ has: page.getByText(COOKED_CHICKEN_LABEL) }).first();
+  const cookedEntry = page.locator("li").filter({ has: page.getByText(GROUND_BEEF_85_LABEL) }).first();
   await expect(cookedEntry).toBeVisible();
   await expect(cookedEntry.getByText("100 g")).toBeVisible();
 
@@ -69,7 +101,7 @@ test("common catalog logging flow with amount edit/delete and manual fallback", 
 
   await cookedEntry.getByRole("button", { name: "Delete" }).click();
   await cookedEntry.getByRole("button", { name: "Confirm Delete" }).click();
-  await expect(page.getByText(COOKED_CHICKEN_LABEL)).toHaveCount(0);
+  await expect(page.getByText(GROUND_BEEF_85_LABEL)).toHaveCount(0);
   await expect(page.getByText("No food entries logged for this date.")).toBeVisible();
   await expect(page.getByRole("alert").filter({ hasText: /database|failed|stack/i })).toHaveCount(0);
 
