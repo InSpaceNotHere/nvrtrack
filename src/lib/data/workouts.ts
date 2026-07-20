@@ -811,7 +811,16 @@ export async function reorderWorkoutExercises(
   return getMyWorkoutExercises(workoutId);
 }
 
-export async function removeWorkoutExercise(workoutExerciseId: string): Promise<DataAccessResult<{ id: string }>> {
+export async function removeWorkoutExercise(
+  workoutId: string,
+  workoutExerciseId: string,
+): Promise<DataAccessResult<{ id: string }>> {
+  if (!workoutId) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: "Workout id is required.",
+    });
+  }
   if (!workoutExerciseId) {
     return fail({
       code: "INVALID_INPUT",
@@ -823,11 +832,46 @@ export async function removeWorkoutExercise(workoutExerciseId: string): Promise<
   if (auth.error) {
     return auth;
   }
+
+  const workoutResult = await getMyWorkoutById(workoutId);
+  if (workoutResult.error) {
+    return workoutResult;
+  }
+  if (!workoutResult.data) {
+    return fail({
+      code: "NOT_FOUND",
+      message: "Workout not found.",
+    });
+  }
+
   const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const { data: existingRow, error: existingRowError } = await supabase
+    .from("workout_exercises")
+    .select("id")
+    .eq("id", workoutExerciseId)
+    .eq("workout_id", workoutId)
+    .eq("user_id", auth.data.user.id)
+    .maybeSingle();
+
+  if (existingRowError) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to load workout exercise.",
+      cause: existingRowError.message,
+    });
+  }
+  if (!existingRow) {
+    return fail({
+      code: "NOT_FOUND",
+      message: "Workout exercise not found.",
+    });
+  }
+
   const { data, error } = await supabase
     .from("workout_exercises")
     .delete()
     .eq("id", workoutExerciseId)
+    .eq("workout_id", workoutId)
     .eq("user_id", auth.data.user.id)
     .select("id")
     .maybeSingle();

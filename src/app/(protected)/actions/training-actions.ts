@@ -486,7 +486,7 @@ export async function removeWorkoutExerciseAction(
   workoutId: string,
   workoutExerciseId: string,
 ): Promise<BaseActionResult> {
-  const removeResult = await removeWorkoutExercise(workoutExerciseId);
+  const removeResult = await removeWorkoutExercise(workoutId, workoutExerciseId);
   if (removeResult.error) {
     return { status: "error", message: removeResult.error.message };
   }

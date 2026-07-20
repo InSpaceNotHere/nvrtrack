@@ -166,6 +166,7 @@ export function WorkoutLogger({
   const [workoutDate, setWorkoutDate] = useState(workout.workoutDate);
   const [workoutNotes, setWorkoutNotes] = useState(workout.notes ?? "");
   const [optimisticExercises, setOptimisticExercises] = useState<WorkoutLoggerExercise[]>([]);
+  const [optimisticRemovedExerciseIds, setOptimisticRemovedExerciseIds] = useState<string[]>([]);
 
   const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>(() =>
     Object.fromEntries(
@@ -220,8 +221,10 @@ export function WorkoutLogger({
         byId.set(exercise.id, exercise);
       }
     }
-    return Array.from(byId.values()).sort((a, b) => a.position - b.position);
-  }, [exercises, optimisticExercises]);
+    return Array.from(byId.values())
+      .filter((exercise) => !optimisticRemovedExerciseIds.includes(exercise.id))
+      .sort((a, b) => a.position - b.position);
+  }, [exercises, optimisticExercises, optimisticRemovedExerciseIds]);
 
   function setSuccessMessage(text: string) {
     setTone("success");
@@ -542,6 +545,10 @@ export function WorkoutLogger({
       const result = await removeWorkoutExerciseAction(workout.id, workoutExerciseId);
       if (result.status === "success") {
         setSuccessMessage(result.message);
+        setOptimisticExercises((current) => current.filter((exercise) => exercise.id !== workoutExerciseId));
+        setOptimisticRemovedExerciseIds((current) =>
+          current.includes(workoutExerciseId) ? current : [...current, workoutExerciseId],
+        );
         setDeleteExerciseConfirmId(null);
         router.refresh();
         return;
