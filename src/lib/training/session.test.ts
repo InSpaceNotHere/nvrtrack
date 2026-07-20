@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { WorkoutExerciseRow, WorkoutRow, WorkoutSetRow } from "./types";
 import {
   buildDuplicateSetInput,
+  buildWorkoutMuscleTargeting,
   buildPreviousPerformanceMap,
   buildWorkoutSummaryStats,
   countCompletedWorkoutsThisWeek,
@@ -35,6 +36,11 @@ function makeWorkoutExercise(overrides: Partial<WorkoutExerciseRow> = {}): Worko
     exercise_name: "Bench Press",
     position: 0,
     notes: null,
+    source_primary_muscles: [],
+    source_secondary_muscles: [],
+    source_body_region: null,
+    source_movement_pattern: null,
+    source_muscle_metadata_version: null,
     created_at: "2026-07-20T12:01:00.000Z",
     updated_at: "2026-07-20T12:01:00.000Z",
     ...overrides,
@@ -228,6 +234,25 @@ describe("training session helpers", () => {
     expect(summary.bestEstimatedOneRepMax).toBeGreaterThan(280);
     expect(summary.potentialPrCount).toBe(1);
     expect(summary.durationMinutes).toBe(60);
+  });
+
+  it("derives workout muscle targeting from exercise metadata snapshots", () => {
+    const targeting = buildWorkoutMuscleTargeting([
+      makeWorkoutExercise({
+        id: "exercise-1",
+        source_primary_muscles: ["chest"],
+        source_secondary_muscles: ["triceps"],
+      }),
+      makeWorkoutExercise({
+        id: "exercise-2",
+        source_primary_muscles: ["triceps"],
+        source_secondary_muscles: [],
+      }),
+    ]);
+
+    expect(targeting.exercise_count).toBe(2);
+    expect(targeting.ranked_muscles[0]?.muscle).toBe("triceps");
+    expect(targeting.ranked_muscles[1]?.muscle).toBe("chest");
   });
 
   it("normalizes snapshot names consistently", () => {

@@ -2,14 +2,19 @@ export interface CatalogExerciseLike {
   name: string;
   normalized_name?: string | null;
   aliases?: string[] | null;
+  primary_muscles?: string[] | null;
+  secondary_muscles?: string[] | null;
   primary_muscle_group?: string | null;
+  body_region?: string | null;
+  movement_pattern?: string | null;
   equipment?: string | null;
 }
 
 export interface CatalogFilterOptions {
   query?: string;
   muscle?: string;
-  equipment?: string;
+  body_region?: string;
+  movement_pattern?: string;
 }
 
 function collapseWhitespace(value: string): string {
@@ -47,7 +52,8 @@ export function matchesCatalogQuery(exercise: CatalogExerciseLike, query: string
 export function filterCatalogExercises<T extends CatalogExerciseLike>(exercises: T[], filters: CatalogFilterOptions): T[] {
   const term = normalizeCatalogSearchTerm(filters.query ?? "");
   const muscleFilter = normalizeCatalogSearchTerm(filters.muscle ?? "");
-  const equipmentFilter = normalizeCatalogSearchTerm(filters.equipment ?? "");
+  const bodyRegionFilter = normalizeCatalogSearchTerm(filters.body_region ?? "");
+  const movementPatternFilter = normalizeCatalogSearchTerm(filters.movement_pattern ?? "");
 
   return exercises.filter((exercise) => {
     if (term && !matchesCatalogQuery(exercise, term)) {
@@ -55,15 +61,24 @@ export function filterCatalogExercises<T extends CatalogExerciseLike>(exercises:
     }
 
     if (muscleFilter) {
-      const exerciseMuscle = normalizeCatalogSearchTerm(exercise.primary_muscle_group ?? "");
-      if (exerciseMuscle !== muscleFilter) {
+      const primaryMuscles = (exercise.primary_muscles ?? [exercise.primary_muscle_group ?? ""]).map((value) =>
+        normalizeCatalogSearchTerm(value),
+      );
+      if (!primaryMuscles.includes(muscleFilter)) {
         return false;
       }
     }
 
-    if (equipmentFilter) {
-      const exerciseEquipment = normalizeCatalogSearchTerm(exercise.equipment ?? "");
-      if (exerciseEquipment !== equipmentFilter) {
+    if (bodyRegionFilter) {
+      const exerciseBodyRegion = normalizeCatalogSearchTerm(exercise.body_region ?? "");
+      if (exerciseBodyRegion !== bodyRegionFilter) {
+        return false;
+      }
+    }
+
+    if (movementPatternFilter) {
+      const exerciseMovementPattern = normalizeCatalogSearchTerm(exercise.movement_pattern ?? "");
+      if (exerciseMovementPattern !== movementPatternFilter) {
         return false;
       }
     }
@@ -74,22 +89,33 @@ export function filterCatalogExercises<T extends CatalogExerciseLike>(exercises:
 
 export function buildCatalogFacets<T extends CatalogExerciseLike>(exercises: T[]): {
   muscles: string[];
-  equipment: string[];
+  body_regions: string[];
+  movement_patterns: string[];
 } {
   const muscles = new Set<string>();
-  const equipment = new Set<string>();
+  const bodyRegions = new Set<string>();
+  const movementPatterns = new Set<string>();
 
   for (const exercise of exercises) {
+    for (const muscle of exercise.primary_muscles ?? []) {
+      if (muscle) {
+        muscles.add(muscle);
+      }
+    }
     if (exercise.primary_muscle_group) {
       muscles.add(exercise.primary_muscle_group);
     }
-    if (exercise.equipment) {
-      equipment.add(exercise.equipment);
+    if (exercise.body_region) {
+      bodyRegions.add(exercise.body_region);
+    }
+    if (exercise.movement_pattern) {
+      movementPatterns.add(exercise.movement_pattern);
     }
   }
 
   return {
     muscles: [...muscles].sort((a, b) => a.localeCompare(b)),
-    equipment: [...equipment].sort((a, b) => a.localeCompare(b)),
+    body_regions: [...bodyRegions].sort((a, b) => a.localeCompare(b)),
+    movement_patterns: [...movementPatterns].sort((a, b) => a.localeCompare(b)),
   };
 }

@@ -1,5 +1,6 @@
 import type { WorkoutExerciseRow, WorkoutRow, WorkoutSetLike, WorkoutSetRow, TrainingWeightUnit } from "./types";
 import type { WorkoutSetInput } from "./validation";
+import { aggregateWorkoutMuscles, type WorkoutMuscleAggregation } from "./muscle-aggregation";
 import {
   calculateWorkoutVolume,
   evaluatePersonalRecordCandidate,
@@ -264,6 +265,17 @@ export function buildWorkoutSummaryStats(params: {
     potentialPrCount,
     durationMinutes: calculateWorkoutDurationMinutes(workout),
   };
+}
+
+export function buildWorkoutMuscleTargeting(exercises: WorkoutExerciseRow[]): WorkoutMuscleAggregation {
+  return aggregateWorkoutMuscles(
+    exercises.map((exercise) => ({
+      exercise_id: exercise.id,
+      exercise_name: exercise.exercise_name,
+      primary_muscles: exercise.source_primary_muscles ?? [],
+      secondary_muscles: exercise.source_secondary_muscles ?? [],
+    })),
+  );
 }
 
 export function buildDuplicateSetInput(source: WorkoutSetRow, nextPosition: number): WorkoutSetInput {

@@ -1,3 +1,11 @@
+import {
+  mapLegacyMuscleGroupToPrimaryMuscles,
+  normalizeExerciseMuscleMetadata,
+  toLegacyPrimaryMuscleGroup,
+  type BodyRegion,
+  type MovementPattern,
+  type MuscleId,
+} from "./muscles";
 import type { TrainingWeightUnit, WorkoutSetType } from "./types";
 
 export const EXERCISE_NAME_MAX_LENGTH = 120;
@@ -24,6 +32,10 @@ export interface ExerciseInput {
   muscle_group?: string | null;
   equipment?: string | null;
   notes?: string | null;
+  primary_muscles?: string[] | null;
+  secondary_muscles?: string[] | null;
+  body_region?: string | null;
+  movement_pattern?: string | null;
 }
 
 export interface ExerciseNormalized {
@@ -31,6 +43,10 @@ export interface ExerciseNormalized {
   muscle_group: string | null;
   equipment: string | null;
   notes: string | null;
+  primary_muscles: MuscleId[];
+  secondary_muscles: MuscleId[];
+  body_region: BodyRegion | null;
+  movement_pattern: MovementPattern | null;
 }
 
 export interface WorkoutInput {
@@ -92,7 +108,15 @@ export interface ValidationResult<T, F extends string> {
   errors: Partial<Record<F, string>>;
 }
 
-export type ExerciseField = "name" | "muscle_group" | "equipment" | "notes";
+export type ExerciseField =
+  | "name"
+  | "muscle_group"
+  | "equipment"
+  | "notes"
+  | "primary_muscles"
+  | "secondary_muscles"
+  | "body_region"
+  | "movement_pattern";
 export type WorkoutField = "name" | "workout_date" | "started_at" | "completed_at" | "notes";
 export type WorkoutExerciseField = "exercise_id" | "catalog_exercise_id" | "exercise_name" | "position" | "notes";
 export type WorkoutSetField =
@@ -204,7 +228,14 @@ function isWeightUnit(value: string): value is TrainingWeightUnit {
   return WEIGHT_UNITS.includes(value as TrainingWeightUnit);
 }
 
-export function normalizeExerciseInput(input: ExerciseInput): ValidationResult<ExerciseNormalized, ExerciseField> {
+export interface ExerciseValidationOptions {
+  require_primary_muscles?: boolean;
+}
+
+export function normalizeExerciseInput(
+  input: ExerciseInput,
+  options: ExerciseValidationOptions = {},
+): ValidationResult<ExerciseNormalized, ExerciseField> {
   const errors: Partial<Record<ExerciseField, string>> = {};
   const name = parseRequiredText(input.name, "Exercise name", EXERCISE_NAME_MAX_LENGTH);
   if (name.error) errors.name = name.error;
@@ -218,16 +249,40 @@ export function normalizeExerciseInput(input: ExerciseInput): ValidationResult<E
   const notes = parseOptionalText(input.notes, "Notes", EXERCISE_NOTES_MAX_LENGTH);
   if (notes.error) errors.notes = notes.error;
 
+  const legacyPrimaryMuscles =
+    input.primary_muscles === undefined && input.secondary_muscles === undefined
+      ? mapLegacyMuscleGroupToPrimaryMuscles(muscleGroup.value)
+      : [];
+  const muscles = normalizeExerciseMuscleMetadata({
+    primary_muscles: input.primary_muscles ?? legacyPrimaryMuscles,
+    secondary_muscles: input.secondary_muscles ?? [],
+    body_region: input.body_region,
+    movement_pattern: input.movement_pattern,
+    require_primary_muscles: options.require_primary_muscles,
+  });
+
+  if (muscles.errors.primary_muscles) errors.primary_muscles = muscles.errors.primary_muscles;
+  if (muscles.errors.secondary_muscles) errors.secondary_muscles = muscles.errors.secondary_muscles;
+  if (muscles.errors.body_region) errors.body_region = muscles.errors.body_region;
+  if (muscles.errors.movement_pattern) errors.movement_pattern = muscles.errors.movement_pattern;
+
   if (Object.keys(errors).length) {
     return { data: null, errors };
   }
 
+  const normalizedMuscles = muscles.data!;
+  const legacyMuscleGroup = toLegacyPrimaryMuscleGroup(normalizedMuscles.primary_muscles);
+
   return {
     data: {
       name: name.value!,
-      muscle_group: muscleGroup.value,
+      muscle_group: legacyMuscleGroup ?? muscleGroup.value,
       equipment: equipment.value,
       notes: notes.value,
+      primary_muscles: normalizedMuscles.primary_muscles,
+      secondary_muscles: normalizedMuscles.secondary_muscles,
+      body_region: normalizedMuscles.body_region,
+      movement_pattern: normalizedMuscles.movement_pattern,
     },
     errors: {},
   };

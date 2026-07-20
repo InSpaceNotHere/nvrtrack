@@ -11,17 +11,24 @@ describe("training validation - exercises", () => {
   it("normalizes valid exercise fields", () => {
     const result = normalizeExerciseInput({
       name: "  Bench Press  ",
-      muscle_group: "  Chest ",
+      primary_muscles: [" chest "],
+      secondary_muscles: [" front_delts ", "triceps"],
+      body_region: " upper body ",
+      movement_pattern: " horizontal press ",
       equipment: " Barbell ",
       notes: " Main lift ",
-    });
+    }, { require_primary_muscles: true });
 
     expect(result.errors).toEqual({});
     expect(result.data).toEqual({
       name: "Bench Press",
-      muscle_group: "Chest",
+      muscle_group: "chest",
       equipment: "Barbell",
       notes: "Main lift",
+      primary_muscles: ["chest"],
+      secondary_muscles: ["front_delts", "triceps"],
+      body_region: "upper_body",
+      movement_pattern: "horizontal_press",
     });
   });
 
@@ -35,6 +42,30 @@ describe("training validation - exercises", () => {
 
     expect(result.data).toBeNull();
     expect(result.errors.name).toBeDefined();
+  });
+
+  it("rejects primary/secondary overlap", () => {
+    const result = normalizeExerciseInput({
+      name: "Bench Press",
+      primary_muscles: ["chest"],
+      secondary_muscles: ["chest"],
+    }, { require_primary_muscles: true });
+
+    expect(result.data).toBeNull();
+    expect(result.errors.secondary_muscles).toContain("both primary and secondary");
+  });
+
+  it("allows old exercises with no metadata during update validation", () => {
+    const result = normalizeExerciseInput({
+      name: "Legacy Exercise",
+      primary_muscles: [],
+      secondary_muscles: [],
+      body_region: null,
+      movement_pattern: null,
+    });
+
+    expect(result.errors).toEqual({});
+    expect(result.data?.primary_muscles).toEqual([]);
   });
 });
 
