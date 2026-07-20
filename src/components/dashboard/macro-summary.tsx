@@ -7,12 +7,12 @@ interface MacroSummaryProps {
 
 export function MacroSummary({ macros }: MacroSummaryProps) {
   return (
-    <ul className="space-y-4">
+    <ul className="space-y-3">
       {macros.map((macro) => (
-        <li key={macro.name} className="space-y-2">
+        <li key={macro.name} className="space-y-1.5">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-zinc-300">{macro.name}</span>
-            <span className="font-medium text-white">
+            <span className="text-zinc-400">{macro.name}</span>
+            <span className="font-medium text-zinc-100">
               {macro.consumed}
               {macro.unit} / {macro.goal}
               {macro.unit}

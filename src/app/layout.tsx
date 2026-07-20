@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full bg-[#050607] font-sans text-white">
+      <body className="min-h-full bg-[var(--background)] font-sans text-white">
         <AppShell>{children}</AppShell>
       </body>
     </html>

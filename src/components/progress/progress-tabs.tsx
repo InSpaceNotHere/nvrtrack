@@ -38,7 +38,7 @@ export function ProgressTabs({ overview }: ProgressTabsProps) {
   }, [overview, tab]);
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-4">
       <div role="tablist" aria-label="Progress views" className="inline-flex rounded-xl border border-white/10 bg-[#0f1114] p-1">
         {TAB_OPTIONS.map((option) => (
           <button
@@ -47,8 +47,8 @@ export function ProgressTabs({ overview }: ProgressTabsProps) {
             role="tab"
             aria-selected={tab === option}
             onClick={() => setTab(option)}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              tab === option ? "bg-white/12 text-white" : "text-zinc-400 hover:text-zinc-200"
+            className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
+              tab === option ? "bg-white/12 font-medium text-white" : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
             {option}

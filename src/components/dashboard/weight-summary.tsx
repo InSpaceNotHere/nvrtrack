@@ -18,20 +18,24 @@ export function WeightSummary({
   trend,
 }: WeightSummaryProps) {
   return (
-    <Card title="Body Weight" subtitle="Current + seven-day trend">
-      <div className="grid gap-4 sm:grid-cols-2">
+    <Card title="Body Weight">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <p className="text-3xl font-semibold tracking-tight text-white">{currentWeight.toFixed(1)} lb</p>
-          <p className="mt-1 text-sm text-zinc-400">{currentChange}</p>
+          <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.1rem]">
+            {currentWeight.toFixed(1)} <span className="text-lg text-zinc-300">lb</span>
+          </p>
+          <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-rose-400">{currentChange}</p>
         </div>
         <div>
-          <p className="text-lg font-semibold text-white">{sevenDayAverage.toFixed(1)} lb avg</p>
-          <p className="mt-1 text-sm text-zinc-400">{averageChange}</p>
+          <p className="text-xl font-semibold text-white">
+            {sevenDayAverage.toFixed(1)} <span className="text-sm text-zinc-300">lb avg</span>
+          </p>
+          <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-rose-400">{averageChange}</p>
         </div>
       </div>
-      <div className="mt-4">
+      <div className="mt-3">
         <TrendSparkline points={trend.map((point) => point.value)} />
-        <div className="mt-1 grid grid-cols-7 text-[11px] text-zinc-500">
+        <div className="mt-1 grid grid-cols-7 text-[10px] text-zinc-500">
           {trend.map((point) => (
             <span key={point.label} className="text-center">
               {point.label}

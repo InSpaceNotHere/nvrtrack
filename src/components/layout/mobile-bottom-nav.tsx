@@ -16,8 +16,8 @@ export function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0d10]/95 backdrop-blur md:hidden">
-      <ul className="mx-auto grid w-full max-w-xl grid-cols-5 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/95 backdrop-blur md:hidden">
+      <ul className="mx-auto grid w-full max-w-md grid-cols-5 px-1.5 pb-[calc(0.35rem+env(safe-area-inset-bottom))] pt-1.5">
         {NAV_ITEMS.map((item) => {
           const active = isRouteActive(pathname, item.href);
           const Icon = item.icon;
@@ -26,13 +26,13 @@ export function MobileBottomNav() {
             <li key={item.href}>
               <Link
                 href={item.href}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-medium transition-colors ${
-                  active ? "bg-white/10 text-white" : "text-zinc-500 hover:text-zinc-200"
+                className={`flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] transition-colors ${
+                  active ? "text-white" : "text-zinc-500 hover:text-zinc-300"
                 }`}
                 aria-current={active ? "page" : undefined}
               >
-                <Icon className="h-4 w-4" aria-hidden="true" />
-                <span>{item.label}</span>
+                <Icon className={`h-4 w-4 ${active ? "stroke-[2.2]" : ""}`} aria-hidden="true" />
+                <span className="font-medium">{item.label}</span>
               </Link>
             </li>
           );
