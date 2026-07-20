@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
 import { mapAuthErrorMessage } from "@/lib/auth/errors";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
-  const router = useRouter();
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
 
   const [email, setEmail] = useState("");
@@ -21,26 +19,56 @@ export function LoginForm() {
     event.preventDefault();
     setError(null);
 
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError("Email is required.");
+      return;
+    }
+
+    if (!password) {
+      setError("Password is required.");
+      return;
+    }
+
     if (!supabase) {
       setError("Supabase environment variables are missing. Configure .env.local to continue.");
       return;
     }
 
     setLoading(true);
+    let navigated = false;
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      });
 
-    if (signInError) {
-      setError(mapAuthErrorMessage(signInError.message));
-      setLoading(false);
-      return;
+      if (signInError) {
+        setError(mapAuthErrorMessage(signInError.message));
+        return;
+      }
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        setError("Login succeeded but session could not be established. Please try again.");
+        return;
+      }
+
+      navigated = true;
+      window.location.assign("/");
+    } catch (submitError) {
+      const message =
+        submitError instanceof Error ? submitError.message : "Unable to complete authentication right now.";
+      setError(mapAuthErrorMessage(message));
+    } finally {
+      if (!navigated) {
+        setLoading(false);
+      }
     }
-
-    router.replace("/");
-    router.refresh();
   }
 
   return (

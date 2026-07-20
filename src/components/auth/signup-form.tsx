@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
 import { MIN_PASSWORD_LENGTH, mapAuthErrorMessage } from "@/lib/auth/errors";
@@ -12,7 +11,6 @@ function isValidEmail(email: string): boolean {
 }
 
 export function SignupForm() {
-  const router = useRouter();
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
 
   const [email, setEmail] = useState("");
@@ -52,30 +50,48 @@ export function SignupForm() {
     }
 
     setLoading(true);
+    let navigated = false;
 
-    const emailRedirectTo = `${window.location.origin}/auth/callback`;
-    const { data, error: signupError } = await supabase.auth.signUp({
-      email: trimmedEmail,
-      password,
-      options: {
-        emailRedirectTo,
-      },
-    });
+    try {
+      const emailRedirectTo = `${window.location.origin}/auth/callback`;
+      const { data, error: signupError } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password,
+        options: {
+          emailRedirectTo,
+        },
+      });
 
-    if (signupError) {
-      setError(mapAuthErrorMessage(signupError.message));
-      setLoading(false);
-      return;
+      if (signupError) {
+        setError(mapAuthErrorMessage(signupError.message));
+        return;
+      }
+
+      if (data.session) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+          setError("Account was created, but session could not be established. Please log in.");
+          return;
+        }
+
+        navigated = true;
+        window.location.assign("/");
+        return;
+      }
+
+      setSuccessMessage("Account created. Check your email to confirm your account before logging in.");
+    } catch (submitError) {
+      const message =
+        submitError instanceof Error ? submitError.message : "Unable to complete authentication right now.";
+      setError(mapAuthErrorMessage(message));
+    } finally {
+      if (!navigated) {
+        setLoading(false);
+      }
     }
-
-    if (data.session) {
-      router.replace("/");
-      router.refresh();
-      return;
-    }
-
-    setSuccessMessage("Account created. Check your email to confirm your account before logging in.");
-    setLoading(false);
   }
 
   return (
