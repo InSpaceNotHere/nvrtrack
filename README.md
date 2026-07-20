@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 9.5A, 9.5B Phase 2A, 9.5B Phase 2B, and 9.5B Phase 2C)
+## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 9.5A, 9.5B Phase 2A, 9.5B Phase 2B, 9.5B Phase 2C, and 9.5B Phase 2D)
 
 The app currently includes:
 
@@ -81,6 +81,15 @@ The app currently includes:
   - batch-oriented reviewed target workflow (`scripts/usda/catalog-target-batches.ts`) with deterministic lock + SQL generation
   - Nutrition Common mode now uses **server-side bounded local search** (no full-catalog browser preload)
   - initial Common results are capped featured rows; typed search queries return bounded ranked rows from local `food_catalog`
+- Session 9.5B Phase 2D live USDA search + trusted logging + save-to-My-Foods:
+  - Add Food now includes a distinct **Search USDA** mode alongside Common, My Foods, and Manual Label
+  - USDA search is authenticated server-only via `/api/usda/search` and never exposes `USDA_FDC_API_KEY` to the browser
+  - Generic and Branded USDA results are ranked separately with deterministic ordering and bounded result limits
+  - selected USDA records are re-resolved by exact FDC ID server-side before logging
+  - live USDA logs snapshot source/per-100g/amount metadata with `source_status = usda_live`
+  - optional save-to-My-Foods reuses existing user+FDC records and avoids uncontrolled duplicates
+  - editing saved USDA nutrition marks rows as `usda_modified` while preserving provenance metadata
+  - fixture-backed USDA mode supports permanent E2E coverage without live USDA dependency
 
 ## Technology
 
@@ -1139,3 +1148,160 @@ Phase 2C intentionally keeps Common mode local and reviewed:
 - branded coverage remains limited in Common mode
 
 These capabilities belong to the later live USDA search phase, not this deterministic reviewed catalog phase.
+
+## Session 9.5B Phase 2D: Live USDA Search + Trusted Logging + Save to My Foods
+
+### Architecture boundary (server-only USDA key)
+
+- USDA API access remains server-only in `src/lib/usda/client.ts` (`import "server-only"`).
+- Browser never sends USDA API key, never calls `api.nal.usda.gov` directly, and never receives raw keyed USDA URLs.
+- Authenticated internal search boundary:
+  - `POST /api/usda/search`
+  - validates auth, query, result group, and limit
+  - returns only safe normalized summaries
+- Exact detail resolution and logging use server actions:
+  - `resolveUsdaFoodDetailAction`
+  - `createLiveUsdaFoodEntryAction`
+
+### Search USDA mode and result groups
+
+Add Food now includes four explicit modes:
+
+- **Common** (curated local `food_catalog`)
+- **Search USDA** (live server-fetched USDA)
+- **My Foods**
+- **Manual Label**
+
+Search USDA keeps Generic and Branded distinct:
+
+- **Generic**: Foundation / Survey (FNDDS) / SR Legacy style results
+- **Branded**: branded product records with brand + GTIN/UPC context
+
+### Search behavior, ranking, and bounds
+
+Search USDA behavior is bounded and stale-safe:
+
+- minimum query length
+- query normalization
+- debounced search in composer
+- explicit Search button
+- stale request cancellation/ignore
+- capped result count
+
+Deterministic ranking:
+
+- Generic prioritizes exact/term/preparation clarity before source-type tie-breaks
+- Branded prioritizes exact brand/product and GTIN relevance, then nutrient/serving quality and recency
+- branded duplicates with same GTIN/UPC are deduplicated deterministically (most recent valid record wins)
+- stable FDC tie-break remains
+
+### Exact FDC detail resolution (trusted preview + logging authority)
+
+Search rows are discovery summaries only.
+
+When a user selects a result:
+
+1. browser submits FDC ID
+2. server resolves exact USDA detail for that FDC ID
+3. trusted normalization runs server-side
+4. UI receives safe normalized detail preview (no raw USDA payload)
+
+Logging re-resolves USDA detail again server-side before write, so browser-provided macros/descriptions are never trusted.
+
+### Supported quantity model
+
+Live USDA logging supports:
+
+- `g`
+- `oz`
+- `source_serving` only when USDA detail provides trusted gram weight for that portion
+
+No invented conversions are introduced.
+If required core nutrient basis is missing, logging is blocked with a clear message.
+
+### Snapshot logging behavior (`source_status = usda_live`)
+
+Live USDA entries are stored as immutable snapshots using the same proven amount-entry representation:
+
+- `servings = 1`
+- `serving_size = entered amount value`
+- `serving_unit = entered amount unit`
+- per-serving calories/macros are computed server-side from trusted nutrient basis
+- amount fields and source metadata are snapshotted on entry row
+- `source_status = usda_live`
+
+Quantity edits for `usda_live` entries recalculate from entry snapshots (no USDA refetch), preserving historical stability.
+
+### Save to My Foods and USDA Modified behavior
+
+Optional save-to-My-Foods in Search USDA mode:
+
+- reuses user-owned saved USDA food by `user_id + fdc_id` lookup logic
+- avoids uncontrolled duplicate creation on repeated saves
+- does not overwrite `usda_modified`/manual customized records without explicit user edits
+
+Saved-food editing behavior:
+
+- non-nutrition edits keep USDA status/provenance
+- changing core nutrition values marks source as `usda_modified`
+- provenance fields (`fdc_id`, source metadata) remain retained
+
+### Cache behavior
+
+Conservative in-memory cache at USDA integration boundary (`src/lib/usda/live.ts`):
+
+- short-lived cache for normalized search responses
+- longer-lived cache for normalized exact-detail responses
+- cache key includes normalization version + normalized query/group/limit (search) or FDC ID (detail)
+- malformed responses and upstream failures are not permanently cached
+
+Notes:
+
+- this is process-local cache behavior, not a distributed global rate limiter
+- stronger distributed throttling can be added as future production hardening
+
+### Outage and rate-limit behavior
+
+Search USDA distinguishes typed failures (for example `rate_limited`, `timeout`, `service_unavailable`) and keeps other modes usable:
+
+- Common still works
+- My Foods still works
+- Manual Label still works
+- existing logs remain visible/editable
+
+### Fixture-backed permanent testing boundary
+
+Permanent E2E does not require live USDA availability.
+
+- server-only USDA fixture mode: `USDA_FDC_FIXTURE_MODE=1`
+- fixture mode is disabled in production runtime
+- fixture activation is environment-based only (not query/cookie toggled)
+- fixture implementation is contained to USDA server module boundary (`src/lib/usda/fixtures.ts` + `src/lib/usda/live.ts`)
+
+New dedicated E2E:
+
+- `tests/e2e/usda-live-search.spec.ts`
+
+### Live USDA verification checklist (separate from permanent fixture tests)
+
+When running live verification with real USDA credentials, validate:
+
+1. generic search behavior
+2. branded search behavior
+3. exact FDC detail resolution
+4. grams and ounces logging math
+5. source-serving logging when trusted grams exist
+6. `usda_live` snapshot persistence
+7. save-to-My-Foods reuse behavior
+8. `usda_modified` transition after nutrient edits
+9. browser never directly requests USDA host
+10. no key exposure in browser payloads
+
+### USDA attribution and explicit deferrals
+
+- Live search and source nutrition remain attributed to **USDA FoodData Central**.
+- Explicitly deferred from this phase:
+  - barcode scanning
+  - arbitrary global live-product caching service
+  - final UI redesign
+  - Session 10 work
