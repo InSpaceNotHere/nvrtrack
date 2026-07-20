@@ -47,37 +47,42 @@ test("common catalog logging flow with amount edit/delete and manual fallback", 
   await expect(page.getByRole("heading", { name: "Nutrition" })).toBeVisible();
 
   await openComposer(page);
-  const initialCommonButtons = page.locator("div.max-h-56 button");
+  const commonResults = page.locator("div.max-h-56");
+  const initialCommonButtons = commonResults.locator("button");
   const initialCount = await initialCommonButtons.count();
   expect(initialCount).toBeGreaterThan(0);
   expect(initialCount).toBeLessThanOrEqual(40);
 
   await page.getByLabel("Search Common foods").fill("chicken wing cooked");
-  await expect(page.getByText(POULTRY_EXPANDED_LABEL)).toBeVisible();
+  await expect(commonResults.getByText(POULTRY_EXPANDED_LABEL)).toBeVisible();
 
   await page.getByLabel("Search Common foods").fill("ground beef 85");
-  await expect(page.getByText(GROUND_BEEF_85_LABEL)).toBeVisible();
+  await expect(commonResults.getByText(GROUND_BEEF_85_LABEL)).toBeVisible();
 
   await page.getByLabel("Search Common foods").fill("rice medium");
-  await expect(page.getByText(RICE_EXPANDED_LABEL)).toBeVisible();
+  await expect(commonResults.getByText(RICE_EXPANDED_LABEL).first()).toBeVisible();
 
   await page.getByLabel("Search Common foods").fill("blueberries");
-  await expect(page.getByText(FRUIT_EXPANDED_LABEL)).toBeVisible();
+  await expect(commonResults.getByText(FRUIT_EXPANDED_LABEL)).toBeVisible();
 
   await page.getByLabel("Search Common foods").fill("greek yogurt lowfat");
-  await expect(page.getByText(DAIRY_EXPANDED_LABEL)).toBeVisible();
+  await expect(commonResults.getByText(DAIRY_EXPANDED_LABEL)).toBeVisible();
 
   await page.getByLabel("Search Common foods").fill("salmon atlantic farmed");
-  await expect(page.getByText(SALMON_RAW_LABEL)).toBeVisible();
-  await expect(page.getByText(SALMON_COOKED_LABEL)).toBeVisible();
+  await expect(commonResults.getByText(SALMON_RAW_LABEL)).toBeVisible();
+  await expect(commonResults.getByText(SALMON_COOKED_LABEL)).toBeVisible();
 
   await page.getByLabel("Search Common foods").fill("chicken breast");
 
-  await expect(page.getByText(COOKED_CHICKEN_LABEL)).toBeVisible();
-  await expect(page.getByText(RAW_CHICKEN_LABEL)).toBeVisible();
+  await expect(commonResults.getByText(COOKED_CHICKEN_LABEL)).toBeVisible();
+  await expect(commonResults.getByText(RAW_CHICKEN_LABEL)).toBeVisible();
 
   await page.getByLabel("Search Common foods").fill("ground beef 85");
-  await page.getByRole("button", { name: new RegExp(GROUND_BEEF_85_LABEL, "i") }).click();
+  const groundBeefOption = commonResults.locator("button").filter({
+    hasText: "Beef, ground, 85% lean meat / 15% fat, raw",
+  });
+  await expect(groundBeefOption.first()).toBeVisible();
+  await groundBeefOption.first().click();
   await page.getByLabel("Amount").fill("100");
   await page.getByLabel("Unit").selectOption("g");
   await expect(page.getByText(/Calories:/i)).toBeVisible();
