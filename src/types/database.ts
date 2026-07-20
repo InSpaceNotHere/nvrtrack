@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      exercise_catalog: {
+        Row: {
+          aliases: string[]
+          created_at: string
+          equipment: string
+          id: string
+          instructions: string | null
+          is_active: boolean
+          movement_pattern: string
+          name: string
+          normalized_name: string
+          primary_muscle_group: string
+          secondary_muscle_groups: string[]
+          updated_at: string
+        }
+        Insert: {
+          aliases?: string[]
+          created_at?: string
+          equipment: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          movement_pattern: string
+          name: string
+          normalized_name: string
+          primary_muscle_group: string
+          secondary_muscle_groups?: string[]
+          updated_at?: string
+        }
+        Update: {
+          aliases?: string[]
+          created_at?: string
+          equipment?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          movement_pattern?: string
+          name?: string
+          normalized_name?: string
+          primary_muscle_group?: string
+          secondary_muscle_groups?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exercises: {
         Row: {
           created_at: string
@@ -240,6 +285,7 @@ export type Database = {
       }
       workout_exercises: {
         Row: {
+          catalog_exercise_id: string | null
           created_at: string
           exercise_id: string | null
           exercise_name: string
@@ -251,6 +297,7 @@ export type Database = {
           workout_id: string
         }
         Insert: {
+          catalog_exercise_id?: string | null
           created_at?: string
           exercise_id?: string | null
           exercise_name: string
@@ -262,6 +309,7 @@ export type Database = {
           workout_id: string
         }
         Update: {
+          catalog_exercise_id?: string | null
           created_at?: string
           exercise_id?: string | null
           exercise_name?: string
@@ -273,6 +321,13 @@ export type Database = {
           workout_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workout_exercises_catalog_exercise_id_fkey"
+            columns: ["catalog_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_catalog"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workout_exercises_exercise_id_fkey"
             columns: ["exercise_id"]
