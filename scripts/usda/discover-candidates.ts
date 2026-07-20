@@ -5,7 +5,7 @@ import { hasRequiredMacroNutrients } from "../../src/lib/usda/nutrients";
 import { matchesPreparationExpectation } from "../../src/lib/usda/catalog-pilot";
 import type { NormalizedUsdaFoodSummary } from "../../src/lib/usda/types";
 import { loadLocalEnvFile } from "./env";
-import { PILOT_DISCOVERY_TARGETS, type PilotDiscoveryTarget } from "./pilot-targets";
+import { getTargetsForBatch, type CatalogDiscoveryTarget } from "./catalog-target-batches";
 import { searchUsdaFoodsForScript } from "./usda-api";
 
 interface CandidateSummary {
@@ -34,6 +34,7 @@ interface TargetCandidateReport {
   target: string;
   query: string;
   category: string;
+  suggestedAliases: string[];
   preparationExpectation: string;
   reviewedAt: string;
   candidates: CandidateSummary[];
@@ -43,7 +44,7 @@ function hasAnyBrandSignal(candidate: NormalizedUsdaFoodSummary): boolean {
   return Boolean(candidate.brandName || candidate.brandOwner || candidate.gtinUpc);
 }
 
-function scoreCandidate(target: PilotDiscoveryTarget, candidate: NormalizedUsdaFoodSummary): {
+function scoreCandidate(target: CatalogDiscoveryTarget, candidate: NormalizedUsdaFoodSummary): {
   score: number;
   explanation: string[];
   flags: string[];
@@ -140,7 +141,7 @@ function summarizeCandidate(rank: number, candidate: NormalizedUsdaFoodSummary, 
 
 function buildMarkdownReport(reports: TargetCandidateReport[]): string {
   const lines: string[] = [];
-  lines.push("# USDA Pilot Candidate Discovery");
+  lines.push("# USDA Catalog Candidate Discovery");
   lines.push("");
   lines.push(`Generated at: ${new Date().toISOString()}`);
   lines.push("");
@@ -150,6 +151,7 @@ function buildMarkdownReport(reports: TargetCandidateReport[]): string {
     lines.push(`- Target ID: \`${report.targetId}\``);
     lines.push(`- Query: \`${report.query}\``);
     lines.push(`- Category: \`${report.category}\``);
+    lines.push(`- Suggested aliases: \`${report.suggestedAliases.join("`, `")}\``);
     lines.push(`- Preparation expectation: \`${report.preparationExpectation}\``);
     lines.push("");
     lines.push("| Rank | FDC ID | Data Type | Description | kcal | Protein | Carbs | Fat | Flags |");
@@ -164,7 +166,7 @@ function buildMarkdownReport(reports: TargetCandidateReport[]): string {
   return lines.join("\n");
 }
 
-async function discoverCandidatesForTarget(target: PilotDiscoveryTarget): Promise<TargetCandidateReport> {
+async function discoverCandidatesForTarget(target: CatalogDiscoveryTarget): Promise<TargetCandidateReport> {
   const result = await searchUsdaFoodsForScript({
     query: target.query,
     pageSize: 20,
@@ -186,7 +188,7 @@ async function discoverCandidatesForTarget(target: PilotDiscoveryTarget): Promis
     return left.candidate.fdcId - right.candidate.fdcId;
   });
 
-  const topCandidates = scored.slice(0, 8).map((entry, index) => {
+  const topCandidates = scored.slice(0, 10).map((entry, index) => {
     return summarizeCandidate(index + 1, entry.candidate, entry.scoring);
   });
 
@@ -195,20 +197,34 @@ async function discoverCandidatesForTarget(target: PilotDiscoveryTarget): Promis
     target: target.target,
     query: target.query,
     category: target.category,
+    suggestedAliases: target.suggestedAliases,
     preparationExpectation: target.preparationExpectation,
     reviewedAt: new Date().toISOString(),
     candidates: topCandidates,
   };
 }
 
+function parseBatchArg(argv: string[]): string | null {
+  for (const arg of argv) {
+    if (arg.startsWith("--batch=")) {
+      const batchId = arg.slice("--batch=".length).trim();
+      return batchId.length > 0 ? batchId : null;
+    }
+  }
+  return null;
+}
+
 async function main(): Promise<void> {
   loadLocalEnvFile();
   const outputDir = path.join(process.cwd(), "scripts", "usda", "generated");
-  const jsonPath = path.join(outputDir, ".tmp-food-catalog-pilot.candidates.json");
-  const markdownPath = path.join(outputDir, ".tmp-food-catalog-pilot.candidates.md");
+  const batchId = parseBatchArg(process.argv.slice(2));
+  const targets = getTargetsForBatch(batchId);
+  const suffix = batchId ? `.${batchId}` : ".all";
+  const jsonPath = path.join(outputDir, `.tmp-food-catalog.candidates${suffix}.json`);
+  const markdownPath = path.join(outputDir, `.tmp-food-catalog.candidates${suffix}.md`);
 
   const reports: TargetCandidateReport[] = [];
-  for (const target of PILOT_DISCOVERY_TARGETS) {
+  for (const target of targets) {
     const report = await discoverCandidatesForTarget(target);
     reports.push(report);
   }
@@ -218,6 +234,7 @@ async function main(): Promise<void> {
 
   console.log(`Wrote candidate JSON report: ${path.relative(process.cwd(), jsonPath)}`);
   console.log(`Wrote candidate Markdown report: ${path.relative(process.cwd(), markdownPath)}`);
+  console.log(`Target count processed: ${targets.length}`);
 }
 
 void main();

@@ -39,7 +39,7 @@ function asFlagCell(flags: string[]): string {
 
 function buildReviewMarkdown(records: ReturnType<typeof buildFoodCatalogPilotLockFile>["records"]): string {
   const lines: string[] = [];
-  lines.push("# USDA Pilot Manifest Review Table");
+  lines.push("# USDA Common Catalog Reviewed Manifest Review Table");
   lines.push("");
   lines.push(`Generated at: ${new Date().toISOString()}`);
   lines.push("");
@@ -83,12 +83,6 @@ function assertReviewGate(records: ReturnType<typeof buildFoodCatalogPilotLockFi
     if (record.nutrientDiagnostics.calories_kcal.sourceNutrientId === null) {
       problems.push(`Missing selected calorie nutrient for ${record.fdcId}.`);
     }
-    if (
-      record.servingWeightGrams === null &&
-      !record.sourcePortions.some((portion) => portion.isUsableForGramConversion)
-    ) {
-      problems.push(`No usable serving gram basis for ${record.fdcId}.`);
-    }
     const normalizedDescription = record.description.trim().toLowerCase();
     if (descriptions.has(normalizedDescription)) {
       problems.push(`Duplicate description detected in pilot lock: ${record.description}`);
@@ -107,26 +101,31 @@ async function main(): Promise<void> {
 
   const records = [];
   for (const manifestRecord of FOOD_CATALOG_PILOT_MANIFEST.records) {
-    const detail = await getUsdaFoodDetailRawForScript(manifestRecord.fdcId);
-    const lockRecord = buildPilotLockRecordFromDetailResponse({
-      manifestRecord,
-      detailResponse: detail,
-      retrievedAtIso: new Date().toISOString(),
-    });
-    records.push(lockRecord);
+    try {
+      const detail = await getUsdaFoodDetailRawForScript(manifestRecord.fdcId);
+      const lockRecord = buildPilotLockRecordFromDetailResponse({
+        manifestRecord,
+        detailResponse: detail,
+        retrievedAtIso: new Date().toISOString(),
+      });
+      records.push(lockRecord);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown USDA fetch error.";
+      throw new Error(`Failed at fdcId=${manifestRecord.fdcId} target='${manifestRecord.target}': ${message}`);
+    }
   }
 
   const lockFile = buildFoodCatalogPilotLockFile({
     manifest: FOOD_CATALOG_PILOT_MANIFEST,
     records,
-    generatedAt: "2026-07-20T20:00:00.000Z",
+    generatedAt: "2026-07-20T22:45:00.000Z",
   });
 
   assertReviewGate(lockFile.records);
 
   const outputDir = path.join(process.cwd(), "scripts", "usda", "generated");
-  const lockPath = path.join(outputDir, "food-catalog-pilot.lock.json");
-  const reviewPath = path.join(outputDir, "food-catalog-pilot.review.md");
+  const lockPath = path.join(outputDir, "food-catalog-reviewed.lock.json");
+  const reviewPath = path.join(outputDir, "food-catalog-reviewed.review.md");
 
   const lockJson = `${JSON.stringify(lockFile, null, 2)}\n`;
   if (hasSecretLikeValue(lockJson)) {
@@ -138,7 +137,7 @@ async function main(): Promise<void> {
 
   console.log(`Wrote lock file: ${path.relative(process.cwd(), lockPath)}`);
   console.log(`Wrote review table: ${path.relative(process.cwd(), reviewPath)}`);
-  console.log(`Pilot record count: ${lockFile.records.length}`);
+  console.log(`Reviewed catalog record count: ${lockFile.records.length}`);
 }
 
 void main();

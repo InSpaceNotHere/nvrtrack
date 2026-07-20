@@ -8,8 +8,8 @@ import {
 } from "../../src/lib/usda/catalog-pilot";
 import { FOOD_CATALOG_PILOT_MANIFEST } from "./food-catalog-manifest";
 
-const LOCK_PATH = path.join(process.cwd(), "scripts", "usda", "generated", "food-catalog-pilot.lock.json");
-const SQL_PATH = path.join(process.cwd(), "scripts", "usda", "generated", "food-catalog-pilot.sql");
+const LOCK_PATH = path.join(process.cwd(), "scripts", "usda", "generated", "food-catalog-reviewed.lock.json");
+const SQL_PATH = path.join(process.cwd(), "scripts", "usda", "generated", "food-catalog-reviewed.sql");
 
 async function main(): Promise<void> {
   const lockRaw = await fs.readFile(LOCK_PATH, "utf8");
@@ -35,7 +35,7 @@ async function main(): Promise<void> {
   }
 
   const targetCount = lockFile.records.length;
-  console.log(`Pilot verification passed for ${targetCount} records.`);
+  console.log(`Reviewed catalog verification passed for ${targetCount} records.`);
   console.log("Deterministic regeneration check: no diff.");
 }
 

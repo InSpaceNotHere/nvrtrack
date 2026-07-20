@@ -13,16 +13,16 @@ const LOCK_FILE_PATH = path.join(
   "scripts",
   "usda",
   "generated",
-  "food-catalog-pilot.lock.json",
+  "food-catalog-reviewed.lock.json",
 );
 const SEED_SQL_PATH = path.join(
   process.cwd(),
   "scripts",
   "usda",
   "generated",
-  "food-catalog-pilot.sql",
+  "food-catalog-reviewed.sql",
 );
-const MIGRATION_FILENAME = "20260720201500_seed_usda_food_catalog_pilot.sql";
+const MIGRATION_FILENAME = "20260721003000_seed_usda_food_catalog_phase2c_common_expansion.sql";
 
 async function main(): Promise<void> {
   const lockRaw = await fs.readFile(LOCK_FILE_PATH, "utf8");

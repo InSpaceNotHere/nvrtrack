@@ -14,8 +14,13 @@ export const FOOD_CATALOG_PILOT_LOCK_SCHEMA_VERSION = "food-catalog-pilot-lock-v
 
 export type PilotFoodCategory =
   | "protein"
-  | "carbohydrate"
-  | "produce_and_staples";
+  | "seafood"
+  | "dairy"
+  | "grains_and_starches"
+  | "fruit"
+  | "vegetables"
+  | "fats_and_extras"
+  | "prepared";
 
 export type PilotPreparationExpectation = "raw" | "cooked" | "neutral";
 
@@ -151,7 +156,8 @@ export function normalizeCatalogName(value: string): string {
     .replace(/\s+/g, " ");
 }
 
-const COOKED_WORD_PATTERN = /\b(cooked|roasted|broiled|baked|grilled|fried|stewed|poached|boiled|steamed)\b/i;
+const COOKED_WORD_PATTERN =
+  /\b(cooked|roasted|broiled|baked|grilled|fried|stewed|poached|boiled|steamed|mashed|toasted|sauteed|pan-broiled|pan-browned|dry heat|moist heat)\b/i;
 const RAW_WORD_PATTERN = /\braw\b/i;
 
 export function matchesPreparationExpectation(
@@ -205,7 +211,18 @@ export function validateFoodCatalogPilotManifest(manifest: FoodCatalogPilotManif
     if (!record.expectedDataType.trim()) {
       throw new Error(`${scope}.expectedDataType cannot be blank.`);
     }
-    if (!["protein", "carbohydrate", "produce_and_staples"].includes(record.category)) {
+    if (
+      ![
+        "protein",
+        "seafood",
+        "dairy",
+        "grains_and_starches",
+        "fruit",
+        "vegetables",
+        "fats_and_extras",
+        "prepared",
+      ].includes(record.category)
+    ) {
       throw new Error(`${scope}.category is invalid.`);
     }
     if (!["raw", "cooked", "neutral"].includes(record.preparationExpectation)) {
@@ -597,11 +614,11 @@ export function generateFoodCatalogPilotSeedSql(input: CatalogSeedSqlInput): str
     })
     .join(",\n");
 
-  return `-- Session 9.5B Phase 2A USDA pilot catalog seed
+  return `-- Session 9.5B Phase 2C USDA reviewed common catalog seed
 -- Generated deterministically from:
 --   - scripts/usda/food-catalog-manifest.ts
---   - scripts/usda/generated/food-catalog-pilot.lock.json
--- Do not hand-edit food rows. Refresh through scripts/usda/fetch-reviewed-foods.ts and generate-food-catalog-seed.ts.
+--   - scripts/usda/generated/food-catalog-reviewed.lock.json
+-- Do not hand-edit food rows. Refresh through scripts/usda/fetch-reviewed-foods.ts and scripts/usda/generate-food-catalog-seed.ts.
 
 insert into public.food_catalog (
   fdc_id,

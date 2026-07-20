@@ -10,9 +10,12 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "usda:discover": "tsx scripts/usda/discover-candidates.ts",
-    "usda:fetch-pilot": "tsx scripts/usda/fetch-reviewed-foods.ts",
-    "usda:generate-pilot": "tsx scripts/usda/generate-food-catalog-seed.ts",
-    "usda:verify-pilot": "tsx scripts/usda/verify-pilot.ts"
+    "usda:fetch-reviewed": "tsx scripts/usda/fetch-reviewed-foods.ts",
+    "usda:generate-reviewed": "tsx scripts/usda/generate-food-catalog-seed.ts",
+    "usda:verify-reviewed": "tsx scripts/usda/verify-pilot.ts",
+    "usda:fetch-pilot": "npm run usda:fetch-reviewed",
+    "usda:generate-pilot": "npm run usda:generate-reviewed",
+    "usda:verify-pilot": "npm run usda:verify-reviewed"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",
