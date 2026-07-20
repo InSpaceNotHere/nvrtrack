@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, and 7)
+## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, and 8)
 
 The app currently includes:
 
@@ -45,6 +45,12 @@ The app currently includes:
   - logged entries can be edited (servings, meal, date, note) or deleted with confirmation
   - saved-food management route at `/nutrition/foods` supports search/create/edit/delete
   - Home calorie and macro consumed values are now sourced from today’s live food entries
+- Session 8 workout database foundation:
+  - migration adds `exercises`, `workouts`, `workout_exercises`, and `workout_sets`
+  - ownership-safe parent/child enforcement with composite foreign keys and exercise ownership validation trigger
+  - immutable `exercise_name` snapshot behavior for historical workout entries
+  - typed workout validation and calculation utilities (volume + Epley estimated 1RM + best set + PR candidate)
+  - secure server-side workout data helpers (library/workout/workout exercise/workout set CRUD + reorder)
 
 ## Technology
 
@@ -526,3 +532,105 @@ After configuring `.env.local` and running `npm run dev`:
 10. Delete a saved food and confirm existing historical entries remain visible with nutrition intact.
 11. Refresh `/nutrition` and `/nutrition/foods` and confirm data persists.
 12. Open `/` and verify calorie/macro consumed values match today’s live entry totals.
+
+## Session 8: Workout Database Foundation
+
+### Scope
+
+Session 8 adds secure workout database infrastructure, validation, calculations, and typed server-side helpers.
+
+This session does **not** connect the Training page UI to live workout data yet.  
+Training remains static until Session 9.
+
+### New workout tables
+
+- `public.exercises`
+  - user-owned exercise library
+  - case-insensitive per-user duplicate-name prevention
+- `public.workouts`
+  - user-owned workout sessions by date
+  - optional `started_at` and `completed_at` with ordering constraint
+- `public.workout_exercises`
+  - ordered workout exercises with immutable `exercise_name` snapshot
+  - optional `exercise_id` reference to saved library exercise
+- `public.workout_sets`
+  - ordered sets under each workout exercise
+  - set type, optional load/unit/reps/RPE, completion state, optional notes
+
+### Workout relationship model
+
+- `workout_exercises` belongs to `workouts` using ownership-safe composite FK:
+  - `(workout_id, user_id) -> workouts(id, user_id)`
+- `workout_sets` belongs to `workout_exercises` using ownership-safe composite FK:
+  - `(workout_exercise_id, user_id) -> workout_exercises(id, user_id)`
+- `exercise_id` uses `on delete set null` so historical workout rows remain after exercise-library deletion.
+
+### Exercise snapshot behavior
+
+- Logging or attaching a library exercise copies its current name into `workout_exercises.exercise_name`.
+- Historical workout rows continue to show that snapshot name.
+- Renaming or deleting a library exercise does not rewrite completed workout history.
+
+### Set model and validation highlights
+
+- Allowed `set_type` values:
+  - `warmup`, `working`, `top`, `backoff`, `drop`, `failure`
+- `position`, `weight`, and `reps` are nonnegative when provided.
+- `weight_unit` must be `lb` or `kg` when provided.
+- `rpe` must be between 1 and 10 when provided.
+- Completed sets require at least reps, weight, or a meaningful note.
+
+### Volume and strength calculations
+
+- **Set volume**: `weight × reps` for valid completed weighted sets.
+- **Exercise volume**: sum of valid set volumes for that exercise.
+- **Workout volume**: sum of valid exercise volumes.
+- **Estimated 1RM formula** (Epley):
+  - `estimated_1rm = weight × (1 + reps / 30)`
+- One-rep sets treat estimated 1RM as the entered lifted weight.
+- Mixed units are converted to selected display unit (`lb`/`kg`) before combining.
+
+### RLS ownership model
+
+All four workout tables are RLS-enabled with owner-only policies:
+
+- select own rows
+- insert own rows (`with check`)
+- update own rows (`using` + `with check`)
+- delete own rows
+
+No public policies are created.
+
+### Migration workflow
+
+Migration file:
+
+- `supabase/migrations/20260720064500_create_workout_tracking.sql`
+
+Apply after Supabase CLI auth and project link:
+
+```bash
+npx supabase link --project-ref <your-project-ref>
+npx supabase migration list
+npx supabase db push --dry-run
+npx supabase db push
+```
+
+Regenerate database types from linked schema:
+
+```bash
+npx supabase gen types typescript --linked --schema public > src/types/database.ts
+```
+
+### Manual Session 8 Test Checklist
+
+1. Create exercise(s) and verify they persist and are searchable per user.
+2. Create workout(s) and verify date ordering and refresh persistence.
+3. Add workout exercises from library and as custom snapshots.
+4. Add/update/delete/reorder workout exercises and verify unique positions remain stable.
+5. Add/update/delete/reorder sets and verify unique set positions remain stable.
+6. Verify volume + estimated-1RM helpers on representative completed/incomplete/mixed-unit sets.
+7. Rename a library exercise and verify historical `exercise_name` snapshot rows do not change.
+8. Delete a library exercise and verify workout history remains with `exercise_id` detached.
+9. Verify User B cannot read or mutate User A exercises/workouts/workout children.
+10. Delete a workout and verify child workout exercises/sets are removed by cascade.
