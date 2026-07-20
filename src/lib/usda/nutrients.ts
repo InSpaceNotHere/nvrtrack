@@ -6,8 +6,8 @@ import type {
 import { UsdaClientError } from "./types";
 
 interface UsdaNutrientTarget {
-  ids: number[];
-  legacyNumbers: string[];
+  ids: readonly number[];
+  legacyNumbers: readonly string[];
   outputUnit: "kcal" | "g" | "mg";
 }
 

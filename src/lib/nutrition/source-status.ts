@@ -57,12 +57,16 @@ export function resolveFoodSourceStatusAfterNutritionEdit(
   input: ResolveFoodSourceStatusInput,
 ): FoodSourceStatus {
   const currentStatus = normalizeFoodSourceStatus(input.currentStatus, "manual");
+  if (currentStatus === null) {
+    return "manual";
+  }
 
   if (!input.hasUsdaSource) {
     return "manual";
   }
 
   if (
+    currentStatus !== null &&
     USDA_TRACKED_STATUSES.includes(currentStatus) &&
     hasCoreNutritionChanged(input.previousCoreNutrition, input.nextCoreNutrition)
   ) {
