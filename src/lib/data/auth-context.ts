@@ -39,4 +39,6 @@ export async function getAuthenticatedContext(): Promise<DataAccessResult<Authen
 }
 
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+export type FoodRow = Database["public"]["Tables"]["foods"]["Row"];
+export type FoodEntryRow = Database["public"]["Tables"]["food_entries"]["Row"];
 export type WeightEntryRow = Database["public"]["Tables"]["weight_entries"]["Row"];

@@ -53,6 +53,117 @@ export type Database = {
         }
         Relationships: []
       }
+      foods: {
+        Row: {
+          brand: string | null
+          calories: number
+          carbohydrate_g: number
+          created_at: string
+          fat_g: number
+          fiber_g: number | null
+          id: string
+          name: string
+          protein_g: number
+          serving_size: number
+          serving_unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand?: string | null
+          calories: number
+          carbohydrate_g?: number
+          created_at?: string
+          fat_g?: number
+          fiber_g?: number | null
+          id?: string
+          name: string
+          protein_g?: number
+          serving_size: number
+          serving_unit: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand?: string | null
+          calories?: number
+          carbohydrate_g?: number
+          created_at?: string
+          fat_g?: number
+          fiber_g?: number | null
+          id?: string
+          name?: string
+          protein_g?: number
+          serving_size?: number
+          serving_unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      food_entries: {
+        Row: {
+          brand_name: string | null
+          calories_per_serving: number
+          carbohydrate_per_serving_g: number
+          created_at: string
+          entry_date: string
+          fat_per_serving_g: number
+          fiber_per_serving_g: number | null
+          food_id: string | null
+          food_name: string
+          id: string
+          meal_type: string
+          note: string | null
+          protein_per_serving_g: number
+          serving_size: number
+          serving_unit: string
+          servings: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand_name?: string | null
+          calories_per_serving: number
+          carbohydrate_per_serving_g?: number
+          created_at?: string
+          entry_date: string
+          fat_per_serving_g?: number
+          fiber_per_serving_g?: number | null
+          food_id?: string | null
+          food_name: string
+          id?: string
+          meal_type: string
+          note?: string | null
+          protein_per_serving_g?: number
+          serving_size: number
+          serving_unit: string
+          servings?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand_name?: string | null
+          calories_per_serving?: number
+          carbohydrate_per_serving_g?: number
+          created_at?: string
+          entry_date?: string
+          fat_per_serving_g?: number
+          fiber_per_serving_g?: number | null
+          food_id?: string | null
+          food_name?: string
+          id?: string
+          meal_type?: string
+          note?: string | null
+          protein_per_serving_g?: number
+          serving_size?: number
+          serving_unit?: string
+          servings?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       weight_entries: {
         Row: {
           created_at: string
