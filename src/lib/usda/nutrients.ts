@@ -1,6 +1,8 @@
 import type {
   NormalizedNutrientAmount,
   NormalizedNutrientsPer100g,
+  NormalizedNutrientsPer100gWithDiagnostics,
+  NormalizedNutrientSelection,
   UsdaFoodNutrient,
 } from "./types";
 import { UsdaClientError } from "./types";
@@ -74,8 +76,11 @@ function normalizeUnit(value: string | null | undefined): string | null {
   return value.trim().toLowerCase();
 }
 
-function trimToNull(value: string | null | undefined): string | null {
-  const trimmed = value?.trim();
+function trimToNull(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
   return trimmed ? trimmed : null;
 }
 
@@ -148,7 +153,10 @@ function findTargetValue(
   candidates: UsdaNutrientCandidate[],
   target: UsdaNutrientTarget,
   targetKey: keyof NormalizedNutrientsPer100g,
-): number | null {
+): {
+  value: number | null;
+  selection: NormalizedNutrientSelection | null;
+} {
   for (const candidate of candidates) {
     if (!matchesTarget(candidate, target)) {
       continue;
@@ -168,24 +176,47 @@ function findTargetValue(
       continue;
     }
 
-    return converted;
+    return {
+      value: converted,
+      selection: {
+        sourceNutrientId: candidate.nutrientId,
+        sourceNutrientNumber: candidate.nutrientNumber,
+        sourceUnit: candidate.unit,
+        sourceValue: candidate.value,
+        normalizedValue: converted,
+      },
+    };
   }
 
-  return null;
+  return {
+    value: null,
+    selection: null,
+  };
 }
 
 export function normalizeUsdaNutrientsPer100g(rawNutrients: UsdaFoodNutrient[] | null | undefined): NormalizedNutrientsPer100g {
+  return normalizeUsdaNutrientsPer100gWithDiagnostics(rawNutrients).nutrients;
+}
+
+export function normalizeUsdaNutrientsPer100gWithDiagnostics(
+  rawNutrients: UsdaFoodNutrient[] | null | undefined,
+): NormalizedNutrientsPer100gWithDiagnostics {
   const candidates = (rawNutrients ?? []).map(coerceCandidate);
   const nutrients: Partial<NormalizedNutrientsPer100g> = {};
+  const selections: Partial<Record<keyof NormalizedNutrientsPer100g, NormalizedNutrientSelection | null>> = {};
 
   for (const [key, target] of Object.entries(USDA_NUTRIENT_TARGETS) as Array<
     [keyof NormalizedNutrientsPer100g, UsdaNutrientTarget]
   >) {
-    const value = findTargetValue(candidates, target, key);
-    nutrients[key] = asNutrientAmount(value);
+    const result = findTargetValue(candidates, target, key);
+    nutrients[key] = asNutrientAmount(result.value);
+    selections[key] = result.selection;
   }
 
-  return nutrients as NormalizedNutrientsPer100g;
+  return {
+    nutrients: nutrients as NormalizedNutrientsPer100g,
+    selections: selections as Record<keyof NormalizedNutrientsPer100g, NormalizedNutrientSelection | null>,
+  };
 }
 
 export function hasRequiredMacroNutrients(nutrients: NormalizedNutrientsPer100g): boolean {

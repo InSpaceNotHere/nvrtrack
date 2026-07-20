@@ -79,6 +79,14 @@ export interface NormalizedNutrientAmount {
   isMissing: boolean;
 }
 
+export interface NormalizedNutrientSelection {
+  sourceNutrientId: number | null;
+  sourceNutrientNumber: string | null;
+  sourceUnit: string | null;
+  sourceValue: number | null;
+  normalizedValue: number | null;
+}
+
 export interface NormalizedNutrientsPer100g {
   calories_kcal: NormalizedNutrientAmount;
   protein_g: NormalizedNutrientAmount;
@@ -126,6 +134,11 @@ export interface NormalizedUsdaSearchResult {
   totalHits: number;
   currentPage: number;
   totalPages: number;
+}
+
+export interface NormalizedNutrientsPer100gWithDiagnostics {
+  nutrients: NormalizedNutrientsPer100g;
+  selections: Record<keyof NormalizedNutrientsPer100g, NormalizedNutrientSelection | null>;
 }
 
 export type UsdaClientErrorCode =

@@ -11,8 +11,11 @@ import type {
 } from "./types";
 import { UsdaClientError } from "./types";
 
-function trimToNull(value: string | null | undefined): string | null {
-  const trimmed = value?.trim();
+function trimToNull(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
   return trimmed ? trimmed : null;
 }
 
