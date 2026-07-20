@@ -14,6 +14,10 @@ export interface UpdateMyExerciseInput {
   muscle_group?: string | null;
   equipment?: string | null;
   notes?: string | null;
+  primary_muscles?: string[] | null;
+  secondary_muscles?: string[] | null;
+  body_region?: string | null;
+  movement_pattern?: string | null;
 }
 
 function sanitizeLimit(limit: number, fallback = 20): number {
@@ -33,6 +37,18 @@ function asExerciseRow(value: unknown): ExerciseRow | null {
     return null;
   }
   return value as ExerciseRow;
+}
+
+function isMissingColumnError(message: string | undefined): boolean {
+  if (!message) {
+    return false;
+  }
+  const normalized = message.toLowerCase();
+  return (
+    (normalized.includes("column") && normalized.includes("does not exist")) ||
+    (normalized.includes("could not find the") && normalized.includes("column")) ||
+    normalized.includes("schema cache")
+  );
 }
 
 export async function getMyExercises(): Promise<DataAccessResult<ExerciseRow[]>> {
@@ -76,7 +92,9 @@ export async function searchMyExercises(query: string, limit = 25): Promise<Data
     .from("exercises")
     .select("*")
     .eq("user_id", auth.data.user.id)
-    .or(`name.ilike.%${trimmed}%,muscle_group.ilike.%${trimmed}%,equipment.ilike.%${trimmed}%`)
+    .or(
+      `name.ilike.%${trimmed}%,muscle_group.ilike.%${trimmed}%,equipment.ilike.%${trimmed}%,body_region.ilike.%${trimmed}%,movement_pattern.ilike.%${trimmed}%`,
+    )
     .order("updated_at", { ascending: false })
     .limit(safeLimit);
 
@@ -150,7 +168,7 @@ export async function getMyExerciseById(exerciseId: string): Promise<DataAccessR
 }
 
 export async function createMyExercise(input: CreateMyExerciseInput): Promise<DataAccessResult<ExerciseRow>> {
-  const normalized = normalizeExerciseInput(input);
+  const normalized = normalizeExerciseInput(input, { require_primary_muscles: true });
   if (!normalized.data) {
     return fail({
       code: "INVALID_INPUT",
@@ -164,17 +182,39 @@ export async function createMyExercise(input: CreateMyExerciseInput): Promise<Da
   }
 
   const supabase = asLooseSupabaseClient(auth.data.supabase);
-  const { data, error } = await supabase
+  const insertPayload = {
+    user_id: auth.data.user.id,
+    name: normalized.data.name,
+    muscle_group: normalized.data.muscle_group,
+    equipment: normalized.data.equipment,
+    notes: normalized.data.notes,
+    primary_muscles: normalized.data.primary_muscles,
+    secondary_muscles: normalized.data.secondary_muscles,
+    body_region: normalized.data.body_region,
+    movement_pattern: normalized.data.movement_pattern,
+    muscle_metadata_version: 1,
+  };
+  let { data, error } = await supabase
     .from("exercises")
-    .insert({
-      user_id: auth.data.user.id,
-      name: normalized.data.name,
-      muscle_group: normalized.data.muscle_group,
-      equipment: normalized.data.equipment,
-      notes: normalized.data.notes,
-    })
+    .insert(insertPayload)
     .select("*")
     .single();
+
+  if (error && isMissingColumnError(error.message)) {
+    const legacyRetry = await supabase
+      .from("exercises")
+      .insert({
+        user_id: auth.data.user.id,
+        name: normalized.data.name,
+        muscle_group: normalized.data.muscle_group,
+        equipment: normalized.data.equipment,
+        notes: normalized.data.notes,
+      })
+      .select("*")
+      .single();
+    data = legacyRetry.data;
+    error = legacyRetry.error;
+  }
 
   if (error) {
     return fail({
@@ -223,6 +263,10 @@ export async function updateMyExercise(
     muscle_group: input.muscle_group ?? existing.muscle_group,
     equipment: input.equipment ?? existing.equipment,
     notes: input.notes ?? existing.notes,
+    primary_muscles: input.primary_muscles ?? existing.primary_muscles,
+    secondary_muscles: input.secondary_muscles ?? existing.secondary_muscles,
+    body_region: input.body_region ?? existing.body_region,
+    movement_pattern: input.movement_pattern ?? existing.movement_pattern,
   });
 
   if (!normalized.data) {
@@ -238,18 +282,41 @@ export async function updateMyExercise(
   }
 
   const supabase = asLooseSupabaseClient(auth.data.supabase);
-  const { data, error } = await supabase
+  const updatePayload = {
+    name: normalized.data.name,
+    muscle_group: normalized.data.muscle_group,
+    equipment: normalized.data.equipment,
+    notes: normalized.data.notes,
+    primary_muscles: normalized.data.primary_muscles,
+    secondary_muscles: normalized.data.secondary_muscles,
+    body_region: normalized.data.body_region,
+    movement_pattern: normalized.data.movement_pattern,
+    muscle_metadata_version: 1,
+  };
+  let { data, error } = await supabase
     .from("exercises")
-    .update({
-      name: normalized.data.name,
-      muscle_group: normalized.data.muscle_group,
-      equipment: normalized.data.equipment,
-      notes: normalized.data.notes,
-    })
+    .update(updatePayload)
     .eq("id", exerciseId)
     .eq("user_id", auth.data.user.id)
     .select("*")
     .maybeSingle();
+
+  if (error && isMissingColumnError(error.message)) {
+    const legacyRetry = await supabase
+      .from("exercises")
+      .update({
+        name: normalized.data.name,
+        muscle_group: normalized.data.muscle_group,
+        equipment: normalized.data.equipment,
+        notes: normalized.data.notes,
+      })
+      .eq("id", exerciseId)
+      .eq("user_id", auth.data.user.id)
+      .select("*")
+      .maybeSingle();
+    data = legacyRetry.data;
+    error = legacyRetry.error;
+  }
 
   if (error) {
     return fail({

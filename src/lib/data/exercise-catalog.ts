@@ -1,7 +1,7 @@
 import { getAuthenticatedContext } from "./auth-context";
 import { asLooseSupabaseClient } from "./untyped-supabase";
 import { fail, ok, type DataAccessResult } from "./result";
-import { filterCatalogExercises, normalizeCatalogSearchTerm } from "@/lib/training/catalog";
+import { filterCatalogExercises } from "@/lib/training/catalog";
 
 export interface ExerciseCatalogRow {
   id: string;
@@ -10,8 +10,12 @@ export interface ExerciseCatalogRow {
   aliases: string[];
   primary_muscle_group: string;
   secondary_muscle_groups: string[];
+  primary_muscles: string[];
+  secondary_muscles: string[];
+  body_region: string | null;
   equipment: string;
   movement_pattern: string;
+  muscle_metadata_version: number;
   instructions: string | null;
   is_active: boolean;
   created_at: string;
@@ -71,7 +75,8 @@ export async function getExerciseCatalogById(exerciseCatalogId: string): Promise
 export async function getExerciseCatalog(options?: {
   query?: string;
   muscle?: string;
-  equipment?: string;
+  body_region?: string;
+  movement_pattern?: string;
   limit?: number;
 }): Promise<DataAccessResult<ExerciseCatalogRow[]>> {
   const auth = await getAuthenticatedContext();
@@ -81,18 +86,10 @@ export async function getExerciseCatalog(options?: {
 
   const safeLimit = sanitizeLimit(options?.limit ?? 250);
   const supabase = asLooseSupabaseClient(auth.data.supabase);
-  let query = supabase
+  const query = supabase
     .from("exercise_catalog")
     .select("*")
     .eq("is_active", true);
-
-  if (options?.muscle) {
-    query = query.eq("primary_muscle_group", normalizeCatalogSearchTerm(options.muscle));
-  }
-
-  if (options?.equipment) {
-    query = query.eq("equipment", normalizeCatalogSearchTerm(options.equipment));
-  }
 
   const { data, error } = await query
     .order("name", { ascending: true })
@@ -107,9 +104,12 @@ export async function getExerciseCatalog(options?: {
   }
 
   const rows = asCatalogRows(data);
-  const filtered = options?.query
-    ? filterCatalogExercises(rows, { query: options.query })
-    : rows;
+  const filtered = filterCatalogExercises(rows, {
+    query: options?.query,
+    muscle: options?.muscle,
+    body_region: options?.body_region,
+    movement_pattern: options?.movement_pattern,
+  });
 
   return ok(filtered);
 }

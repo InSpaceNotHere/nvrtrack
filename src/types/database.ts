@@ -17,76 +17,103 @@ export type Database = {
       exercise_catalog: {
         Row: {
           aliases: string[]
+          body_region: string | null
           created_at: string
           equipment: string
           id: string
           instructions: string | null
           is_active: boolean
+          muscle_metadata_version: number
           movement_pattern: string
           name: string
           normalized_name: string
           primary_muscle_group: string
+          primary_muscles: string[]
           secondary_muscle_groups: string[]
+          secondary_muscles: string[]
           updated_at: string
         }
         Insert: {
           aliases?: string[]
+          body_region?: string | null
           created_at?: string
           equipment: string
           id?: string
           instructions?: string | null
           is_active?: boolean
+          muscle_metadata_version?: number
           movement_pattern: string
           name: string
           normalized_name: string
           primary_muscle_group: string
+          primary_muscles?: string[]
           secondary_muscle_groups?: string[]
+          secondary_muscles?: string[]
           updated_at?: string
         }
         Update: {
           aliases?: string[]
+          body_region?: string | null
           created_at?: string
           equipment?: string
           id?: string
           instructions?: string | null
           is_active?: boolean
+          muscle_metadata_version?: number
           movement_pattern?: string
           name?: string
           normalized_name?: string
           primary_muscle_group?: string
+          primary_muscles?: string[]
           secondary_muscle_groups?: string[]
+          secondary_muscles?: string[]
           updated_at?: string
         }
         Relationships: []
       }
       exercises: {
         Row: {
+          body_region: string | null
           created_at: string
           equipment: string | null
           id: string
           muscle_group: string | null
+          muscle_metadata_version: number
+          movement_pattern: string | null
           name: string
           notes: string | null
+          primary_muscles: string[]
+          secondary_muscles: string[]
           updated_at: string
           user_id: string
         }
         Insert: {
+          body_region?: string | null
           created_at?: string
           equipment?: string | null
           id?: string
           muscle_group?: string | null
+          muscle_metadata_version?: number
+          movement_pattern?: string | null
           name: string
           notes?: string | null
+          primary_muscles?: string[]
+          secondary_muscles?: string[]
           updated_at?: string
           user_id: string
         }
         Update: {
+          body_region?: string | null
           created_at?: string
           equipment?: string | null
           id?: string
           muscle_group?: string | null
+          muscle_metadata_version?: number
+          movement_pattern?: string | null
           name?: string
           notes?: string | null
+          primary_muscles?: string[]
+          secondary_muscles?: string[]
           updated_at?: string
           user_id?: string
         }
@@ -514,6 +541,11 @@ export type Database = {
           id: string
           notes: string | null
           position: number
+          source_body_region: string | null
+          source_movement_pattern: string | null
+          source_muscle_metadata_version: number | null
+          source_primary_muscles: string[]
+          source_secondary_muscles: string[]
           updated_at: string
           user_id: string
           workout_id: string
@@ -526,6 +558,11 @@ export type Database = {
           id?: string
           notes?: string | null
           position: number
+          source_body_region?: string | null
+          source_movement_pattern?: string | null
+          source_muscle_metadata_version?: number | null
+          source_primary_muscles?: string[]
+          source_secondary_muscles?: string[]
           updated_at?: string
           user_id: string
           workout_id: string
@@ -538,6 +575,11 @@ export type Database = {
           id?: string
           notes?: string | null
           position?: number
+          source_body_region?: string | null
+          source_movement_pattern?: string | null
+          source_muscle_metadata_version?: number | null
+          source_primary_muscles?: string[]
+          source_secondary_muscles?: string[]
           updated_at?: string
           user_id?: string
           workout_id?: string

@@ -15,6 +15,7 @@ import type {
   WorkoutRow,
   WorkoutSetRow,
 } from "@/lib/training/types";
+import { coerceMuscleIdArray, mapLegacyMuscleGroupToPrimaryMuscles } from "@/lib/training/muscles";
 import { isValidDateString } from "@/lib/nutrition/date";
 
 function sanitizeLimit(limit: number, fallback = 20): number {
@@ -56,6 +57,71 @@ function asWorkoutSetRow(value: unknown): WorkoutSetRow | null {
     return null;
   }
   return value as WorkoutSetRow;
+}
+
+function isMissingColumnError(message: string | undefined): boolean {
+  if (!message) {
+    return false;
+  }
+  const normalized = message.toLowerCase();
+  return (
+    (normalized.includes("column") && normalized.includes("does not exist")) ||
+    (normalized.includes("could not find the") && normalized.includes("column")) ||
+    normalized.includes("schema cache")
+  );
+}
+
+interface WorkoutExerciseMuscleSnapshot {
+  source_primary_muscles: string[];
+  source_secondary_muscles: string[];
+  source_body_region: string | null;
+  source_movement_pattern: string | null;
+  source_muscle_metadata_version: number | null;
+}
+
+function emptyWorkoutExerciseMuscleSnapshot(): WorkoutExerciseMuscleSnapshot {
+  return {
+    source_primary_muscles: [],
+    source_secondary_muscles: [],
+    source_body_region: null,
+    source_movement_pattern: null,
+    source_muscle_metadata_version: null,
+  };
+}
+
+function toWorkoutExerciseMuscleSnapshot(input: {
+  primary_muscles: unknown;
+  secondary_muscles: unknown;
+  primary_muscle_group?: unknown;
+  secondary_muscle_groups?: unknown;
+  muscle_group?: unknown;
+  body_region: unknown;
+  movement_pattern: unknown;
+  muscle_metadata_version: unknown;
+}): WorkoutExerciseMuscleSnapshot {
+  const primaryMusclesFromNewColumns = coerceMuscleIdArray(input.primary_muscles);
+  const primaryMuscles =
+    primaryMusclesFromNewColumns.length > 0
+      ? primaryMusclesFromNewColumns
+      : typeof input.primary_muscle_group === "string"
+        ? mapLegacyMuscleGroupToPrimaryMuscles(input.primary_muscle_group)
+        : typeof input.muscle_group === "string"
+          ? mapLegacyMuscleGroupToPrimaryMuscles(input.muscle_group)
+          : [];
+
+  const secondaryMuscles = coerceMuscleIdArray(
+    coerceMuscleIdArray(input.secondary_muscles).length
+      ? input.secondary_muscles
+      : input.secondary_muscle_groups,
+  ).filter((muscle) => !primaryMuscles.includes(muscle));
+  return {
+    source_primary_muscles: primaryMuscles,
+    source_secondary_muscles: secondaryMuscles,
+    source_body_region: typeof input.body_region === "string" ? input.body_region : null,
+    source_movement_pattern: typeof input.movement_pattern === "string" ? input.movement_pattern : null,
+    source_muscle_metadata_version:
+      typeof input.muscle_metadata_version === "number" ? input.muscle_metadata_version : 1,
+  };
 }
 
 async function getOwnedWorkoutExerciseById(workoutExerciseId: string): Promise<DataAccessResult<WorkoutExerciseRow | null>> {
@@ -507,6 +573,7 @@ export async function addExerciseToWorkout(
   let exerciseId: string | null = null;
   let catalogExerciseId: string | null = null;
   let snapshotName = input.exercise_name?.trim() ?? "";
+  let snapshotMetadata = emptyWorkoutExerciseMuscleSnapshot();
 
   if (input.exercise_id && input.catalog_exercise_id) {
     return fail({
@@ -528,6 +595,7 @@ export async function addExerciseToWorkout(
     }
     exerciseId = exerciseResult.data.id;
     snapshotName = exerciseResult.data.name;
+    snapshotMetadata = toWorkoutExerciseMuscleSnapshot(exerciseResult.data);
   }
 
   if (input.catalog_exercise_id) {
@@ -544,6 +612,7 @@ export async function addExerciseToWorkout(
 
     catalogExerciseId = catalogResult.data.id;
     snapshotName = catalogResult.data.name;
+    snapshotMetadata = toWorkoutExerciseMuscleSnapshot(catalogResult.data);
   }
 
   const existingResult = await getMyWorkoutExercises(workoutId);
@@ -574,19 +643,43 @@ export async function addExerciseToWorkout(
     return auth;
   }
   const supabase = asLooseSupabaseClient(auth.data.supabase);
-  const { data, error } = await supabase
+  const insertPayload = {
+    user_id: auth.data.user.id,
+    workout_id: workoutId,
+    exercise_id: normalized.data.exercise_id,
+    catalog_exercise_id: normalized.data.catalog_exercise_id,
+    exercise_name: normalized.data.exercise_name,
+    position: normalized.data.position,
+    notes: normalized.data.notes,
+    source_primary_muscles: snapshotMetadata.source_primary_muscles,
+    source_secondary_muscles: snapshotMetadata.source_secondary_muscles,
+    source_body_region: snapshotMetadata.source_body_region,
+    source_movement_pattern: snapshotMetadata.source_movement_pattern,
+    source_muscle_metadata_version: snapshotMetadata.source_muscle_metadata_version,
+  };
+  let { data, error } = await supabase
     .from("workout_exercises")
-    .insert({
-      user_id: auth.data.user.id,
-      workout_id: workoutId,
-      exercise_id: normalized.data.exercise_id,
-      catalog_exercise_id: normalized.data.catalog_exercise_id,
-      exercise_name: normalized.data.exercise_name,
-      position: normalized.data.position,
-      notes: normalized.data.notes,
-    })
+    .insert(insertPayload)
     .select("*")
     .single();
+
+  if (error && isMissingColumnError(error.message)) {
+    const legacyRetry = await supabase
+      .from("workout_exercises")
+      .insert({
+        user_id: auth.data.user.id,
+        workout_id: workoutId,
+        exercise_id: normalized.data.exercise_id,
+        catalog_exercise_id: normalized.data.catalog_exercise_id,
+        exercise_name: normalized.data.exercise_name,
+        position: normalized.data.position,
+        notes: normalized.data.notes,
+      })
+      .select("*")
+      .single();
+    data = legacyRetry.data;
+    error = legacyRetry.error;
+  }
 
   if (error) {
     return fail({
@@ -632,6 +725,13 @@ export async function updateWorkoutExercise(
   let exerciseId = existing.exercise_id;
   let catalogExerciseId = (existing as WorkoutExerciseRow & { catalog_exercise_id?: string | null }).catalog_exercise_id ?? null;
   let snapshotName = existing.exercise_name;
+  let snapshotMetadata: WorkoutExerciseMuscleSnapshot = {
+    source_primary_muscles: existing.source_primary_muscles ?? [],
+    source_secondary_muscles: existing.source_secondary_muscles ?? [],
+    source_body_region: existing.source_body_region ?? null,
+    source_movement_pattern: existing.source_movement_pattern ?? null,
+    source_muscle_metadata_version: existing.source_muscle_metadata_version ?? null,
+  };
 
   if (input.exercise_id !== undefined && input.catalog_exercise_id !== undefined && input.exercise_id && input.catalog_exercise_id) {
     return fail({
@@ -644,6 +744,9 @@ export async function updateWorkoutExercise(
     if (input.exercise_id === null) {
       exerciseId = null;
       snapshotName = input.exercise_name?.trim() || snapshotName;
+      if (!catalogExerciseId) {
+        snapshotMetadata = emptyWorkoutExerciseMuscleSnapshot();
+      }
     } else {
       const exerciseResult = await getMyExerciseById(input.exercise_id);
       if (exerciseResult.error) {
@@ -658,6 +761,7 @@ export async function updateWorkoutExercise(
       exerciseId = exerciseResult.data.id;
       catalogExerciseId = null;
       snapshotName = exerciseResult.data.name;
+      snapshotMetadata = toWorkoutExerciseMuscleSnapshot(exerciseResult.data);
     }
   } else if (input.exercise_name && !exerciseId) {
     snapshotName = input.exercise_name.trim();
@@ -668,6 +772,7 @@ export async function updateWorkoutExercise(
       catalogExerciseId = null;
       if (!exerciseId) {
         snapshotName = input.exercise_name?.trim() || snapshotName;
+        snapshotMetadata = emptyWorkoutExerciseMuscleSnapshot();
       }
     } else {
       const catalogResult = await getExerciseCatalogById(input.catalog_exercise_id);
@@ -683,6 +788,7 @@ export async function updateWorkoutExercise(
       catalogExerciseId = catalogResult.data.id;
       exerciseId = null;
       snapshotName = catalogResult.data.name;
+      snapshotMetadata = toWorkoutExerciseMuscleSnapshot(catalogResult.data);
     }
   }
 
@@ -705,19 +811,43 @@ export async function updateWorkoutExercise(
     return auth;
   }
   const supabase = asLooseSupabaseClient(auth.data.supabase);
-  const { data, error } = await supabase
+  const updatePayload = {
+    exercise_id: normalized.data.exercise_id,
+    catalog_exercise_id: normalized.data.catalog_exercise_id,
+    exercise_name: normalized.data.exercise_name,
+    position: normalized.data.position,
+    notes: normalized.data.notes,
+    source_primary_muscles: snapshotMetadata.source_primary_muscles,
+    source_secondary_muscles: snapshotMetadata.source_secondary_muscles,
+    source_body_region: snapshotMetadata.source_body_region,
+    source_movement_pattern: snapshotMetadata.source_movement_pattern,
+    source_muscle_metadata_version: snapshotMetadata.source_muscle_metadata_version,
+  };
+  let { data, error } = await supabase
     .from("workout_exercises")
-    .update({
-      exercise_id: normalized.data.exercise_id,
-      catalog_exercise_id: normalized.data.catalog_exercise_id,
-      exercise_name: normalized.data.exercise_name,
-      position: normalized.data.position,
-      notes: normalized.data.notes,
-    })
+    .update(updatePayload)
     .eq("id", workoutExerciseId)
     .eq("user_id", auth.data.user.id)
     .select("*")
     .maybeSingle();
+
+  if (error && isMissingColumnError(error.message)) {
+    const legacyRetry = await supabase
+      .from("workout_exercises")
+      .update({
+        exercise_id: normalized.data.exercise_id,
+        catalog_exercise_id: normalized.data.catalog_exercise_id,
+        exercise_name: normalized.data.exercise_name,
+        position: normalized.data.position,
+        notes: normalized.data.notes,
+      })
+      .eq("id", workoutExerciseId)
+      .eq("user_id", auth.data.user.id)
+      .select("*")
+      .maybeSingle();
+    data = legacyRetry.data;
+    error = legacyRetry.error;
+  }
 
   if (error) {
     return fail({
