@@ -1,0 +1,173 @@
+import type { PilotFoodCategory, PilotPreparationExpectation } from "../../src/lib/usda/catalog-pilot";
+
+export interface PilotDiscoveryTarget {
+  id: string;
+  target: string;
+  query: string;
+  category: PilotFoodCategory;
+  preparationExpectation: PilotPreparationExpectation;
+  preferredDataTypes: string[];
+}
+
+export const PILOT_DISCOVERY_TARGETS: PilotDiscoveryTarget[] = [
+  {
+    id: "protein_chicken_breast_raw",
+    target: "Chicken breast, boneless, skinless, raw",
+    query: "chicken breast boneless skinless raw",
+    category: "protein",
+    preparationExpectation: "raw",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "protein_chicken_breast_cooked",
+    target: "Chicken breast, boneless, skinless, cooked or roasted",
+    query: "chicken breast boneless skinless cooked roasted",
+    category: "protein",
+    preparationExpectation: "cooked",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "protein_chicken_thigh_raw",
+    target: "Chicken thigh, raw",
+    query: "chicken thigh raw",
+    category: "protein",
+    preparationExpectation: "raw",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "protein_chicken_thigh_cooked",
+    target: "Chicken thigh, cooked or roasted",
+    query: "chicken thigh cooked roasted",
+    category: "protein",
+    preparationExpectation: "cooked",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "protein_ground_beef_raw",
+    target: "Ground beef, approximately 90% lean / 10% fat, raw",
+    query: "ground beef 90% lean 10% fat raw",
+    category: "protein",
+    preparationExpectation: "raw",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "protein_ground_beef_cooked",
+    target: "Ground beef, approximately 90% lean / 10% fat, cooked",
+    query: "ground beef 90% lean 10% fat cooked",
+    category: "protein",
+    preparationExpectation: "cooked",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "protein_egg_whole",
+    target: "Whole egg",
+    query: "egg whole raw",
+    category: "protein",
+    preparationExpectation: "neutral",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "protein_egg_white",
+    target: "Egg white",
+    query: "egg white raw",
+    category: "protein",
+    preparationExpectation: "neutral",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "protein_salmon_cooked",
+    target: "Salmon, cooked",
+    query: "salmon cooked",
+    category: "protein",
+    preparationExpectation: "cooked",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "protein_tilapia_cooked",
+    target: "Tilapia, cooked",
+    query: "tilapia cooked",
+    category: "protein",
+    preparationExpectation: "cooked",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "carb_white_rice_cooked",
+    target: "White rice, long-grain, cooked",
+    query: "rice white long grain cooked",
+    category: "carbohydrate",
+    preparationExpectation: "cooked",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "carb_brown_rice_cooked",
+    target: "Brown rice, cooked",
+    query: "rice brown cooked",
+    category: "carbohydrate",
+    preparationExpectation: "cooked",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "carb_oats_dry",
+    target: "Oats, dry",
+    query: "oats dry",
+    category: "carbohydrate",
+    preparationExpectation: "neutral",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "carb_potato_baked",
+    target: "Potato, baked or cooked",
+    query: "potato baked flesh and skin",
+    category: "carbohydrate",
+    preparationExpectation: "cooked",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "carb_sweet_potato_baked",
+    target: "Sweet potato, baked or cooked",
+    query: "sweet potato baked",
+    category: "carbohydrate",
+    preparationExpectation: "cooked",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "produce_banana_raw",
+    target: "Banana, raw",
+    query: "banana raw",
+    category: "produce_and_staples",
+    preparationExpectation: "raw",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "produce_broccoli_cooked",
+    target: "Broccoli, cooked",
+    query: "broccoli cooked",
+    category: "produce_and_staples",
+    preparationExpectation: "cooked",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "staple_whole_milk",
+    target: "Whole milk",
+    query: "milk whole 3.25%",
+    category: "produce_and_staples",
+    preparationExpectation: "neutral",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "staple_greek_yogurt_plain",
+    target: "Plain Greek yogurt",
+    query: "yogurt greek plain",
+    category: "produce_and_staples",
+    preparationExpectation: "neutral",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+  {
+    id: "staple_olive_oil",
+    target: "Olive oil",
+    query: "olive oil",
+    category: "produce_and_staples",
+    preparationExpectation: "neutral",
+    preferredDataTypes: ["Foundation", "Survey (FNDDS)", "SR Legacy"],
+  },
+];

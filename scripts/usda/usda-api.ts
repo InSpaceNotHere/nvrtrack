@@ -1,15 +1,13 @@
-import "server-only";
-
-import { normalizeUsdaFoodDetailResponse, normalizeUsdaSearchResponse } from "./normalization";
-import { normalizeUsdaFdcId, normalizeUsdaSearchRequest } from "./search";
+import { normalizeUsdaFoodDetailResponse, normalizeUsdaSearchResponse } from "../../src/lib/usda/normalization";
+import { normalizeUsdaFdcId, normalizeUsdaSearchRequest } from "../../src/lib/usda/search";
 import type {
   NormalizedUsdaFoodDetail,
   NormalizedUsdaSearchResult,
   UsdaFoodDetailResponse,
   UsdaSearchRequest,
   UsdaSearchResponse,
-} from "./types";
-import { UsdaClientError } from "./types";
+} from "../../src/lib/usda/types";
+import { UsdaClientError } from "../../src/lib/usda/types";
 
 const USDA_API_BASE_URL = "https://api.nal.usda.gov/fdc/v1";
 const USDA_REQUEST_TIMEOUT_MS = 8000;
@@ -37,7 +35,6 @@ async function parseJsonResponse(response: Response): Promise<unknown> {
   if (!contentType.toLowerCase().includes("application/json")) {
     throw new UsdaClientError("invalid_response", "USDA service returned a non-JSON response.", response.status);
   }
-
   try {
     return await response.json();
   } catch {
@@ -79,32 +76,22 @@ async function requestUsda(path: string, init: RequestInit): Promise<unknown> {
         response.status,
       );
     }
-
     return await parseJsonResponse(response);
   } catch (error) {
     if (error instanceof UsdaClientError) {
       throw error;
     }
-
     if (error instanceof Error && error.name === "AbortError") {
-      throw new UsdaClientError(
-        "timeout",
-        "USDA request timed out. Please try again.",
-      );
+      throw new UsdaClientError("timeout", "USDA request timed out. Please try again.");
     }
-
-    throw new UsdaClientError(
-      "service_unavailable",
-      "USDA request could not be completed at this time.",
-    );
+    throw new UsdaClientError("service_unavailable", "USDA request could not be completed at this time.");
   } finally {
     clearTimeout(timeout);
   }
 }
 
-export async function searchUsdaFoods(request: UsdaSearchRequest): Promise<NormalizedUsdaSearchResult> {
+export async function searchUsdaFoodsForScript(request: UsdaSearchRequest): Promise<NormalizedUsdaSearchResult> {
   const normalized = normalizeUsdaSearchRequest(request);
-
   const payload: Record<string, unknown> = {
     query: normalized.query,
     pageSize: normalized.pageSize,
@@ -113,7 +100,6 @@ export async function searchUsdaFoods(request: UsdaSearchRequest): Promise<Norma
   if (normalized.dataTypes.length) {
     payload.dataType = normalized.dataTypes;
   }
-
   const raw = (await requestUsda("/foods/search", {
     method: "POST",
     headers: {
@@ -121,14 +107,34 @@ export async function searchUsdaFoods(request: UsdaSearchRequest): Promise<Norma
     },
     body: JSON.stringify(payload),
   })) as UsdaSearchResponse;
+  const safeFoods = (raw.foods ?? []).flatMap((food) => {
+    try {
+      return normalizeUsdaSearchResponse({
+        foods: [food],
+      }).foods;
+    } catch {
+      return [];
+    }
+  });
 
-  return normalizeUsdaSearchResponse(raw);
+  return {
+    foods: safeFoods,
+    totalHits: typeof raw.totalHits === "number" && raw.totalHits >= 0 ? raw.totalHits : safeFoods.length,
+    currentPage: typeof raw.currentPage === "number" && raw.currentPage > 0 ? raw.currentPage : 1,
+    totalPages: typeof raw.totalPages === "number" && raw.totalPages > 0 ? raw.totalPages : 1,
+  };
 }
 
-export async function getUsdaFoodDetail(fdcId: number | string): Promise<NormalizedUsdaFoodDetail> {
+export async function getUsdaFoodDetailForScript(fdcId: number | string): Promise<NormalizedUsdaFoodDetail> {
+  const raw = await getUsdaFoodDetailRawForScript(fdcId);
+  return normalizeUsdaFoodDetailResponse(raw);
+}
+
+export async function getUsdaFoodDetailRawForScript(
+  fdcId: number | string,
+): Promise<UsdaFoodDetailResponse> {
   const normalizedId = normalizeUsdaFdcId(fdcId);
-  const raw = (await requestUsda(`/food/${normalizedId}`, {
+  return (await requestUsda(`/food/${normalizedId}`, {
     method: "GET",
   })) as UsdaFoodDetailResponse;
-  return normalizeUsdaFoodDetailResponse(raw);
 }
