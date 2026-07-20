@@ -1,15 +1,25 @@
+import Link from "next/link";
 import { Dumbbell } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 
 interface WorkoutCardProps {
   workoutName: string;
-  exercises: number;
-  totalSets: number;
+  statusText: string;
+  exercises: number | null;
+  totalSets: number | null;
   actionLabel?: string;
+  actionHref?: string;
 }
 
-export function WorkoutCard({ workoutName, exercises, totalSets, actionLabel }: WorkoutCardProps) {
+export function WorkoutCard({
+  workoutName,
+  statusText,
+  exercises,
+  totalSets,
+  actionLabel,
+  actionHref,
+}: WorkoutCardProps) {
   return (
     <Card title="Today&apos;s Workout">
       <div className="flex items-start gap-2.5">
@@ -18,18 +28,21 @@ export function WorkoutCard({ workoutName, exercises, totalSets, actionLabel }: 
         </div>
         <div>
           <p className="text-xl font-semibold leading-tight text-white">{workoutName}</p>
-          <p className="mt-1 text-sm text-zinc-400">
-            {exercises} exercises • {totalSets} total sets
-          </p>
+          <p className="mt-1 text-sm text-zinc-400">{statusText}</p>
+          {exercises !== null && totalSets !== null ? (
+            <p className="mt-1 text-xs text-zinc-500">
+              {exercises} exercises • {totalSets} total sets
+            </p>
+          ) : null}
         </div>
       </div>
-      {actionLabel ? (
-        <button
-          type="button"
+      {actionLabel && actionHref ? (
+        <Link
+          href={actionHref}
           className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
         >
           {actionLabel}
-        </button>
+        </Link>
       ) : null}
     </Card>
   );

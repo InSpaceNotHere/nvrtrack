@@ -449,6 +449,39 @@ export async function getMyWorkoutExercises(workoutId: string): Promise<DataAcce
   return ok(asWorkoutExerciseRows(data));
 }
 
+export async function getMyWorkoutExercisesForWorkoutIds(
+  workoutIds: string[],
+): Promise<DataAccessResult<WorkoutExerciseRow[]>> {
+  const uniqueIds = [...new Set(workoutIds.filter(Boolean))];
+  if (!uniqueIds.length) {
+    return ok([]);
+  }
+
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
+  }
+
+  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const { data, error } = await supabase
+    .from("workout_exercises")
+    .select("*")
+    .eq("user_id", auth.data.user.id)
+    .in("workout_id", uniqueIds)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to load workout exercises.",
+      cause: error.message,
+    });
+  }
+
+  return ok(asWorkoutExerciseRows(data));
+}
+
 export async function addExerciseToWorkout(
   workoutId: string,
   input: {
@@ -777,6 +810,38 @@ export async function getWorkoutSets(workoutExerciseId: string): Promise<DataAcc
     .select("*")
     .eq("user_id", auth.data.user.id)
     .eq("workout_exercise_id", workoutExerciseId)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to load workout sets.",
+      cause: error.message,
+    });
+  }
+
+  return ok(asWorkoutSetRows(data));
+}
+
+export async function getWorkoutSetsForWorkoutExerciseIds(
+  workoutExerciseIds: string[],
+): Promise<DataAccessResult<WorkoutSetRow[]>> {
+  const uniqueIds = [...new Set(workoutExerciseIds.filter(Boolean))];
+  if (!uniqueIds.length) {
+    return ok([]);
+  }
+
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
+  }
+  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const { data, error } = await supabase
+    .from("workout_sets")
+    .select("*")
+    .eq("user_id", auth.data.user.id)
+    .in("workout_exercise_id", uniqueIds)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true });
 

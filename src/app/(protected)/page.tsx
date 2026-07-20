@@ -8,12 +8,15 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { WeightLogManager } from "@/components/weight/weight-log-manager";
 import { getMyFoodEntriesForDate } from "@/lib/data/nutrition";
 import { getMyProfile } from "@/lib/data/profile";
+import { getMyWorkoutExercises, getMyWorkouts, getWorkoutSetsForWorkoutExerciseIds } from "@/lib/data/workouts";
 import { getWeightEntries } from "@/lib/data/weight";
 import { calculateDailyTotals } from "@/lib/nutrition/calculations";
 import { getTodayDateString } from "@/lib/nutrition/date";
+import { buildWorkoutSummaryStats, groupSetsByWorkoutExerciseId, selectMostRecentActiveWorkout } from "@/lib/training/session";
+import type { TrainingWeightUnit } from "@/lib/training/types";
 import { MIN_ENTRIES_FOR_PERIOD_COMPARISON, formatDeltaLabel, computeWeightMetrics, shortDateLabel } from "@/lib/weight/metrics";
 import type { WeightUnit } from "@/lib/weight/conversions";
-import { HOME_DATA, CLUB_TARGETS, MACRO_STATS } from "@/lib/sample-data";
+import { CLUB_TARGETS, MACRO_STATS } from "@/lib/sample-data";
 import type { MacroStat } from "@/types/fitness";
 
 function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightUnit {
@@ -22,14 +25,16 @@ function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightU
 
 export default async function HomePage() {
   const todayDate = getTodayDateString();
-  const [profileResult, weightEntriesResult, nutritionEntriesResult] = await Promise.all([
+  const [profileResult, weightEntriesResult, nutritionEntriesResult, workoutsResult] = await Promise.all([
     getMyProfile(),
     getWeightEntries(),
     getMyFoodEntriesForDate(todayDate),
+    getMyWorkouts(),
   ]);
   const profileLoadError = profileResult.error?.message ?? null;
   const weightLoadError = weightEntriesResult.error?.message ?? null;
   const nutritionLoadError = nutritionEntriesResult.error?.message ?? null;
+  const workoutLoadError = workoutsResult.error?.message ?? null;
 
   const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
   const weightEntries = weightEntriesResult.data ?? [];
@@ -66,6 +71,46 @@ export default async function HomePage() {
     value: entry.weight,
   }));
 
+  const workouts = workoutsResult.data ?? [];
+  const activeWorkout = selectMostRecentActiveWorkout(workouts);
+  const todaysCompletedWorkout = [...workouts]
+    .filter((workout) => workout.workout_date === todayDate && workout.completed_at !== null)
+    .sort((a, b) => Date.parse(b.completed_at ?? b.created_at) - Date.parse(a.completed_at ?? a.created_at))[0];
+  const workoutCardTarget = activeWorkout ?? todaysCompletedWorkout ?? null;
+
+  let workoutCardName = "No workout logged today";
+  let workoutCardStatus = "Start a workout to begin today’s training.";
+  let workoutCardActionLabel = "Start Workout";
+  let workoutCardActionHref = "/training/start";
+  let workoutCardExercises: number | null = null;
+  let workoutCardSets: number | null = null;
+
+  if (workoutCardTarget) {
+    const workoutExercisesResult = await getMyWorkoutExercises(workoutCardTarget.id);
+    const workoutExerciseIds = (workoutExercisesResult.data ?? []).map((exercise) => exercise.id);
+    const workoutSetsResult = await getWorkoutSetsForWorkoutExerciseIds(workoutExerciseIds);
+    const summary = buildWorkoutSummaryStats({
+      workout: workoutCardTarget,
+      exercises: workoutExercisesResult.data ?? [],
+      setsByExerciseId: groupSetsByWorkoutExerciseId(workoutSetsResult.data ?? []),
+      displayUnit: displayUnit as TrainingWeightUnit,
+    });
+    workoutCardExercises = summary.exerciseCount;
+    workoutCardSets = summary.totalSetCount;
+
+    if (workoutCardTarget.completed_at) {
+      workoutCardName = workoutCardTarget.name;
+      workoutCardStatus = "Completed today";
+      workoutCardActionLabel = "View Workout";
+      workoutCardActionHref = `/training/workouts/${workoutCardTarget.id}?view=summary`;
+    } else {
+      workoutCardName = workoutCardTarget.name;
+      workoutCardStatus = "Workout in progress";
+      workoutCardActionLabel = "Continue Workout";
+      workoutCardActionHref = `/training/workouts/${workoutCardTarget.id}`;
+    }
+  }
+
   return (
     <div className="space-y-4">
       <header className="mb-1">
@@ -91,6 +136,12 @@ export default async function HomePage() {
         <Card>
           <p className="text-sm text-rose-200">Nutrition totals are temporarily unavailable.</p>
           <p className="mt-1 text-xs text-zinc-500">{nutritionLoadError}</p>
+        </Card>
+      ) : null}
+      {workoutLoadError ? (
+        <Card>
+          <p className="text-sm text-rose-200">Workout data is temporarily unavailable.</p>
+          <p className="mt-1 text-xs text-zinc-500">{workoutLoadError}</p>
         </Card>
       ) : null}
 
@@ -141,10 +192,12 @@ export default async function HomePage() {
           unit={displayUnit}
         />
         <WorkoutCard
-          workoutName={HOME_DATA.workout.name}
-          exercises={HOME_DATA.workout.exercises}
-          totalSets={HOME_DATA.workout.totalSets}
-          actionLabel="Continue Workout"
+          workoutName={workoutCardName}
+          statusText={workoutCardStatus}
+          exercises={workoutCardExercises}
+          totalSets={workoutCardSets}
+          actionLabel={workoutCardActionLabel}
+          actionHref={workoutCardActionHref}
         />
       </section>
 

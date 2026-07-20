@@ -2,7 +2,7 @@
 
 NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
-## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, and 8)
+## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, and 9)
 
 The app currently includes:
 
@@ -51,6 +51,13 @@ The app currently includes:
   - immutable `exercise_name` snapshot behavior for historical workout entries
   - typed workout validation and calculation utilities (volume + Epley estimated 1RM + best set + PR candidate)
   - secure server-side workout data helpers (library/workout/workout exercise/workout set CRUD + reorder)
+- Session 9 workout logging UI:
+  - `/training` now uses live workout data (active workout resume, recent history, completed-this-week count, recent exercises)
+  - `/training/start` creates a live workout with name/date/optional notes and redirects into logger route
+  - `/training/workouts/[workoutId]` supports active logging and completed summary view
+  - `/training/history` lists workouts newest-first with status, counts, volume, and duration
+  - `/training/exercises` supports exercise library search/create/edit/delete with last-used metadata
+  - Home workout card now reflects live workout state (continue active, today completed, start workout, or no workout yet)
 
 ## Technology
 
@@ -183,7 +190,12 @@ npm run test
 
 - `/`
 - `/nutrition`
+- `/nutrition/foods`
 - `/training`
+- `/training/start`
+- `/training/history`
+- `/training/exercises`
+- `/training/workouts/[workoutId]`
 - `/progress`
 - `/profile`
 
@@ -634,3 +646,122 @@ npx supabase gen types typescript --linked --schema public > src/types/database.
 8. Delete a library exercise and verify workout history remains with `exercise_id` detached.
 9. Verify User B cannot read or mutate User A exercises/workouts/workout children.
 10. Delete a workout and verify child workout exercises/sets are removed by cascade.
+
+## Session 9: Workout Logging UI
+
+### Scope
+
+Session 9 connects Training and Home workout sections to live Supabase workout data.
+
+Implemented in this session:
+
+- Training dashboard (`/training`) now shows:
+  - active workout resume when `completed_at` is null
+  - Start Workout action
+  - recent workouts from live data
+  - current week completed-workout count
+  - recent exercises and exercise-library/history links
+- Start flow (`/training/start`) creates workouts with:
+  - required name
+  - required workout date
+  - optional notes
+  - server-side `started_at` initialization
+  - redirect to stable logger route
+- Workout logger/detail (`/training/workouts/[workoutId]`) now supports:
+  - editing workout metadata (name/date/notes)
+  - adding exercises from saved library, custom snapshots, or create-and-add flow
+  - ordered set logging with set type, weight, unit, reps, RPE, completion, notes
+  - set duplication (copies set type + weight values, keeps completion false)
+  - set edit, complete/incomplete toggle, move up/down, delete with confirmation
+  - exercise move up/down and remove with confirmation
+  - completion workflow requiring meaningful set confirmation before forced completion
+  - completed workout summary mode (read-only in this session)
+- Workout history (`/training/history`) now shows live workouts newest-first with:
+  - completion status
+  - exercise count
+  - completed/total set count
+  - total volume
+  - duration when started/completed timestamps are available
+  - delete with confirmation
+- Exercise library (`/training/exercises`) supports:
+  - list/search
+  - create/edit/delete
+  - muscle group and equipment display
+  - last-used date when available
+  - explicit snapshot preservation messaging when deleting
+
+### Server/client architecture
+
+- **Server Components** handle secure initial loading:
+  - `/training`
+  - `/training/start`
+  - `/training/history`
+  - `/training/exercises`
+  - `/training/workouts/[workoutId]`
+- **Server Actions** in `src/app/(protected)/actions/training-actions.ts` handle all workout/exercise/set mutations.
+- **Client Components** provide high-speed set-entry interactions and confirmation UX.
+- All authenticated identity derivation stays server-side; client never supplies trusted `user_id`.
+- Mutations revalidate relevant routes (`/`, `/training`, `/training/start`, `/training/history`, `/training/exercises`, workout detail route).
+
+### Active-workout persistence behavior
+
+- Active workouts are identified by `completed_at is null`.
+- Most recently started unfinished workout is surfaced on `/training` and Home card.
+- Workout logger route is stable (`/training/workouts/[workoutId]`), so refresh preserves active session context.
+- Unfinished workouts remain resumable after refresh and auth round trips because state is persisted in database rows.
+
+### Previous-performance and estimated PR behavior
+
+- Previous performance matching order:
+  1. `exercise_id` exact match when available
+  2. normalized snapshot `exercise_name` match (`trim + lowercase`) when detached/custom
+- Workout logger shows:
+  - latest matched workout date
+  - latest completed sets
+  - previous best estimated 1RM
+- Estimated PR indicators are derived from existing calculation helpers and labeled as **potential estimated PR**.
+- No permanent PR table is written in Session 9.
+
+### Snapshot behavior reminder
+
+- `workout_exercises.exercise_name` remains the historical snapshot.
+- Renaming/deleting library exercises does not rewrite existing workout snapshot names.
+- Deleting library exercises detaches future direct linkage while preserving history rows.
+
+### Live vs future Training scope
+
+**Live in Session 9**
+
+- Workout/exercise/set CRUD and ordering
+- Workout completion and history
+- Previous-performance summaries and potential estimated PR hints
+- Home workout card live state
+
+**Out of scope / future**
+
+- Workout templates
+- Program scheduling
+- Permanent PR records
+- AI coaching/recommendations
+- Social features
+- Health-platform integrations
+
+### Manual Session 9 Test Checklist
+
+1. Open `/training/exercises`, create a new exercise, search it, edit it, and confirm update persists.
+2. Start a workout at `/training/start` and confirm redirect to `/training/workouts/[workoutId]`.
+3. Add one saved exercise and one custom snapshot exercise to the workout.
+4. Add multiple sets, fill weight/reps/RPE/type, and save.
+5. Duplicate a set and confirm duplicated set starts incomplete.
+6. Toggle completion on a set, edit completed set values, and confirm values persist after refresh.
+7. Reorder sets using Up/Down controls and confirm ordering remains valid.
+8. Delete a set and confirm remaining positions stay valid.
+9. Reorder exercises and remove an exercise; confirm list remains valid.
+10. Confirm previous-performance block appears for exercises with historical matches.
+11. Complete workout and confirm redirect to summary mode with totals.
+12. Open `/training/history` and verify workout appears with live counts/volume/duration.
+13. Start another workout, leave unfinished, return to `/training`, and confirm Continue Active Workout appears.
+14. Delete unfinished workout with confirmation and verify removal.
+15. Rename/delete a library exercise and confirm previously completed workout snapshot names remain unchanged.
+16. Confirm Home workout card reflects active/completed/empty states from live workout data.
+17. Verify cross-user isolation (User B cannot access User A workout details or mutate User A rows).

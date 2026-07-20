@@ -1,73 +1,200 @@
-import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { TODAY_EXERCISES, TRAINING_DAYS, HOME_DATA } from "@/lib/sample-data";
+import { getMyRecentExercises } from "@/lib/data/exercises";
+import { getMyProfile } from "@/lib/data/profile";
+import {
+  getMyWorkoutExercisesForWorkoutIds,
+  getMyWorkouts,
+  getWorkoutSetsForWorkoutExerciseIds,
+} from "@/lib/data/workouts";
+import { sortWorkoutsForHistory } from "@/lib/training/calculations";
+import {
+  buildWorkoutSummaryStats,
+  countCompletedWorkoutsThisWeek,
+  groupSetsByWorkoutExerciseId,
+  selectMostRecentActiveWorkout,
+} from "@/lib/training/session";
+import type { WorkoutExerciseRow } from "@/lib/training/types";
 
-export default function TrainingPage() {
+function getDisplayUnit(preferredWeightUnit: string | null | undefined): "lb" | "kg" {
+  return preferredWeightUnit === "kg" ? "kg" : "lb";
+}
+
+function formatDate(date: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(`${date}T00:00:00.000Z`));
+}
+
+export default async function TrainingPage() {
+  const [workoutsResult, recentExercisesResult, profileResult] = await Promise.all([
+    getMyWorkouts(),
+    getMyRecentExercises(8),
+    getMyProfile(),
+  ]);
+  const workouts = sortWorkoutsForHistory(workoutsResult.data ?? []);
+  const activeWorkout = selectMostRecentActiveWorkout(workouts);
+  const completedThisWeek = countCompletedWorkoutsThisWeek(workouts);
+  const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
+
+  const recentWorkouts = workouts.slice(0, 5);
+  const workoutExercisesResult = await getMyWorkoutExercisesForWorkoutIds(recentWorkouts.map((workout) => workout.id));
+  const workoutSetsResult = await getWorkoutSetsForWorkoutExerciseIds(
+    (workoutExercisesResult.data ?? []).map((exercise) => exercise.id),
+  );
+
+  const setsByExerciseId = groupSetsByWorkoutExerciseId(workoutSetsResult.data ?? []);
+  const exercisesByWorkoutId = new Map<string, WorkoutExerciseRow[]>();
+  for (const exercise of workoutExercisesResult.data ?? []) {
+    const list = exercisesByWorkoutId.get(exercise.workout_id);
+    if (list) {
+      list.push(exercise);
+    } else {
+      exercisesByWorkoutId.set(exercise.workout_id, [exercise]);
+    }
+  }
+
+  const dataErrorMessage =
+    workoutsResult.error?.message ??
+    recentExercisesResult.error?.message ??
+    workoutExercisesResult.error?.message ??
+    workoutSetsResult.error?.message ??
+    profileResult.error?.message ??
+    null;
+
   return (
     <div className="space-y-4">
-      <PageHeader title="Training" />
+      <PageHeader title="Training" subtitle="Live workout tracking and history." />
 
-      <Card title="This Week">
-        <div className="grid grid-cols-7 gap-2">
-          {TRAINING_DAYS.map((day) => (
-            <button
-              key={day}
-              type="button"
-              className={`h-9 rounded-lg border text-[11px] font-semibold transition-colors ${
-                day === "Tue"
-                  ? "border-white/30 bg-white/12 text-white"
-                  : "border-white/10 bg-black/20 text-zinc-500 hover:text-zinc-200"
-              }`}
-              aria-pressed={day === "Tue"}
-            >
-              {day}
-            </button>
-          ))}
-        </div>
-      </Card>
+      {dataErrorMessage ? (
+        <Card>
+          <p className="text-sm text-rose-200">Training data is temporarily unavailable.</p>
+          <p className="mt-1 text-xs text-zinc-500">{dataErrorMessage}</p>
+        </Card>
+      ) : null}
 
-      <Card title="Today&apos;s Workout">
-        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
-          <p className="text-2xl font-semibold tracking-tight text-white">{HOME_DATA.workout.name}</p>
-          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-            <div className="rounded-lg bg-white/[0.04] px-2.5 py-2">
-              <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">Exercises</p>
-              <p className="mt-1 text-lg font-semibold text-white">{HOME_DATA.workout.exercises}</p>
-            </div>
-            <div className="rounded-lg bg-white/[0.04] px-2.5 py-2">
-              <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">Total Sets</p>
-              <p className="mt-1 text-lg font-semibold text-white">{HOME_DATA.workout.totalSets}</p>
-            </div>
-          </div>
-        </div>
-
-        <ul className="mt-3 space-y-2">
-          {TODAY_EXERCISES.map((exercise) => (
-            <li
-              key={exercise.name}
-              className="rounded-xl border border-white/8 bg-black/20 px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-zinc-100">{exercise.name}</p>
-                  <p className="mt-0.5 text-[11px] text-zinc-500">
-                    {exercise.sets} sets • {exercise.reps} reps
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-zinc-500" aria-hidden="true" />
+      {!workouts.length ? (
+        <Card title="Start Your First Workout">
+          <p className="text-sm text-zinc-300">No workouts logged yet. Create a workout and begin adding exercises and sets.</p>
+          <Link
+            href="/training/start"
+            className="mt-3 inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+          >
+            Start Workout
+          </Link>
+        </Card>
+      ) : (
+        <>
+          <Card title="Current Week">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-2xl font-semibold tracking-tight text-white">{completedThisWeek}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.08em] text-zinc-500">Completed workouts this week</p>
               </div>
-            </li>
-          ))}
-        </ul>
+              <div className="flex flex-wrap gap-2">
+                {activeWorkout ? (
+                  <Link
+                    href={`/training/workouts/${activeWorkout.id}`}
+                    className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
+                  >
+                    Continue Active Workout
+                  </Link>
+                ) : (
+                  <Link
+                    href="/training/start"
+                    className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
+                  >
+                    Start Workout
+                  </Link>
+                )}
+                <Link
+                  href="/training/history"
+                  className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+                >
+                  History
+                </Link>
+              </div>
+            </div>
+          </Card>
 
-        <button
-          type="button"
-          className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+          {activeWorkout ? (
+            <Card title="Continue Active Workout">
+              <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+                <p className="text-base font-semibold text-white">{activeWorkout.name}</p>
+                <p className="mt-1 text-xs text-zinc-500">{formatDate(activeWorkout.workout_date)}</p>
+                <Link
+                  href={`/training/workouts/${activeWorkout.id}`}
+                  className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
+                >
+                  Resume Workout
+                </Link>
+              </div>
+            </Card>
+          ) : null}
+
+          <Card title="Recent Workouts">
+            <ul className="space-y-2">
+              {recentWorkouts.map((workout) => {
+                const workoutExercises = exercisesByWorkoutId.get(workout.id) ?? [];
+                const summary = buildWorkoutSummaryStats({
+                  workout,
+                  exercises: workoutExercises,
+                  setsByExerciseId,
+                  displayUnit,
+                });
+
+                return (
+                  <li key={workout.id} className="rounded-lg border border-white/10 bg-black/25 p-2.5">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-zinc-100">{workout.name}</p>
+                        <p className="mt-0.5 text-xs text-zinc-500">
+                          {formatDate(workout.workout_date)} • {workout.completed_at ? "Completed" : "In progress"}
+                        </p>
+                        <p className="mt-1 text-xs text-zinc-500">
+                          {summary.exerciseCount} exercises • {summary.completedSetCount}/{summary.totalSetCount} sets complete
+                        </p>
+                      </div>
+                      <Link
+                        href={`/training/workouts/${workout.id}`}
+                        className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+                      >
+                        Open
+                      </Link>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+        </>
+      )}
+
+      <Card title="Recent Exercises">
+        {(recentExercisesResult.data ?? []).length ? (
+          <ul className="space-y-2">
+            {(recentExercisesResult.data ?? []).map((exercise) => (
+              <li key={exercise.id} className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
+                <p className="text-sm font-medium text-zinc-100">{exercise.name}</p>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  {exercise.muscle_group || "No muscle group"} • {exercise.equipment || "No equipment"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-zinc-500">No recent exercises yet.</p>
+        )}
+        <Link
+          href="/training/exercises"
+          className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
         >
-          Continue Workout
-        </button>
+          Manage Exercise Library
+        </Link>
       </Card>
     </div>
   );
