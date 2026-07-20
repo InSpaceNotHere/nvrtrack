@@ -11,11 +11,13 @@ import { searchActiveFoodCatalog } from "@/lib/data/food-catalog";
 import {
   createMyFoodEntry,
   createMyCatalogFoodEntry,
+  createMyLiveUsdaFoodEntry,
   deleteMyFoodEntry,
   updateMyCatalogFoodEntry,
   updateMyFoodEntry,
   type CreateMyFoodEntryInput,
   type CreateMyCatalogFoodEntryInput,
+  type CreateMyLiveUsdaFoodEntryInput,
   type UpdateMyCatalogFoodEntryInput,
   type UpdateMyFoodEntryInput,
 } from "@/lib/data/nutrition";
@@ -31,6 +33,7 @@ import {
 import type { FoodCatalogRow, FoodEntryRow, FoodRow } from "@/lib/data/auth-context";
 import { parseAmountUnit, parseAmountValue } from "@/lib/nutrition/catalog-entry";
 import type { SupportedAmountUnit } from "@/lib/nutrition/serving";
+import { LiveUsdaError, resolveLiveUsdaFoodDetail } from "@/lib/usda/live";
 
 type BaseActionResult = {
   status: "success" | "error";
@@ -61,6 +64,30 @@ export interface CatalogFoodEntryActionResult extends BaseActionResult {
 
 export interface CatalogFoodSearchActionResult extends BaseActionResult {
   foods: FoodCatalogRow[];
+}
+
+export interface LiveUsdaFoodDetailActionResult extends BaseActionResult {
+  detail: Awaited<ReturnType<typeof resolveLiveUsdaFoodDetail>> | null;
+  errorCode:
+    | "invalid_fdc_id"
+    | "invalid_query"
+    | "invalid_group"
+    | "rate_limited"
+    | "timeout"
+    | "service_unavailable"
+    | "invalid_response"
+    | "upstream_error"
+    | "not_configured"
+    | null;
+}
+
+export type LiveUsdaEntryFormErrors = Partial<
+  Record<FoodEntryBaseField | "fdc_id" | "amount_value" | "amount_unit" | "source_portion_id", string>
+>;
+
+export interface LiveUsdaFoodEntryActionResult extends BaseActionResult {
+  errors: LiveUsdaEntryFormErrors;
+  entry: FoodEntryRow | null;
 }
 
 export type SavedFoodActionInput = SavedFoodInput;
@@ -107,6 +134,17 @@ export interface CatalogFoodEntryEditActionInput {
   note?: string;
 }
 
+export interface LiveUsdaFoodEntryActionInput {
+  fdc_id: string;
+  amount_value: string;
+  amount_unit: string;
+  source_portion_id?: string | null;
+  entry_date: string;
+  meal_type: string;
+  note?: string;
+  save_to_my_foods?: boolean;
+}
+
 function revalidateNutritionViews() {
   revalidatePath("/");
   revalidatePath("/nutrition");
@@ -149,6 +187,23 @@ function normalizeCatalogFoodEntryInput(
     },
     errors: {},
   };
+}
+
+function mapLiveUsdaError(error: LiveUsdaError): LiveUsdaFoodDetailActionResult {
+  return {
+    status: "error",
+    message: error.message,
+    detail: null,
+    errorCode: error.code,
+  };
+}
+
+function parseFdcId(raw: string): number | null {
+  const parsed = Number(raw.trim());
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+  return parsed;
 }
 
 export async function createSavedFoodAction(input: SavedFoodActionInput): Promise<SavedFoodActionResult> {
@@ -473,7 +528,7 @@ export async function updateCatalogFoodEntryAction(
   revalidateNutritionViews();
   return {
     status: "success",
-    message: "Common food entry updated.",
+    message: "USDA amount-based entry updated.",
     errors: {},
     entry: result.data,
   };
@@ -496,5 +551,117 @@ export async function searchCatalogFoodsAction(
     status: "success",
     message: "Common foods loaded.",
     foods: result.data,
+  };
+}
+
+export async function resolveUsdaFoodDetailAction(
+  fdcIdRaw: string | number,
+): Promise<LiveUsdaFoodDetailActionResult> {
+  const parsed =
+    typeof fdcIdRaw === "number"
+      ? Number.isInteger(fdcIdRaw) && fdcIdRaw > 0
+        ? fdcIdRaw
+        : null
+      : parseFdcId(fdcIdRaw);
+
+  if (parsed === null) {
+    return {
+      status: "error",
+      message: "Select a valid USDA food record.",
+      detail: null,
+      errorCode: "invalid_fdc_id",
+    };
+  }
+
+  try {
+    const detail = await resolveLiveUsdaFoodDetail({ fdcId: parsed });
+    return {
+      status: "success",
+      message: "USDA food details loaded.",
+      detail,
+      errorCode: null,
+    };
+  } catch (error) {
+    if (error instanceof LiveUsdaError) {
+      return mapLiveUsdaError(error);
+    }
+
+    return {
+      status: "error",
+      message: "USDA details are temporarily unavailable.",
+      detail: null,
+      errorCode: "service_unavailable",
+    };
+  }
+}
+
+export async function createLiveUsdaFoodEntryAction(
+  input: LiveUsdaFoodEntryActionInput,
+): Promise<LiveUsdaFoodEntryActionResult> {
+  const baseValidation = normalizeFoodEntryBaseInput({
+    entry_date: input.entry_date,
+    meal_type: input.meal_type,
+    servings: 1,
+    note: input.note,
+  });
+  const amountValidation = normalizeCatalogFoodEntryInput(input);
+
+  const errors: LiveUsdaEntryFormErrors = {
+    ...baseValidation.errors,
+    ...amountValidation.errors,
+  };
+
+  const fdcId = parseFdcId(input.fdc_id);
+  if (fdcId === null) {
+    errors.fdc_id = "Select a valid USDA food.";
+  }
+
+  const sourcePortionId = input.source_portion_id?.trim() || null;
+  if (sourcePortionId && sourcePortionId.length > 120) {
+    errors.source_portion_id = "Selected USDA portion is invalid.";
+  }
+
+  if (Object.keys(errors).length > 0 || !baseValidation.data || !amountValidation.data || fdcId === null) {
+    return {
+      status: "error",
+      message: "Please fix the highlighted fields.",
+      errors,
+      entry: null,
+    };
+  }
+
+  const payload: CreateMyLiveUsdaFoodEntryInput = {
+    fdc_id: fdcId,
+    entry_date: baseValidation.data.entry_date,
+    meal_type: baseValidation.data.meal_type,
+    note: baseValidation.data.note,
+    amount_value: amountValidation.data.amount_value,
+    amount_unit: amountValidation.data.amount_unit,
+    source_portion_id: sourcePortionId,
+    save_to_my_foods: !!input.save_to_my_foods,
+  };
+
+  const result = await createMyLiveUsdaFoodEntry(payload);
+  if (result.error) {
+    return {
+      status: "error",
+      message: result.error.message,
+      errors: {},
+      entry: null,
+    };
+  }
+
+  revalidateNutritionViews();
+  const warningMessage = result.data.saveWarning
+    ? `USDA food logged. ${result.data.saveWarning}`
+    : input.save_to_my_foods
+      ? "USDA food logged and saved to My Foods."
+      : "USDA food logged.";
+
+  return {
+    status: "success",
+    message: warningMessage,
+    errors: {},
+    entry: result.data.entry,
   };
 }

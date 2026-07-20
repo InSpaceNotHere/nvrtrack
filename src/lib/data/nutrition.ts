@@ -1,6 +1,6 @@
 import type { Database } from "@/types/database";
 
-import { getAuthenticatedContext, type FoodEntryRow, type FoodRow } from "./auth-context";
+import { getAuthenticatedContext, type AuthenticatedContext, type FoodEntryRow, type FoodRow } from "./auth-context";
 import { fail, ok, type DataAccessResult } from "./result";
 import {
   normalizeFoodEntryBaseInput,
@@ -15,11 +15,14 @@ import {
   calculateCatalogEntrySnapshot,
   recalculateCatalogEntryFromSnapshot,
 } from "@/lib/nutrition/catalog-entry";
-import type { SupportedAmountUnit } from "@/lib/nutrition/serving";
+import { calculateNutritionForAmount, type SupportedAmountUnit } from "@/lib/nutrition/serving";
 import { getActiveFoodCatalogById } from "./food-catalog";
+import { LiveUsdaError, resolveLiveUsdaFoodDetail, resolveSourceServingFromPortionSelection } from "@/lib/usda/live";
 
 type FoodEntryInsert = Database["public"]["Tables"]["food_entries"]["Insert"];
 type FoodEntryUpdate = Database["public"]["Tables"]["food_entries"]["Update"];
+type FoodInsert = Database["public"]["Tables"]["foods"]["Insert"];
+type FoodUpdate = Database["public"]["Tables"]["foods"]["Update"];
 
 export interface CreateMyFoodEntryInput extends FoodEntryBaseInput {
   food_id?: string | null;
@@ -42,6 +45,20 @@ export interface UpdateMyCatalogFoodEntryInput extends Pick<FoodEntryBaseInput, 
   amount_unit: SupportedAmountUnit;
 }
 
+export interface CreateMyLiveUsdaFoodEntryInput extends Pick<FoodEntryBaseInput, "entry_date" | "meal_type" | "note"> {
+  fdc_id: number;
+  amount_value: number;
+  amount_unit: SupportedAmountUnit;
+  source_portion_id?: string | null;
+  save_to_my_foods?: boolean;
+}
+
+export interface CreateMyLiveUsdaFoodEntryResult {
+  entry: FoodEntryRow;
+  savedFood: FoodRow | null;
+  saveWarning: string | null;
+}
+
 function sanitizeLimit(limit: number, fallback = 20): number {
   if (!Number.isInteger(limit) || limit <= 0) {
     return fallback;
@@ -62,6 +79,193 @@ function snapshotFromFood(food: FoodRow): FoodEntrySnapshotNormalized {
     fat_per_serving_g: food.fat_g,
     fiber_per_serving_g: food.fiber_g,
   };
+}
+
+function sourceBrandForLiveFood(input: { brandName: string | null; brandOwner: string | null }): string | null {
+  return input.brandName?.trim() || input.brandOwner?.trim() || null;
+}
+
+function sourceDataToPer100g(detail: Awaited<ReturnType<typeof resolveLiveUsdaFoodDetail>>): {
+  calories_per_100g: number | null;
+  protein_g_per_100g: number | null;
+  carbohydrate_g_per_100g: number | null;
+  fat_g_per_100g: number | null;
+  fiber_g_per_100g: number | null;
+  sugar_g_per_100g: number | null;
+  sodium_mg_per_100g: number | null;
+} {
+  return {
+    calories_per_100g: detail.nutrientsPer100g.calories_kcal.value,
+    protein_g_per_100g: detail.nutrientsPer100g.protein_g.value,
+    carbohydrate_g_per_100g: detail.nutrientsPer100g.carbohydrate_g.value,
+    fat_g_per_100g: detail.nutrientsPer100g.fat_g.value,
+    fiber_g_per_100g: detail.nutrientsPer100g.fiber_g.value,
+    sugar_g_per_100g: detail.nutrientsPer100g.sugar_g.value,
+    sodium_mg_per_100g: detail.nutrientsPer100g.sodium_mg.value,
+  };
+}
+
+function mapLiveUsdaErrorToDataAccess(error: LiveUsdaError): DataAccessResult<never> {
+  if (error.code === "invalid_query" || error.code === "invalid_fdc_id" || error.code === "invalid_group") {
+    return fail({
+      code: "INVALID_INPUT",
+      message: error.message,
+    });
+  }
+
+  if (error.code === "rate_limited") {
+    return fail({
+      code: "DB_ERROR",
+      message: "USDA search is temporarily rate-limited. Common foods, My Foods, and Manual Label are still available.",
+      cause: error.code,
+    });
+  }
+
+  return fail({
+    code: "DB_ERROR",
+    message: error.message,
+    cause: error.code,
+  });
+}
+
+async function findSavedFoodCandidatesByFdcId(
+  userId: string,
+  fdcId: number,
+  supabase: AuthenticatedContext["supabase"],
+): Promise<DataAccessResult<FoodRow[]>> {
+  const { data, error } = await supabase
+    .from("foods")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("fdc_id", fdcId)
+    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to check existing USDA saved foods.",
+      cause: error.message,
+    });
+  }
+
+  return ok(data ?? []);
+}
+
+async function upsertSavedLiveUsdaFood(input: {
+  auth: AuthenticatedContext;
+  detail: Awaited<ReturnType<typeof resolveLiveUsdaFoodDetail>>;
+  amountValue: number;
+  amountUnit: SupportedAmountUnit;
+  amountGrams: number;
+  calculated: ReturnType<typeof calculateNutritionForAmount>;
+  sourceServingLabel: string | null;
+  retrievedAt: string;
+}): Promise<DataAccessResult<FoodRow>> {
+  const candidatesResult = await findSavedFoodCandidatesByFdcId(input.auth.user.id, input.detail.fdcId, input.auth.supabase);
+  if (candidatesResult.error) {
+    return candidatesResult;
+  }
+
+  const candidates = candidatesResult.data;
+  const immutableExisting = candidates.find(
+    (row) => row.source_status === "usda_modified" || row.source_status === "manual",
+  );
+  if (immutableExisting) {
+    return ok(immutableExisting);
+  }
+
+  const existing = candidates[0] ?? null;
+  const sourceBrand = sourceBrandForLiveFood({
+    brandName: input.detail.brandName,
+    brandOwner: input.detail.brandOwner,
+  });
+  const per100g = sourceDataToPer100g(input.detail);
+  const servingWeightGrams = input.amountValue > 0 ? input.amountGrams / input.amountValue : null;
+
+  if (
+    input.calculated.nutrients.calories_kcal.value === null ||
+    input.calculated.nutrients.protein_g.value === null ||
+    input.calculated.nutrients.carbohydrate_g.value === null ||
+    input.calculated.nutrients.fat_g.value === null
+  ) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: "Required USDA nutrient fields are missing for this food.",
+    });
+  }
+
+  const payloadBase = {
+    name: input.detail.description,
+    brand: sourceBrand,
+    serving_size: input.amountValue,
+    serving_unit: input.amountUnit === "source_serving" ? input.sourceServingLabel ?? "source serving" : input.amountUnit,
+    calories: input.calculated.nutrients.calories_kcal.value,
+    protein_g: input.calculated.nutrients.protein_g.value,
+    carbohydrate_g: input.calculated.nutrients.carbohydrate_g.value,
+    fat_g: input.calculated.nutrients.fat_g.value,
+    fiber_g: input.calculated.nutrients.fiber_g.value,
+    catalog_food_id: null,
+    fdc_id: input.detail.fdcId,
+    source_status: "usda_live",
+    source_name: input.detail.normalizedName,
+    source_data_type: input.detail.dataType,
+    source_description: input.detail.description,
+    source_brand: sourceBrand,
+    source_gtin_upc: input.detail.gtinUpc,
+    source_retrieved_at: input.retrievedAt,
+    serving_weight_grams: servingWeightGrams,
+    calories_per_100g: per100g.calories_per_100g,
+    protein_g_per_100g: per100g.protein_g_per_100g,
+    carbohydrate_g_per_100g: per100g.carbohydrate_g_per_100g,
+    fat_g_per_100g: per100g.fat_g_per_100g,
+    fiber_g_per_100g: per100g.fiber_g_per_100g,
+    sugar_g_per_100g: per100g.sugar_g_per_100g,
+    sodium_mg_per_100g: per100g.sodium_mg_per_100g,
+  } satisfies Omit<FoodInsert, "user_id">;
+
+  if (!existing) {
+    const insertPayload: FoodInsert = {
+      user_id: input.auth.user.id,
+      ...payloadBase,
+    };
+    const { data, error } = await input.auth.supabase.from("foods").insert(insertPayload).select("*").single();
+    if (error) {
+      return fail({
+        code: "DB_ERROR",
+        message: "Logged food, but failed to save it to My Foods.",
+        cause: error.message,
+      });
+    }
+    return ok(data);
+  }
+
+  const updatePayload: FoodUpdate = {
+    ...payloadBase,
+  };
+  const { data, error } = await input.auth.supabase
+    .from("foods")
+    .update(updatePayload)
+    .eq("id", existing.id)
+    .eq("user_id", input.auth.user.id)
+    .select("*")
+    .maybeSingle();
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Logged food, but failed to refresh the saved USDA food.",
+      cause: error.message,
+    });
+  }
+  if (!data) {
+    return fail({
+      code: "NOT_FOUND",
+      message: "Saved USDA food no longer exists.",
+    });
+  }
+
+  return ok(data);
 }
 
 async function getOwnedFoodById(foodId: string): Promise<DataAccessResult<FoodRow | null>> {
@@ -584,6 +788,192 @@ export async function createMyCatalogFoodEntry(
   return ok(data);
 }
 
+export async function createMyLiveUsdaFoodEntry(
+  input: CreateMyLiveUsdaFoodEntryInput,
+): Promise<DataAccessResult<CreateMyLiveUsdaFoodEntryResult>> {
+  if (!Number.isInteger(input.fdc_id) || input.fdc_id <= 0) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: "Select a valid USDA food record.",
+    });
+  }
+
+  const base = normalizeFoodEntryBaseInput({
+    entry_date: input.entry_date,
+    meal_type: input.meal_type,
+    servings: 1,
+    note: input.note,
+  });
+  if (!base.data) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: Object.values(base.errors)[0] ?? "Invalid food entry input.",
+    });
+  }
+
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
+  }
+
+  let detail: Awaited<ReturnType<typeof resolveLiveUsdaFoodDetail>>;
+  try {
+    detail = await resolveLiveUsdaFoodDetail({ fdcId: input.fdc_id });
+  } catch (error) {
+    if (error instanceof LiveUsdaError) {
+      return mapLiveUsdaErrorToDataAccess(error);
+    }
+    return fail({
+      code: "DB_ERROR",
+      message: "USDA details are unavailable right now.",
+    });
+  }
+
+  if (!detail.hasRequiredCoreNutrients) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: "This USDA food is missing required nutrient data and cannot be logged.",
+    });
+  }
+
+  let sourceServing: ReturnType<typeof resolveSourceServingFromPortionSelection> = null;
+  let sourceServingLabel: string | null = null;
+  if (input.amount_unit === "source_serving") {
+    try {
+      sourceServing = resolveSourceServingFromPortionSelection({
+        detail,
+        amountUnit: input.amount_unit,
+        portionId: input.source_portion_id ?? null,
+      });
+      if (!sourceServing) {
+        return fail({
+          code: "INVALID_INPUT",
+          message: "Selected USDA portion is unavailable.",
+        });
+      }
+      sourceServingLabel = `${sourceServing.quantity} ${sourceServing.unit}`;
+    } catch (error) {
+      if (error instanceof LiveUsdaError) {
+        return mapLiveUsdaErrorToDataAccess(error);
+      }
+      return fail({
+        code: "INVALID_INPUT",
+        message: "Selected USDA portion is unavailable.",
+      });
+    }
+  }
+
+  let calculated: ReturnType<typeof calculateNutritionForAmount>;
+  try {
+    calculated = calculateNutritionForAmount({
+      amountValue: input.amount_value,
+      amountUnit: input.amount_unit,
+      nutrientsPer100g: detail.nutrientsPer100g,
+      sourceServing,
+    });
+  } catch (error) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: error instanceof Error ? error.message : "Invalid amount for this USDA food.",
+    });
+  }
+
+  if (
+    calculated.nutrients.calories_kcal.value === null ||
+    calculated.nutrients.protein_g.value === null ||
+    calculated.nutrients.carbohydrate_g.value === null ||
+    calculated.nutrients.fat_g.value === null
+  ) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: "This USDA food is missing required nutrient data and cannot be logged.",
+    });
+  }
+
+  const sourceBrand = sourceBrandForLiveFood({
+    brandName: detail.brandName,
+    brandOwner: detail.brandOwner,
+  });
+  const per100g = sourceDataToPer100g(detail);
+  const sourceRetrievedAt = new Date().toISOString();
+
+  let savedFood: FoodRow | null = null;
+  let saveWarning: string | null = null;
+
+  if (input.save_to_my_foods) {
+    const saveResult = await upsertSavedLiveUsdaFood({
+      auth: auth.data,
+      detail,
+      amountValue: calculated.amountValue,
+      amountUnit: calculated.amountUnit,
+      amountGrams: calculated.amountGrams,
+      calculated,
+      sourceServingLabel,
+      retrievedAt: sourceRetrievedAt,
+    });
+    if (saveResult.error) {
+      saveWarning = saveResult.error.message;
+    } else {
+      savedFood = saveResult.data;
+    }
+  }
+
+  const payload: FoodEntryInsert = {
+    user_id: auth.data.user.id,
+    food_id: savedFood?.id ?? null,
+    entry_date: base.data.entry_date,
+    meal_type: base.data.meal_type,
+    servings: 1,
+    note: base.data.note,
+    food_name: detail.description,
+    brand_name: sourceBrand,
+    serving_size: calculated.amountValue,
+    serving_unit: calculated.amountUnit,
+    calories_per_serving: calculated.nutrients.calories_kcal.value,
+    protein_per_serving_g: calculated.nutrients.protein_g.value,
+    carbohydrate_per_serving_g: calculated.nutrients.carbohydrate_g.value,
+    fat_per_serving_g: calculated.nutrients.fat_g.value,
+    fiber_per_serving_g: calculated.nutrients.fiber_g.value,
+    catalog_food_id: null,
+    fdc_id: detail.fdcId,
+    source_status: "usda_live",
+    source_name: detail.normalizedName,
+    source_data_type: detail.dataType,
+    source_description: detail.description,
+    source_brand: sourceBrand,
+    source_gtin_upc: detail.gtinUpc,
+    source_retrieved_at: sourceRetrievedAt,
+    amount_value: calculated.amountValue,
+    amount_unit: calculated.amountUnit,
+    amount_grams: calculated.amountGrams,
+    source_serving_quantity: calculated.sourceServingQuantity,
+    source_serving_unit: calculated.sourceServingUnit,
+    source_serving_weight_grams: calculated.sourceServingWeightGrams,
+    calories_per_100g: per100g.calories_per_100g,
+    protein_g_per_100g: per100g.protein_g_per_100g,
+    carbohydrate_g_per_100g: per100g.carbohydrate_g_per_100g,
+    fat_g_per_100g: per100g.fat_g_per_100g,
+    fiber_g_per_100g: per100g.fiber_g_per_100g,
+    sugar_g_per_100g: per100g.sugar_g_per_100g,
+    sodium_mg_per_100g: per100g.sodium_mg_per_100g,
+  };
+
+  const { data, error } = await auth.data.supabase.from("food_entries").insert(payload).select("*").single();
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to create USDA food entry.",
+      cause: error.message,
+    });
+  }
+
+  return ok({
+    entry: data,
+    savedFood,
+    saveWarning,
+  });
+}
+
 export async function updateMyCatalogFoodEntry(
   entryId: string,
   input: UpdateMyCatalogFoodEntryInput,
@@ -606,10 +996,10 @@ export async function updateMyCatalogFoodEntry(
     });
   }
 
-  if (existingResult.data.source_status !== "usda_catalog") {
+  if (existingResult.data.source_status !== "usda_catalog" && existingResult.data.source_status !== "usda_live") {
     return fail({
       code: "INVALID_INPUT",
-      message: "Only common catalog entries can be updated with amount units.",
+      message: "Only USDA amount-based entries can be updated with amount units.",
     });
   }
 
