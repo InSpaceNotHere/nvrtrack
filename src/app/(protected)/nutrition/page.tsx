@@ -1,6 +1,6 @@
 import { NutritionLogView } from "@/components/nutrition/nutrition-log-view";
 import { PageHeader } from "@/components/ui/page-header";
-import { getActiveFoodCatalog, getMyRecentCatalogFdcIds } from "@/lib/data/food-catalog";
+import { getFeaturedActiveFoodCatalog } from "@/lib/data/food-catalog";
 import { getMyFoods, getMyRecentFoods } from "@/lib/data/foods";
 import { getMyFoodEntriesForDate, getMyRecentFoodEntries } from "@/lib/data/nutrition";
 import { getMyProfile } from "@/lib/data/profile";
@@ -22,15 +22,13 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
     recentFoodsResult,
     recentEntriesResult,
     catalogFoodsResult,
-    recentCatalogFdcIdsResult,
   ] = await Promise.all([
     getMyProfile(),
     getMyFoodEntriesForDate(selectedDate),
     getMyFoods(),
     getMyRecentFoods(12),
     getMyRecentFoodEntries(12),
-    getActiveFoodCatalog(80),
-    getMyRecentCatalogFdcIds(40),
+    getFeaturedActiveFoodCatalog({ limit: 40 }),
   ]);
 
   const errorMessages = [
@@ -40,7 +38,6 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
     recentFoodsResult.error?.message,
     recentEntriesResult.error?.message,
     catalogFoodsResult.error?.message,
-    recentCatalogFdcIdsResult.error?.message,
   ].filter(Boolean);
 
   return (
@@ -54,7 +51,6 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
         recentFoods={recentFoodsResult.data ?? []}
         recentEntries={recentEntriesResult.data ?? []}
         catalogFoods={catalogFoodsResult.data ?? []}
-        recentCatalogFdcIds={recentCatalogFdcIdsResult.data ?? []}
         entries={entriesResult.data ?? []}
         calorieGoal={profileResult.data?.calorie_goal ?? null}
         proteinGoal={profileResult.data?.protein_goal ?? null}

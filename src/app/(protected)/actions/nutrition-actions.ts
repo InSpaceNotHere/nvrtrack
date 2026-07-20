@@ -7,6 +7,7 @@ import {
   deleteMyFood,
   updateMyFood,
 } from "@/lib/data/foods";
+import { searchActiveFoodCatalog } from "@/lib/data/food-catalog";
 import {
   createMyFoodEntry,
   createMyCatalogFoodEntry,
@@ -27,7 +28,7 @@ import {
   type SavedFoodField,
   type SavedFoodInput,
 } from "@/lib/nutrition/validation";
-import type { FoodEntryRow, FoodRow } from "@/lib/data/auth-context";
+import type { FoodCatalogRow, FoodEntryRow, FoodRow } from "@/lib/data/auth-context";
 import { parseAmountUnit, parseAmountValue } from "@/lib/nutrition/catalog-entry";
 import type { SupportedAmountUnit } from "@/lib/nutrition/serving";
 
@@ -56,6 +57,10 @@ export type CatalogFoodEntryFormErrors = Partial<
 export interface CatalogFoodEntryActionResult extends BaseActionResult {
   errors: CatalogFoodEntryFormErrors;
   entry: FoodEntryRow | null;
+}
+
+export interface CatalogFoodSearchActionResult extends BaseActionResult {
+  foods: FoodCatalogRow[];
 }
 
 export type SavedFoodActionInput = SavedFoodInput;
@@ -471,5 +476,25 @@ export async function updateCatalogFoodEntryAction(
     message: "Common food entry updated.",
     errors: {},
     entry: result.data,
+  };
+}
+
+export async function searchCatalogFoodsAction(
+  query: string,
+  limit = 40,
+): Promise<CatalogFoodSearchActionResult> {
+  const result = await searchActiveFoodCatalog(query, { limit });
+  if (result.error) {
+    return {
+      status: "error",
+      message: result.error.message,
+      foods: [],
+    };
+  }
+
+  return {
+    status: "success",
+    message: "Common foods loaded.",
+    foods: result.data,
   };
 }

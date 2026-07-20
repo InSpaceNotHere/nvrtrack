@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
   createCatalogFoodEntryAction,
   createFoodEntryAction,
   deleteFoodEntryAction,
+  searchCatalogFoodsAction,
   updateCatalogFoodEntryAction,
   type CatalogFoodEntryActionInput,
   type CatalogFoodEntryFormErrors,
@@ -26,7 +27,6 @@ import {
   roundNutritionValue,
 } from "@/lib/nutrition/calculations";
 import { calculateCatalogEntrySnapshot } from "@/lib/nutrition/catalog-entry";
-import { rankCatalogSearchItems } from "@/lib/nutrition/catalog-search";
 import { addDaysToDateString } from "@/lib/nutrition/date";
 import type { MealType } from "@/lib/nutrition/types";
 import type { SupportedAmountUnit } from "@/lib/nutrition/serving";
@@ -37,7 +37,6 @@ interface NutritionLogViewProps {
   dateWasFallback: boolean;
   foods: FoodRow[];
   catalogFoods: FoodCatalogRow[];
-  recentCatalogFdcIds: number[];
   recentFoods: FoodRow[];
   recentEntries: FoodEntryRow[];
   entries: FoodEntryRow[];
@@ -103,7 +102,6 @@ export function NutritionLogView({
   dateWasFallback,
   foods,
   catalogFoods,
-  recentCatalogFdcIds,
   recentFoods,
   recentEntries,
   entries,
@@ -126,6 +124,10 @@ export function NutritionLogView({
   const [selectedCatalogFoodId, setSelectedCatalogFoodId] = useState<string | null>(catalogFoods[0]?.id ?? null);
   const [catalogAmountValue, setCatalogAmountValue] = useState("100");
   const [catalogAmountUnit, setCatalogAmountUnit] = useState<SupportedAmountUnit>("g");
+  const [catalogSearchResults, setCatalogSearchResults] = useState<FoodCatalogRow[]>(catalogFoods);
+  const [catalogSearchBusy, setCatalogSearchBusy] = useState(false);
+  const [catalogSearchError, setCatalogSearchError] = useState<string | null>(null);
+  const catalogSearchRequestRef = useRef(0);
   const [selectedSavedFoodId, setSelectedSavedFoodId] = useState<string | null>(recentFoods[0]?.id ?? foods[0]?.id ?? null);
   const [servings, setServings] = useState("1");
   const [mealType, setMealType] = useState<MealType>("breakfast");
@@ -177,28 +179,55 @@ export function NutritionLogView({
     });
   }, [foods, search]);
 
-  const rankedCatalogFoods = useMemo(() => {
-    return rankCatalogSearchItems(
-      catalogFoods.map((food) => ({
-        id: food.id,
-        fdc_id: food.fdc_id,
-        normalized_name: food.normalized_name,
-        description: food.description,
-        aliases: food.aliases,
-      })),
-      catalogSearch,
-      {
-        limit: 40,
-        recentFdcIds: recentCatalogFdcIds,
-      },
-    )
-      .map((ranked) => catalogFoods.find((food) => food.id === ranked.id))
-      .filter((food): food is FoodCatalogRow => food !== undefined);
-  }, [catalogFoods, catalogSearch, recentCatalogFdcIds]);
+  useEffect(() => {
+    const normalizedQuery = catalogSearch.trim();
+    const requestId = catalogSearchRequestRef.current + 1;
+    catalogSearchRequestRef.current = requestId;
+
+    if (!normalizedQuery) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setCatalogSearchBusy(true);
+      setCatalogSearchError(null);
+      void searchCatalogFoodsAction(normalizedQuery, 40).then((result) => {
+        if (requestId !== catalogSearchRequestRef.current) {
+          return;
+        }
+        if (result.status === "success") {
+          setCatalogSearchResults(result.foods);
+          setCatalogSearchError(null);
+        } else {
+          setCatalogSearchResults([]);
+          setCatalogSearchError(result.message);
+        }
+        setCatalogSearchBusy(false);
+      });
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [catalogSearch]);
+
+  const displayedCatalogFoods = useMemo(() => {
+    return catalogSearch.trim() ? catalogSearchResults : catalogFoods;
+  }, [catalogFoods, catalogSearch, catalogSearchResults]);
+
+  const effectiveSelectedCatalogFoodId = useMemo(() => {
+    if (displayedCatalogFoods.length === 0) {
+      return null;
+    }
+    if (selectedCatalogFoodId && displayedCatalogFoods.some((food) => food.id === selectedCatalogFoodId)) {
+      return selectedCatalogFoodId;
+    }
+    return displayedCatalogFoods[0].id;
+  }, [displayedCatalogFoods, selectedCatalogFoodId]);
 
   const selectedCatalogFood = useMemo(
-    () => catalogFoods.find((food) => food.id === selectedCatalogFoodId) ?? null,
-    [catalogFoods, selectedCatalogFoodId],
+    () => displayedCatalogFoods.find((food) => food.id === effectiveSelectedCatalogFoodId) ?? null,
+    [displayedCatalogFoods, effectiveSelectedCatalogFoodId],
   );
 
   const selectedCatalogSourceServing = useMemo(() => {
@@ -316,7 +345,7 @@ export function NutritionLogView({
     setCatalogErrors({});
     setMessage(null);
     const payload: CatalogFoodEntryActionInput = {
-      catalog_food_id: selectedCatalogFoodId ?? "",
+      catalog_food_id: effectiveSelectedCatalogFoodId ?? "",
       amount_value: catalogAmountValue,
       amount_unit: catalogAmountUnit,
       entry_date: entryDate,
@@ -565,14 +594,18 @@ export function NutritionLogView({
                 </label>
 
                 <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-white/8 bg-black/25 p-2">
-                  {rankedCatalogFoods.length ? (
-                    rankedCatalogFoods.map((food) => (
+                  {catalogSearchBusy && catalogSearch.trim() ? (
+                    <p className="px-2 py-1 text-xs text-zinc-500">Searching common foods…</p>
+                  ) : catalogSearch.trim() && catalogSearchError ? (
+                    <p className="px-2 py-1 text-xs text-rose-300">{catalogSearchError}</p>
+                  ) : displayedCatalogFoods.length ? (
+                    displayedCatalogFoods.map((food) => (
                       <button
                         key={food.id}
                         type="button"
                         onClick={() => setSelectedCatalogFoodId(food.id)}
                         className={`w-full rounded-md border p-2 text-left text-xs ${
-                          selectedCatalogFoodId === food.id
+                          effectiveSelectedCatalogFoodId === food.id
                             ? "border-white bg-white/10 text-white"
                             : "border-white/10 text-zinc-200 hover:bg-white/10"
                         }`}

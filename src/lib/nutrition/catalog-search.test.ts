@@ -57,4 +57,44 @@ describe("catalog search ranking", () => {
     );
     expect(ranked[0]?.fdc_id).toBe(2002);
   });
+
+  it("enforces result limits with large candidate sets", () => {
+    const largeItems = Array.from({ length: 180 }).map((_, index) => ({
+      id: `item-${index + 1}`,
+      fdc_id: 4000 + index,
+      normalized_name: `food ${String(index + 1).padStart(3, "0")} chicken breast`,
+      description: `Food ${index + 1} chicken breast cooked`,
+      aliases: [`food ${index + 1} chicken`],
+    }));
+    const ranked = rankCatalogSearchItems(largeItems, "chicken", { limit: 40 });
+    expect(ranked).toHaveLength(40);
+  });
+
+  it("keeps stable alphabetical and fdc tie-breaking", () => {
+    const tied = [
+      {
+        id: "a",
+        fdc_id: 9002,
+        normalized_name: "alpha oats cooked",
+        description: "Alpha oats cooked",
+        aliases: ["alpha oats cooked"],
+      },
+      {
+        id: "b",
+        fdc_id: 9001,
+        normalized_name: "alpha oats cooked",
+        description: "Alpha oats cooked",
+        aliases: ["alpha oats cooked"],
+      },
+      {
+        id: "c",
+        fdc_id: 9003,
+        normalized_name: "beta oats cooked",
+        description: "Beta oats cooked",
+        aliases: ["beta oats cooked"],
+      },
+    ];
+    const ranked = rankCatalogSearchItems(tied, "oats cooked", { limit: 10 });
+    expect(ranked.map((item) => item.id)).toEqual(["b", "a", "c"]);
+  });
 });
