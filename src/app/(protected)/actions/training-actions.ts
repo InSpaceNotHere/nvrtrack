@@ -75,6 +75,10 @@ export interface ExerciseInputPayload {
   muscle_group?: string;
   equipment?: string;
   notes?: string;
+  primary_muscles?: string[];
+  secondary_muscles?: string[];
+  body_region?: string;
+  movement_pattern?: string;
 }
 
 export interface SetInputPayload {
@@ -410,6 +414,10 @@ export async function createExerciseAndAddToWorkoutAction(
     muscle_group?: string;
     equipment?: string;
     notes?: string;
+    primary_muscles?: string[];
+    secondary_muscles?: string[];
+    body_region?: string;
+    movement_pattern?: string;
     workoutExerciseNotes?: string;
   },
 ): Promise<WorkoutExerciseActionResult> {
@@ -418,6 +426,10 @@ export async function createExerciseAndAddToWorkoutAction(
     muscle_group: input.muscle_group,
     equipment: input.equipment,
     notes: input.notes,
+    primary_muscles: input.primary_muscles,
+    secondary_muscles: input.secondary_muscles,
+    body_region: input.body_region,
+    movement_pattern: input.movement_pattern,
   });
   if (createExerciseResult.error) {
     return {

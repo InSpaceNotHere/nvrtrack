@@ -15,10 +15,25 @@ interface ExerciseCatalogBrowserProps {
 
 function titleCase(value: string): string {
   return value
+    .replaceAll("_", " ")
     .split(" ")
     .filter(Boolean)
     .map((part) => part[0].toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function muscleListLabel(value: string[]): string {
+  if (!value.length) {
+    return "Unavailable";
+  }
+  return value.map((muscle) => titleCase(muscle)).join(", ");
+}
+
+function resolvePrimaryMuscles(exercise: ExerciseCatalogRow): string[] {
+  if (exercise.primary_muscles?.length) {
+    return exercise.primary_muscles;
+  }
+  return exercise.primary_muscle_group ? [exercise.primary_muscle_group] : [];
 }
 
 export function ExerciseCatalogBrowser({
@@ -29,16 +44,18 @@ export function ExerciseCatalogBrowser({
 }: ExerciseCatalogBrowserProps) {
   const [search, setSearch] = useState("");
   const [muscleFilter, setMuscleFilter] = useState("");
-  const [equipmentFilter, setEquipmentFilter] = useState("");
+  const [bodyRegionFilter, setBodyRegionFilter] = useState("");
+  const [movementPatternFilter, setMovementPatternFilter] = useState("");
   const facets = useMemo(() => buildCatalogFacets(exercises), [exercises]);
   const filteredExercises = useMemo(
     () =>
       filterCatalogExercises(exercises, {
         query: search,
         muscle: muscleFilter,
-        equipment: equipmentFilter,
+        body_region: bodyRegionFilter,
+        movement_pattern: movementPatternFilter,
       }),
-    [equipmentFilter, exercises, muscleFilter, search],
+    [bodyRegionFilter, exercises, movementPatternFilter, muscleFilter, search],
   );
   const byId = useMemo(() => new Map(exercises.map((exercise) => [exercise.id, exercise])), [exercises]);
   const recent = useMemo(
@@ -85,12 +102,27 @@ export function ExerciseCatalogBrowser({
             </select>
           </label>
           <label className="space-y-1 text-xs text-zinc-300">
-            <span>Equipment</span>
-            <select value={equipmentFilter} onChange={(event) => setEquipmentFilter(event.target.value)} className="app-input">
-              <option value="">All equipment</option>
-              {facets.equipment.map((equipment) => (
-                <option key={equipment} value={equipment}>
-                  {titleCase(equipment)}
+            <span>Body region</span>
+            <select value={bodyRegionFilter} onChange={(event) => setBodyRegionFilter(event.target.value)} className="app-input">
+              <option value="">All body regions</option>
+              {facets.body_regions.map((bodyRegion) => (
+                <option key={bodyRegion} value={bodyRegion}>
+                  {titleCase(bodyRegion)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1 text-xs text-zinc-300">
+            <span>Movement pattern</span>
+            <select
+              value={movementPatternFilter}
+              onChange={(event) => setMovementPatternFilter(event.target.value)}
+              className="app-input"
+            >
+              <option value="">All movement patterns</option>
+              {facets.movement_patterns.map((movementPattern) => (
+                <option key={movementPattern} value={movementPattern}>
+                  {titleCase(movementPattern)}
                 </option>
               ))}
             </select>
@@ -114,7 +146,7 @@ export function ExerciseCatalogBrowser({
               <li key={exercise.id} className="rounded-lg border border-white/10 bg-black/25 px-2.5 py-2">
                 <p className="text-sm font-medium text-zinc-100">{exercise.name}</p>
                 <p className="mt-0.5 text-xs text-zinc-500">
-                  {titleCase(exercise.primary_muscle_group)} • {titleCase(exercise.equipment)}
+                  Primary: {muscleListLabel(resolvePrimaryMuscles(exercise))} • {titleCase(exercise.equipment)}
                 </p>
               </li>
             ))}
@@ -130,7 +162,7 @@ export function ExerciseCatalogBrowser({
               <li key={exercise.id} className="rounded-lg border border-white/10 bg-black/25 px-2.5 py-2">
                 <p className="text-sm font-medium text-zinc-100">{exercise.name}</p>
                 <p className="mt-0.5 text-xs text-zinc-500">
-                  {titleCase(exercise.primary_muscle_group)} • {titleCase(exercise.equipment)}
+                  Primary: {muscleListLabel(resolvePrimaryMuscles(exercise))} • {titleCase(exercise.equipment)}
                 </p>
               </li>
             ))}
@@ -146,9 +178,12 @@ export function ExerciseCatalogBrowser({
             filteredExercises.map((exercise) => (
               <li key={exercise.id} className="rounded-lg border border-white/10 bg-black/25 px-2.5 py-2">
                 <p className="text-sm font-medium text-zinc-100">{exercise.name}</p>
+                <p className="mt-0.5 text-xs text-zinc-500">Primary: {muscleListLabel(resolvePrimaryMuscles(exercise))}</p>
                 <p className="mt-0.5 text-xs text-zinc-500">
-                  {titleCase(exercise.primary_muscle_group)} • {titleCase(exercise.equipment)} •{" "}
-                  {titleCase(exercise.movement_pattern)}
+                  Secondary: {muscleListLabel(exercise.secondary_muscles ?? [])}
+                </p>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  {titleCase(exercise.body_region ?? "unknown")} • {titleCase(exercise.movement_pattern)} • {titleCase(exercise.equipment)}
                 </p>
               </li>
             ))

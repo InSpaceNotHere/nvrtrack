@@ -20,14 +20,26 @@ import {
   updateWorkoutMetadataAction,
   updateWorkoutSetAction,
 } from "@/app/(protected)/actions/training-actions";
+import { MuscleMap } from "@/components/training/muscle-map";
 import type { ExerciseRow } from "@/lib/data/auth-context";
 import type { ExerciseCatalogRow } from "@/lib/data/exercise-catalog";
 import { filterCatalogExercises, buildCatalogFacets } from "@/lib/training/catalog";
+import { aggregateWorkoutMuscles, buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
 import {
   calculateExerciseVolume,
   evaluatePersonalRecordCandidate,
   estimateSetOneRepMax,
 } from "@/lib/training/calculations";
+import {
+  BODY_REGIONS,
+  MOVEMENT_PATTERNS,
+  MUSCLE_TAXONOMY,
+  getBodyRegionLabel,
+  getMovementPatternLabel,
+  getMuscleLabel,
+  isMuscleId,
+  mapLegacyMuscleGroupToPrimaryMuscles,
+} from "@/lib/training/muscles";
 import type { TrainingWeightUnit, WorkoutSetLike, WorkoutSetRow } from "@/lib/training/types";
 
 type ComposerMode = "catalog" | "custom";
@@ -48,6 +60,11 @@ interface WorkoutLoggerExercise {
   catalogExerciseId: string | null;
   exerciseName: string;
   notes: string | null;
+  primaryMuscles: string[];
+  secondaryMuscles: string[];
+  bodyRegion: string | null;
+  movementPattern: string | null;
+  muscleMetadataVersion: number | null;
   position: number;
   sets: WorkoutSetRow[];
   previousPerformance: {
@@ -141,6 +158,7 @@ function formatSetLine(set: WorkoutSetRow): string {
 
 function titleCase(value: string): string {
   return value
+    .replaceAll("_", " ")
     .split(" ")
     .filter(Boolean)
     .map((part) => part[0].toUpperCase() + part.slice(1))
@@ -182,12 +200,17 @@ export function WorkoutLogger({
   const [composerMode, setComposerMode] = useState<ComposerMode>("catalog");
   const [catalogSearch, setCatalogSearch] = useState("");
   const [muscleFilter, setMuscleFilter] = useState("");
-  const [equipmentFilter, setEquipmentFilter] = useState("");
+  const [bodyRegionFilter, setBodyRegionFilter] = useState("");
+  const [movementPatternFilter, setMovementPatternFilter] = useState("");
   const [selectedCatalogExerciseId, setSelectedCatalogExerciseId] = useState<string | null>(null);
   const [exerciseNotesDraft, setExerciseNotesDraft] = useState("");
   const [customExerciseName, setCustomExerciseName] = useState("");
   const [selectedCustomExerciseId, setSelectedCustomExerciseId] = useState<string | null>(customExercises[0]?.id ?? null);
   const [saveCustomToLibrary, setSaveCustomToLibrary] = useState(true);
+  const [customPrimaryMuscles, setCustomPrimaryMuscles] = useState<string[]>([]);
+  const [customSecondaryMuscles, setCustomSecondaryMuscles] = useState<string[]>([]);
+  const [customBodyRegion, setCustomBodyRegion] = useState("");
+  const [customMovementPattern, setCustomMovementPattern] = useState("");
 
   const isCompletedWorkout = Boolean(workout.completedAt);
   const facets = useMemo(() => buildCatalogFacets(catalogExercises), [catalogExercises]);
@@ -196,9 +219,10 @@ export function WorkoutLogger({
       filterCatalogExercises(catalogExercises, {
         query: catalogSearch,
         muscle: muscleFilter,
-        equipment: equipmentFilter,
+        body_region: bodyRegionFilter,
+        movement_pattern: movementPatternFilter,
       }),
-    [catalogExercises, catalogSearch, muscleFilter, equipmentFilter],
+    [catalogExercises, catalogSearch, muscleFilter, bodyRegionFilter, movementPatternFilter],
   );
   const recentCatalogExercises = useMemo(() => {
     const byId = new Map(catalogExercises.map((exercise) => [exercise.id, exercise]));
@@ -225,6 +249,39 @@ export function WorkoutLogger({
       .filter((exercise) => !optimisticRemovedExerciseIds.includes(exercise.id))
       .sort((a, b) => a.position - b.position);
   }, [exercises, optimisticExercises, optimisticRemovedExerciseIds]);
+  const workoutTargeting = useMemo(
+    () =>
+      aggregateWorkoutMuscles(
+        displayExercises.map((exercise) => ({
+          exercise_id: exercise.id,
+          exercise_name: exercise.exerciseName,
+          primary_muscles: exercise.primaryMuscles,
+          secondary_muscles: exercise.secondaryMuscles,
+        })),
+      ),
+    [displayExercises],
+  );
+  const workoutTargetingFocusLabel = useMemo(() => buildPrimaryFocusLabel(workoutTargeting), [workoutTargeting]);
+
+  function toggleMuscleSelection(selected: string[], muscle: string): string[] {
+    return selected.includes(muscle) ? selected.filter((item) => item !== muscle) : [...selected, muscle];
+  }
+
+  function formatMuscleList(muscles: string[]): string {
+    if (!muscles.length) {
+      return "Unavailable";
+    }
+    return muscles
+      .map((muscle) => (isMuscleId(muscle) ? getMuscleLabel(muscle) : titleCase(muscle)))
+      .join(", ");
+  }
+
+  function resolveCatalogPrimaryMuscles(exercise: ExerciseCatalogRow): string[] {
+    if (exercise.primary_muscles?.length) {
+      return exercise.primary_muscles;
+    }
+    return exercise.primary_muscle_group ? [exercise.primary_muscle_group] : [];
+  }
 
   function setSuccessMessage(text: string) {
     setTone("success");
@@ -236,15 +293,74 @@ export function WorkoutLogger({
     setMessage(text);
   }
 
+  function appendOptimisticExercise(
+    workoutExercise: {
+      id: string;
+      exercise_id: string | null;
+      catalog_exercise_id: string | null;
+      exercise_name: string;
+      notes: string | null;
+      position: number;
+      source_primary_muscles?: string[] | null;
+      source_secondary_muscles?: string[] | null;
+      source_body_region?: string | null;
+      source_movement_pattern?: string | null;
+      source_muscle_metadata_version?: number | null;
+    },
+    fallbackMetadata: {
+      primaryMuscles?: string[];
+      secondaryMuscles?: string[];
+      bodyRegion?: string | null;
+      movementPattern?: string | null;
+      muscleMetadataVersion?: number | null;
+    },
+  ) {
+    setOptimisticExercises((current) => {
+      if (current.some((exercise) => exercise.id === workoutExercise.id)) {
+        return current;
+      }
+
+      return [
+        ...current,
+        {
+          id: workoutExercise.id,
+          exerciseId: workoutExercise.exercise_id,
+          catalogExerciseId: workoutExercise.catalog_exercise_id,
+          exerciseName: workoutExercise.exercise_name,
+          notes: workoutExercise.notes,
+          primaryMuscles: workoutExercise.source_primary_muscles ?? fallbackMetadata.primaryMuscles ?? [],
+          secondaryMuscles: workoutExercise.source_secondary_muscles ?? fallbackMetadata.secondaryMuscles ?? [],
+          bodyRegion: workoutExercise.source_body_region ?? fallbackMetadata.bodyRegion ?? null,
+          movementPattern: workoutExercise.source_movement_pattern ?? fallbackMetadata.movementPattern ?? null,
+          muscleMetadataVersion:
+            workoutExercise.source_muscle_metadata_version ?? fallbackMetadata.muscleMetadataVersion ?? null,
+          position: workoutExercise.position,
+          sets: [],
+          previousPerformance: {
+            latestWorkoutDate: null,
+            latestCompletedSets: [],
+            previousBestEstimatedOneRepMax: null,
+            comparableHistoricalSets: [],
+          },
+        },
+      ].sort((a, b) => a.position - b.position);
+    });
+  }
+
   function resetComposerState() {
     setCatalogSearch("");
     setMuscleFilter("");
-    setEquipmentFilter("");
+    setBodyRegionFilter("");
+    setMovementPatternFilter("");
     setSelectedCatalogExerciseId(null);
     setExerciseNotesDraft("");
     setCustomExerciseName("");
     setSelectedCustomExerciseId(customExercises[0]?.id ?? null);
     setSaveCustomToLibrary(true);
+    setCustomPrimaryMuscles([]);
+    setCustomSecondaryMuscles([]);
+    setCustomBodyRegion("");
+    setCustomMovementPattern("");
   }
 
   function closeComposer() {
@@ -319,29 +435,12 @@ export function WorkoutLogger({
         setSuccessMessage(result.message);
         const addedWorkoutExercise = result.workoutExercise;
         if (addedWorkoutExercise) {
-          setOptimisticExercises((current) => {
-            if (current.some((exercise) => exercise.id === addedWorkoutExercise.id)) {
-              return current;
-            }
-
-            return [
-              ...current,
-              {
-                id: addedWorkoutExercise.id,
-                exerciseId: addedWorkoutExercise.exercise_id,
-                catalogExerciseId: addedWorkoutExercise.catalog_exercise_id,
-                exerciseName: addedWorkoutExercise.exercise_name,
-                notes: addedWorkoutExercise.notes,
-                position: addedWorkoutExercise.position,
-                sets: [],
-                previousPerformance: {
-                  latestWorkoutDate: null,
-                  latestCompletedSets: [],
-                  previousBestEstimatedOneRepMax: null,
-                  comparableHistoricalSets: [],
-                },
-              },
-            ].sort((a, b) => a.position - b.position);
+          appendOptimisticExercise(addedWorkoutExercise, {
+            primaryMuscles: resolveCatalogPrimaryMuscles(selectedExercise),
+            secondaryMuscles: selectedExercise.secondary_muscles ?? [],
+            bodyRegion: selectedExercise.body_region ?? null,
+            movementPattern: selectedExercise.movement_pattern ?? null,
+            muscleMetadataVersion: selectedExercise.muscle_metadata_version ?? 1,
           });
         }
         closeComposer();
@@ -354,6 +453,17 @@ export function WorkoutLogger({
   }
 
   function handleAddCustomExercise() {
+    if (!selectedCustomExerciseId && saveCustomToLibrary) {
+      if (!customPrimaryMuscles.length) {
+        setErrorMessage("Select at least one primary muscle before saving a custom exercise.");
+        return;
+      }
+      if (customSecondaryMuscles.some((muscle) => customPrimaryMuscles.includes(muscle))) {
+        setErrorMessage("A muscle cannot be both primary and secondary.");
+        return;
+      }
+    }
+
     setMessage(null);
     startTransition(async () => {
       if (selectedCustomExerciseId) {
@@ -368,6 +478,19 @@ export function WorkoutLogger({
         });
         if (resultFromSavedCustom.status === "success") {
           setSuccessMessage(resultFromSavedCustom.message);
+          if (resultFromSavedCustom.workoutExercise) {
+            const selectedCustomPrimary =
+              selectedCustom.primary_muscles?.length
+                ? selectedCustom.primary_muscles
+                : mapLegacyMuscleGroupToPrimaryMuscles(selectedCustom.muscle_group);
+            appendOptimisticExercise(resultFromSavedCustom.workoutExercise, {
+              primaryMuscles: selectedCustomPrimary,
+              secondaryMuscles: selectedCustom.secondary_muscles ?? [],
+              bodyRegion: selectedCustom.body_region ?? null,
+              movementPattern: selectedCustom.movement_pattern ?? null,
+              muscleMetadataVersion: selectedCustom.muscle_metadata_version ?? 1,
+            });
+          }
           closeComposer();
           router.refresh();
           return;
@@ -380,10 +503,23 @@ export function WorkoutLogger({
         const resultFromCreate = await createExerciseAndAddToWorkoutAction(workout.id, {
           name: customExerciseName,
           notes: exerciseNotesDraft,
+          primary_muscles: customPrimaryMuscles,
+          secondary_muscles: customSecondaryMuscles,
+          body_region: customBodyRegion || undefined,
+          movement_pattern: customMovementPattern || undefined,
           workoutExerciseNotes: exerciseNotesDraft,
         });
         if (resultFromCreate.status === "success") {
           setSuccessMessage("Custom exercise created and added.");
+          if (resultFromCreate.workoutExercise) {
+            appendOptimisticExercise(resultFromCreate.workoutExercise, {
+              primaryMuscles: customPrimaryMuscles,
+              secondaryMuscles: customSecondaryMuscles,
+              bodyRegion: customBodyRegion || null,
+              movementPattern: customMovementPattern || null,
+              muscleMetadataVersion: 1,
+            });
+          }
           closeComposer();
           router.refresh();
           return;
@@ -400,6 +536,15 @@ export function WorkoutLogger({
 
       if (result.status === "success") {
         setSuccessMessage(result.message);
+        if (result.workoutExercise) {
+          appendOptimisticExercise(result.workoutExercise, {
+            primaryMuscles: [],
+            secondaryMuscles: [],
+            bodyRegion: null,
+            movementPattern: null,
+            muscleMetadataVersion: null,
+          });
+        }
         closeComposer();
         router.refresh();
         return;
@@ -657,6 +802,45 @@ export function WorkoutLogger({
           </div>
         </div>
 
+        <details className="mt-3 rounded-lg border border-white/10 bg-black/20 p-2.5" open>
+          <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
+            Workout Muscle Coverage
+          </summary>
+          <p className="mt-1 text-xs text-zinc-500">
+            Derived from exercise muscle metadata snapshots (primary weighted higher than secondary).
+          </p>
+          <div className="mt-2 grid gap-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <MuscleMap aggregation={workoutTargeting} testId="workout-muscle-map" />
+            <div className="rounded-lg border border-white/10 bg-black/25 p-2.5">
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Targeting Summary</p>
+              <p className="mt-1 text-xs text-zinc-300">{workoutTargetingFocusLabel ?? "Primary focus unavailable."}</p>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                Exercises with metadata: {workoutTargeting.exercises_with_metadata}/{workoutTargeting.exercise_count}
+              </p>
+              {workoutTargeting.metadata_coverage === "partial" ? (
+                <p className="mt-1 text-xs text-amber-200">
+                  Partial coverage: some exercises in this workout do not have muscle metadata.
+                </p>
+              ) : null}
+              {workoutTargeting.metadata_coverage === "none" ? (
+                <p className="mt-1 text-xs text-zinc-500">Muscle targeting unavailable.</p>
+              ) : null}
+              {workoutTargeting.ranked_muscles.length ? (
+                <ol data-testid="workout-muscle-ranked-list" className="mt-2 space-y-1 text-xs text-zinc-300">
+                  {workoutTargeting.ranked_muscles.slice(0, 8).map((entry) => (
+                    <li key={entry.muscle} className="flex items-center justify-between gap-2">
+                      <span>{getMuscleLabel(entry.muscle)}</span>
+                      <span className="text-zinc-500">
+                        {entry.raw_score} pts • {(entry.normalized_intensity * 100).toFixed(0)}%
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+            </div>
+          </div>
+        </details>
+
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <label className="space-y-1 text-xs text-zinc-300">
             <span>Workout name</span>
@@ -807,7 +991,7 @@ export function WorkoutLogger({
                       placeholder="bench, rdl, pulldown, side raise..."
                     />
                   </label>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="grid gap-2 sm:grid-cols-3">
                     <label className="space-y-1 text-xs text-zinc-300">
                       <span>Muscle</span>
                       <select value={muscleFilter} onChange={(event) => setMuscleFilter(event.target.value)} className="app-input">
@@ -820,12 +1004,27 @@ export function WorkoutLogger({
                       </select>
                     </label>
                     <label className="space-y-1 text-xs text-zinc-300">
-                      <span>Equipment</span>
-                      <select value={equipmentFilter} onChange={(event) => setEquipmentFilter(event.target.value)} className="app-input">
-                        <option value="">All equipment</option>
-                        {facets.equipment.map((equipment) => (
-                          <option key={equipment} value={equipment}>
-                            {titleCase(equipment)}
+                      <span>Body region</span>
+                      <select value={bodyRegionFilter} onChange={(event) => setBodyRegionFilter(event.target.value)} className="app-input">
+                        <option value="">All body regions</option>
+                        {facets.body_regions.map((bodyRegion) => (
+                          <option key={bodyRegion} value={bodyRegion}>
+                            {titleCase(bodyRegion)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1 text-xs text-zinc-300">
+                      <span>Movement</span>
+                      <select
+                        value={movementPatternFilter}
+                        onChange={(event) => setMovementPatternFilter(event.target.value)}
+                        className="app-input"
+                      >
+                        <option value="">All movement patterns</option>
+                        {facets.movement_patterns.map((movementPattern) => (
+                          <option key={movementPattern} value={movementPattern}>
+                            {titleCase(movementPattern)}
                           </option>
                         ))}
                       </select>
@@ -870,7 +1069,7 @@ export function WorkoutLogger({
                           <span>
                             {exercise.name}
                             <span className="ml-1 text-[10px] opacity-75">
-                              ({titleCase(exercise.primary_muscle_group)} • {titleCase(exercise.equipment)})
+                              ({formatMuscleList(resolveCatalogPrimaryMuscles(exercise))} • {titleCase(exercise.equipment)})
                             </span>
                           </span>
                         </button>
@@ -923,6 +1122,22 @@ export function WorkoutLogger({
                       </select>
                     </label>
                   ) : null}
+                  {selectedCustomExerciseId ? (
+                    <p className="text-xs text-zinc-500">
+                      Existing metadata:{" "}
+                      {(() => {
+                        const selected = customExercises.find((exercise) => exercise.id === selectedCustomExerciseId);
+                        if (!selected) {
+                          return "Unavailable";
+                        }
+                        const selectedPrimary =
+                          selected.primary_muscles?.length
+                            ? selected.primary_muscles
+                            : mapLegacyMuscleGroupToPrimaryMuscles(selected.muscle_group);
+                        return `Primary ${formatMuscleList(selectedPrimary)}; Secondary ${formatMuscleList(selected.secondary_muscles ?? [])}`;
+                      })()}
+                    </p>
+                  ) : null}
                   <label className="space-y-1 text-xs text-zinc-300">
                     <span>Custom exercise name</span>
                     <input
@@ -935,15 +1150,77 @@ export function WorkoutLogger({
                     />
                   </label>
                   {selectedCustomExerciseId === null ? (
-                    <label className="flex items-center gap-2 text-xs text-zinc-300">
-                      <input
-                        type="checkbox"
-                        checked={saveCustomToLibrary}
-                        onChange={(event) => setSaveCustomToLibrary(event.target.checked)}
-                        className="h-4 w-4 rounded border-white/20 bg-black/40 accent-white"
-                      />
-                      <span>Save to my custom exercise library</span>
-                    </label>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs text-zinc-300">
+                        <input
+                          type="checkbox"
+                          checked={saveCustomToLibrary}
+                          onChange={(event) => setSaveCustomToLibrary(event.target.checked)}
+                          className="h-4 w-4 rounded border-white/20 bg-black/40 accent-white"
+                        />
+                        <span>Save to my custom exercise library</span>
+                      </label>
+
+                      {saveCustomToLibrary ? (
+                        <div className="rounded-lg border border-white/10 bg-black/20 p-2.5">
+                          <p className="text-xs text-zinc-400">Metadata for saved custom exercise</p>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            <label className="space-y-1 text-xs text-zinc-300">
+                              <span>Body region</span>
+                              <select value={customBodyRegion} onChange={(event) => setCustomBodyRegion(event.target.value)} className="app-input">
+                                <option value="">Unspecified</option>
+                                {BODY_REGIONS.map((bodyRegion) => (
+                                  <option key={bodyRegion} value={bodyRegion}>
+                                    {getBodyRegionLabel(bodyRegion)}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="space-y-1 text-xs text-zinc-300">
+                              <span>Movement pattern</span>
+                              <select
+                                value={customMovementPattern}
+                                onChange={(event) => setCustomMovementPattern(event.target.value)}
+                                className="app-input"
+                              >
+                                <option value="">Unspecified</option>
+                                {MOVEMENT_PATTERNS.map((movementPattern) => (
+                                  <option key={movementPattern} value={movementPattern}>
+                                    {getMovementPatternLabel(movementPattern)}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          </div>
+                          <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                            {MUSCLE_TAXONOMY.map((muscle) => (
+                              <label key={`primary-${muscle}`} className="inline-flex items-center gap-2 text-xs text-zinc-200">
+                                <input
+                                  type="checkbox"
+                                  checked={customPrimaryMuscles.includes(muscle)}
+                                  onChange={() => setCustomPrimaryMuscles((current) => toggleMuscleSelection(current, muscle))}
+                                  className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:ring-blue-500"
+                                />
+                                <span>Primary: {getMuscleLabel(muscle)}</span>
+                              </label>
+                            ))}
+                          </div>
+                          <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                            {MUSCLE_TAXONOMY.map((muscle) => (
+                              <label key={`secondary-${muscle}`} className="inline-flex items-center gap-2 text-xs text-zinc-200">
+                                <input
+                                  type="checkbox"
+                                  checked={customSecondaryMuscles.includes(muscle)}
+                                  onChange={() => setCustomSecondaryMuscles((current) => toggleMuscleSelection(current, muscle))}
+                                  className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:ring-blue-500"
+                                />
+                                <span>Secondary: {getMuscleLabel(muscle)}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   ) : null}
                   <label className="space-y-1 text-xs text-zinc-300">
                     <span>Exercise notes (optional)</span>
@@ -984,6 +1261,13 @@ export function WorkoutLogger({
                   <div>
                     <h2 className="text-base font-semibold text-white">{exercise.exerciseName}</h2>
                     <p className="mt-0.5 text-xs text-zinc-500">{sourceLabel}</p>
+                    <p className="mt-0.5 text-xs text-zinc-500">Primary: {formatMuscleList(exercise.primaryMuscles)}</p>
+                    <p className="mt-0.5 text-xs text-zinc-500">Secondary: {formatMuscleList(exercise.secondaryMuscles)}</p>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      {(exercise.bodyRegion ? titleCase(exercise.bodyRegion) : "Unspecified region")}
+                      {" • "}
+                      {(exercise.movementPattern ? titleCase(exercise.movementPattern) : "Unspecified pattern")}
+                    </p>
                     {exercise.notes ? <p className="mt-1 text-xs text-zinc-500">{exercise.notes}</p> : null}
                     <p className="mt-1 text-xs text-zinc-500">
                       Volume: {exerciseVolume === null ? "--" : `${exerciseVolume.toLocaleString()} ${displayUnit}`}

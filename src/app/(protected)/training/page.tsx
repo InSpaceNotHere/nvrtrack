@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { MuscleMap } from "@/components/training/muscle-map";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { getMyProfile } from "@/lib/data/profile";
@@ -9,6 +10,7 @@ import {
   getWorkoutSetsForWorkoutExerciseIds,
 } from "@/lib/data/workouts";
 import { sortWorkoutsForHistory } from "@/lib/training/calculations";
+import { aggregateWorkoutMuscles, buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
 import {
   buildWorkoutSummaryStats,
   countCompletedWorkoutsThisWeek,
@@ -27,6 +29,15 @@ function formatDate(date: string): string {
     day: "numeric",
     year: "numeric",
   }).format(new Date(`${date}T00:00:00.000Z`));
+}
+
+function titleCase(value: string): string {
+  return value
+    .replaceAll("_", " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 export default async function TrainingPage() {
@@ -70,6 +81,18 @@ export default async function TrainingPage() {
       });
     }
   }
+
+  const previewWorkout = activeWorkout ?? recentWorkouts[0] ?? null;
+  const previewWorkoutExercises = previewWorkout ? exercisesByWorkoutId.get(previewWorkout.id) ?? [] : [];
+  const previewWorkoutTargeting = aggregateWorkoutMuscles(
+    previewWorkoutExercises.map((exercise) => ({
+      exercise_id: exercise.id,
+      exercise_name: exercise.exercise_name,
+      primary_muscles: exercise.source_primary_muscles ?? [],
+      secondary_muscles: exercise.source_secondary_muscles ?? [],
+    })),
+  );
+  const previewFocusLabel = buildPrimaryFocusLabel(previewWorkoutTargeting);
 
   const dataErrorMessage =
     workoutsResult.error?.message ??
@@ -144,6 +167,28 @@ export default async function TrainingPage() {
                 >
                   Resume Workout
                 </Link>
+              </div>
+            </Card>
+          ) : null}
+
+          {previewWorkout ? (
+            <Card title="Workout Targeting Preview">
+              <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
+                <p className="text-sm font-semibold text-zinc-100">{previewWorkout.name}</p>
+                <p className="text-xs text-zinc-500">
+                  {activeWorkout ? "Most recent active workout" : "Most recent workout"} • {previewWorkoutExercises.length} exercises
+                </p>
+                <MuscleMap aggregation={previewWorkoutTargeting} testId="training-dashboard-muscle-map" />
+                <p className="text-xs text-zinc-400">
+                  {previewFocusLabel ?? "Primary focus unavailable"}.
+                  {" "}
+                  Region:{" "}
+                  {previewWorkoutTargeting.ranked_muscles[0]
+                    ? titleCase(previewWorkoutExercises.find((exercise) =>
+                      (exercise.source_primary_muscles ?? []).includes(previewWorkoutTargeting.ranked_muscles[0].muscle),
+                    )?.source_body_region ?? "mixed")
+                    : "unavailable"}
+                </p>
               </div>
             </Card>
           ) : null}

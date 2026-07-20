@@ -1,21 +1,29 @@
 import Link from "next/link";
 
+import { CustomExerciseManager } from "@/components/training/custom-exercise-manager";
 import { ExerciseCatalogBrowser } from "@/components/training/exercise-catalog-browser";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { getExerciseCatalog, getFrequentCatalogExerciseIds, getRecentlyUsedCatalogExerciseIds } from "@/lib/data/exercise-catalog";
+import { getMyExercises } from "@/lib/data/exercises";
 
 export default async function TrainingExercisesPage() {
-  const [catalogResult, recentResult, frequentResult] = await Promise.all([
+  const [catalogResult, recentResult, frequentResult, customExercisesResult] = await Promise.all([
     getExerciseCatalog({ limit: 600 }),
     getRecentlyUsedCatalogExerciseIds(12),
     getFrequentCatalogExerciseIds(12),
+    getMyExercises(),
   ]);
-  const dataErrorMessage = catalogResult.error?.message ?? recentResult.error?.message ?? frequentResult.error?.message ?? null;
+  const dataErrorMessage =
+    catalogResult.error?.message ??
+    recentResult.error?.message ??
+    frequentResult.error?.message ??
+    customExercisesResult.error?.message ??
+    null;
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Exercise Catalog" subtitle="Browse curated global exercises by muscle and equipment." />
+      <PageHeader title="Exercise Catalog" subtitle="Browse curated exercises with muscle targeting metadata." />
       <div className="flex flex-wrap gap-2">
         <Link
           href="/training"
@@ -30,6 +38,10 @@ export default async function TrainingExercisesPage() {
           Start Workout
         </Link>
       </div>
+
+      <Card title="Custom Exercise Library">
+        <CustomExerciseManager exercises={customExercisesResult.data ?? []} />
+      </Card>
 
       <Card title="Exercises">
         <ExerciseCatalogBrowser

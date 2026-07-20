@@ -12,6 +12,7 @@ import {
   getMyWorkouts,
   getWorkoutSetsForWorkoutExerciseIds,
 } from "@/lib/data/workouts";
+import { coerceMuscleIdArray, mapLegacyMuscleGroupToPrimaryMuscles } from "@/lib/training/muscles";
 import { buildPreviousPerformanceMap, buildWorkoutSummaryStats, groupSetsByWorkoutExerciseId } from "@/lib/training/session";
 import type { TrainingWeightUnit } from "@/lib/training/types";
 
@@ -61,6 +62,8 @@ export default async function WorkoutDetailPage({ params, searchParams }: Workou
   const historicalSetsResult = await getWorkoutSetsForWorkoutExerciseIds(historicalExercises.map((entry) => entry.id));
 
   const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
+  const customExercisesById = new Map((customExercisesResult.data ?? []).map((exercise) => [exercise.id, exercise]));
+  const catalogExercisesById = new Map((catalogExercisesResult.data ?? []).map((exercise) => [exercise.id, exercise]));
   const previousPerformance = buildPreviousPerformanceMap({
     currentExercises,
     historicalWorkouts,
@@ -69,22 +72,59 @@ export default async function WorkoutDetailPage({ params, searchParams }: Workou
     displayUnit,
   });
 
-  const loggerExercises = currentExercises.map((exercise) => ({
-    id: exercise.id,
-    exerciseId: exercise.exercise_id,
-    catalogExerciseId: (exercise as typeof exercise & { catalog_exercise_id?: string | null }).catalog_exercise_id ?? null,
-    exerciseName: exercise.exercise_name,
-    notes: exercise.notes,
-    position: exercise.position,
-    sets: currentSetsByExerciseId.get(exercise.id) ?? [],
-    previousPerformance:
-      previousPerformance.get(exercise.id) ?? {
-        latestWorkoutDate: null,
-        latestCompletedSets: [],
-        previousBestEstimatedOneRepMax: null,
-        comparableHistoricalSets: [],
-      },
-  }));
+  const loggerExercises = currentExercises.map((exercise) => {
+    const customSource = exercise.exercise_id ? customExercisesById.get(exercise.exercise_id) : null;
+    const catalogExerciseId =
+      (exercise as typeof exercise & { catalog_exercise_id?: string | null }).catalog_exercise_id ?? null;
+    const catalogSource = catalogExerciseId ? catalogExercisesById.get(catalogExerciseId) : null;
+    const customPrimaryFallback = mapLegacyMuscleGroupToPrimaryMuscles(customSource?.muscle_group);
+    const catalogPrimaryFallback = mapLegacyMuscleGroupToPrimaryMuscles(catalogSource?.primary_muscle_group);
+    const resolvedPrimaryMuscles =
+      exercise.source_primary_muscles?.length
+        ? exercise.source_primary_muscles
+        : customSource?.primary_muscles?.length
+          ? customSource.primary_muscles
+          : customPrimaryFallback.length
+            ? customPrimaryFallback
+            : catalogSource?.primary_muscles?.length
+              ? catalogSource.primary_muscles
+              : catalogPrimaryFallback;
+    const resolvedSecondaryMuscles =
+      exercise.source_secondary_muscles?.length
+        ? exercise.source_secondary_muscles
+        : customSource?.secondary_muscles?.length
+          ? customSource.secondary_muscles
+          : catalogSource?.secondary_muscles?.length
+            ? catalogSource.secondary_muscles
+            : coerceMuscleIdArray(catalogSource?.secondary_muscle_groups);
+
+    return {
+      id: exercise.id,
+      exerciseId: exercise.exercise_id,
+      catalogExerciseId,
+      exerciseName: exercise.exercise_name,
+      notes: exercise.notes,
+      primaryMuscles: resolvedPrimaryMuscles,
+      secondaryMuscles: resolvedSecondaryMuscles,
+      bodyRegion: exercise.source_body_region ?? customSource?.body_region ?? catalogSource?.body_region ?? null,
+      movementPattern:
+        exercise.source_movement_pattern ?? customSource?.movement_pattern ?? catalogSource?.movement_pattern ?? null,
+      muscleMetadataVersion:
+        exercise.source_muscle_metadata_version ??
+        customSource?.muscle_metadata_version ??
+        catalogSource?.muscle_metadata_version ??
+        null,
+      position: exercise.position,
+      sets: currentSetsByExerciseId.get(exercise.id) ?? [],
+      previousPerformance:
+        previousPerformance.get(exercise.id) ?? {
+          latestWorkoutDate: null,
+          latestCompletedSets: [],
+          previousBestEstimatedOneRepMax: null,
+          comparableHistoricalSets: [],
+        },
+    };
+  });
 
   const summary = buildWorkoutSummaryStats({
     workout,
