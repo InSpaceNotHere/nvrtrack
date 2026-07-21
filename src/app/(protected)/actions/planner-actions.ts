@@ -11,8 +11,10 @@ import {
   setWeekdaySchedule,
   type WorkoutTemplateType,
 } from "@/lib/data/workout-planner";
+import { getMyProfile } from "@/lib/data/profile";
 import { addExerciseToWorkout, createMyWorkout } from "@/lib/data/workouts";
 import { getTodayDateString } from "@/lib/nutrition/date";
+import { normalizeTimeZone } from "@/lib/timezone";
 
 export interface PlannerActionResult {
   status: "success" | "error";
@@ -221,9 +223,11 @@ export async function quickStartWorkoutFromTemplateAction(input: {
   workoutDate?: string;
   exercises: Array<{ exercise_id: string | null; catalog_exercise_id: string | null; exercise_name: string }>;
 }): Promise<{ status: "success" | "error"; message: string; workoutId: string | null }> {
+  const profileResult = await getMyProfile();
+  const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
   const createResult = await createMyWorkout({
     name: input.templateName,
-    workout_date: input.workoutDate ?? getTodayDateString(),
+    workout_date: input.workoutDate ?? getTodayDateString(profileTimeZone),
     started_at: new Date().toISOString(),
     notes: null,
     completed_at: null,

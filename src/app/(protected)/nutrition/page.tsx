@@ -5,6 +5,7 @@ import { getMyFoods, getMyRecentFoods } from "@/lib/data/foods";
 import { getMyFoodEntriesForDate, getMyRecentFoodEntries } from "@/lib/data/nutrition";
 import { getMyProfile } from "@/lib/data/profile";
 import { getTodayDateString, normalizeDateParam } from "@/lib/nutrition/date";
+import { normalizeTimeZone } from "@/lib/timezone";
 
 interface NutritionPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
@@ -12,18 +13,18 @@ interface NutritionPageProps {
 
 export default async function NutritionPage({ searchParams }: NutritionPageProps) {
   const resolvedSearchParams = (await Promise.resolve(searchParams)) ?? {};
-  const todayDate = getTodayDateString();
-  const { selectedDate, wasFallback } = normalizeDateParam(resolvedSearchParams.date);
+  const profileResult = await getMyProfile();
+  const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
+  const todayDate = getTodayDateString(profileTimeZone);
+  const { selectedDate, wasFallback } = normalizeDateParam(resolvedSearchParams.date, new Date(), profileTimeZone);
 
   const [
-    profileResult,
     entriesResult,
     foodsResult,
     recentFoodsResult,
     recentEntriesResult,
     catalogFoodsResult,
   ] = await Promise.all([
-    getMyProfile(),
     getMyFoodEntriesForDate(selectedDate),
     getMyFoods(),
     getMyRecentFoods(12),

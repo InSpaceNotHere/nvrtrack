@@ -1,22 +1,25 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- signed Supabase URLs are dynamic and not Next image-loader compatible */
 
 import { useMemo, useState, useTransition } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-import { createProgressPhotoAction, deleteProgressPhotoAction } from "@/app/(protected)/actions/progress-actions";
-import type { ProgressPhotoRow } from "@/lib/data/progress-photos";
+import {
+  createProgressPhotoAction,
+  deleteProgressPhotoAction,
+  loadProgressPhotoComparisonAction,
+  loadProgressPhotoPageAction,
+} from "@/app/(protected)/actions/progress-actions";
+import type { ProgressPhotoSignedRow } from "@/lib/data/progress-photos";
 
 interface ProgressPhotoManagerProps {
-  photos: ProgressPhotoRow[];
+  initialRows: ProgressPhotoSignedRow[];
+  initialNextOffset: number | null;
+  availableDates: string[];
+  todayDate: string;
 }
 
 type PhotoView = "front" | "side" | "back";
-
-interface PendingFileState {
-  dataUrl: string;
-  filename: string;
-}
 
 function formatDate(date: string): string {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(
@@ -24,12 +27,8 @@ function formatDate(date: string): string {
   );
 }
 
-function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function groupPhotosByDate(photos: ProgressPhotoRow[]) {
-  const map = new Map<string, ProgressPhotoRow[]>();
+function groupPhotosByDate(photos: ProgressPhotoSignedRow[]) {
+  const map = new Map<string, ProgressPhotoSignedRow[]>();
   for (const photo of photos) {
     const list = map.get(photo.photo_date);
     if (list) {
@@ -41,24 +40,25 @@ function groupPhotosByDate(photos: ProgressPhotoRow[]) {
   return [...map.entries()].sort((left, right) => (left[0] < right[0] ? 1 : -1));
 }
 
-function choosePhotoByView(photos: ProgressPhotoRow[], view: PhotoView): ProgressPhotoRow | null {
+function choosePhotoByView(photos: ProgressPhotoSignedRow[], view: PhotoView): ProgressPhotoSignedRow | null {
   return photos.find((photo) => photo.view === view) ?? null;
 }
 
-export function ProgressPhotoManager({ photos }: ProgressPhotoManagerProps) {
+export function ProgressPhotoManager({ initialRows, initialNextOffset, availableDates, todayDate }: ProgressPhotoManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [photoDate, setPhotoDate] = useState(todayDateString());
+  const [photoDate, setPhotoDate] = useState(todayDate);
   const [view, setView] = useState<PhotoView>("front");
   const [weight, setWeight] = useState("");
   const [weightUnit, setWeightUnit] = useState<"lb" | "kg">("lb");
   const [notes, setNotes] = useState("");
-  const [fileState, setFileState] = useState<PendingFileState | null>(null);
+  const [rows, setRows] = useState<ProgressPhotoSignedRow[]>(initialRows);
+  const [nextOffset, setNextOffset] = useState<number | null>(initialNextOffset);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
 
-  const grouped = useMemo(() => groupPhotosByDate(photos), [photos]);
-  const comparisonDates = useMemo(() => grouped.map(([date]) => date), [grouped]);
+  const grouped = useMemo(() => groupPhotosByDate(rows), [rows]);
+  const comparisonDates = availableDates;
   const [leftDate, setLeftDate] = useState<string>(comparisonDates[0] ?? "");
   const [rightDate, setRightDate] = useState<string>(comparisonDates[1] ?? comparisonDates[0] ?? "");
 
@@ -71,50 +71,22 @@ export function ProgressPhotoManager({ photos }: ProgressPhotoManagerProps) {
     setIsError(tone === "error");
   }
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      setFileState(null);
-      return;
-    }
-    if (file.size > 4 * 1024 * 1024) {
-      setFeedback("Photo must be 4MB or smaller.", "error");
-      setFileState(null);
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      if (!result) {
-        setFeedback("Failed to read the selected file.", "error");
-        return;
-      }
-      setFileState({ dataUrl: result, filename: file.name });
-    };
-    reader.onerror = () => setFeedback("Failed to read the selected file.", "error");
-    reader.readAsDataURL(file);
-  }
-
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!fileState) {
-      setFeedback("Select a photo before saving.", "error");
-      return;
-    }
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    formData.set("photoDate", photoDate);
+    formData.set("view", view);
+    formData.set("weight", weight);
+    formData.set("weightUnit", weightUnit);
+    formData.set("notes", notes);
     startTransition(async () => {
-      const result = await createProgressPhotoAction({
-        photoDate,
-        view,
-        imageDataUrl: fileState.dataUrl,
-        weight,
-        weightUnit,
-        notes,
-      });
+      const result = await createProgressPhotoAction(formData);
       setFeedback(result.message, result.status === "success" ? "success" : "error");
       if (result.status === "success") {
-        setFileState(null);
         setWeight("");
         setNotes("");
+        form.reset();
         router.refresh();
       }
     });
@@ -125,8 +97,49 @@ export function ProgressPhotoManager({ photos }: ProgressPhotoManagerProps) {
       const result = await deleteProgressPhotoAction(photoId);
       setFeedback(result.message, result.status === "success" ? "success" : "error");
       if (result.status === "success") {
+        setRows((existing) => existing.filter((row) => row.id !== photoId));
         router.refresh();
       }
+    });
+  }
+
+  function handleLoadMore() {
+    if (nextOffset === null) {
+      return;
+    }
+    startTransition(async () => {
+      const result = await loadProgressPhotoPageAction(nextOffset);
+      if (result.status === "error") {
+        setFeedback(result.message, "error");
+        return;
+      }
+      setRows((existing) => {
+        const seen = new Set(existing.map((row) => row.id));
+        const additions = result.rows.filter((row) => !seen.has(row.id));
+        return [...existing, ...additions];
+      });
+      setNextOffset(result.nextOffset);
+    });
+  }
+
+  async function ensureComparisonRows() {
+    if (!leftDate && !rightDate) {
+      return;
+    }
+    const hasLeft = leftDate ? rows.some((row) => row.photo_date === leftDate) : true;
+    const hasRight = rightDate ? rows.some((row) => row.photo_date === rightDate) : true;
+    if (hasLeft && hasRight) {
+      return;
+    }
+    const result = await loadProgressPhotoComparisonAction(leftDate, rightDate);
+    if (result.status === "error") {
+      setFeedback(result.message, "error");
+      return;
+    }
+    setRows((existing) => {
+      const seen = new Set(existing.map((row) => row.id));
+      const additions = result.rows.filter((row) => !seen.has(row.id));
+      return [...existing, ...additions];
     });
   }
 
@@ -149,8 +162,8 @@ export function ProgressPhotoManager({ photos }: ProgressPhotoManagerProps) {
         </div>
         <label className="space-y-1 text-xs text-zinc-400">
           <span>Photo</span>
-          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFileChange} className="app-input h-9 text-sm file:mr-2 file:text-xs" />
-          {fileState ? <p className="text-[11px] text-zinc-500">{fileState.filename}</p> : null}
+          <input name="photo" type="file" accept="image/png,image/jpeg,image/webp" className="app-input h-9 text-sm file:mr-2 file:text-xs" />
+          <p className="text-[11px] text-zinc-500">JPEG, PNG, or WebP up to 4MB.</p>
         </label>
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="space-y-1 text-xs text-zinc-400">
@@ -203,11 +216,19 @@ export function ProgressPhotoManager({ photos }: ProgressPhotoManagerProps) {
                     <div key={photo.id} className="space-y-1 rounded-lg border border-white/10 bg-black/25 p-2">
                       <p className="text-[11px] uppercase tracking-[0.08em] text-zinc-400">{photo.view}</p>
                       <div className="relative h-36 overflow-hidden rounded-md border border-white/10 bg-black/40">
-                        <Image src={photo.image_data_url} alt={`${photo.view} progress check-in`} fill className="object-cover" sizes="200px" />
+                        {photo.signed_url ? (
+                          <img
+                            src={photo.signed_url}
+                            alt={`${photo.view} progress check-in`}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : null}
                       </div>
                       <p className="text-[11px] text-zinc-500">
                         {photo.weight ? `${photo.weight} ${photo.weight_unit ?? ""}` : "Weight not logged"}
                       </p>
+                      {photo.notes ? <p className="text-[11px] text-zinc-400">{photo.notes}</p> : null}
                       <button
                         type="button"
                         onClick={() => handleDelete(photo.id)}
@@ -224,6 +245,16 @@ export function ProgressPhotoManager({ photos }: ProgressPhotoManagerProps) {
         ) : (
           <p className="text-sm text-zinc-500">No photos saved yet.</p>
         )}
+        {nextOffset !== null ? (
+          <button
+            type="button"
+            onClick={handleLoadMore}
+            disabled={isPending}
+            className="rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10 disabled:opacity-60"
+          >
+            {isPending ? "Loading..." : "Load more"}
+          </button>
+        ) : null}
       </div>
 
       <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
@@ -260,7 +291,9 @@ export function ProgressPhotoManager({ photos }: ProgressPhotoManagerProps) {
                     const photo = choosePhotoByView(leftPhotos, angle);
                     return (
                       <div key={`left-${angle}`} className="relative h-24 rounded-md border border-white/10 bg-black/30">
-                        {photo ? <Image src={photo.image_data_url} alt={`${angle} ${leftDate}`} fill className="object-cover" sizes="120px" /> : null}
+                        {photo?.signed_url ? (
+                          <img src={photo.signed_url} alt={`${angle} ${leftDate}`} className="h-full w-full object-cover" loading="lazy" />
+                        ) : null}
                       </div>
                     );
                   })}
@@ -273,13 +306,31 @@ export function ProgressPhotoManager({ photos }: ProgressPhotoManagerProps) {
                     const photo = choosePhotoByView(rightPhotos, angle);
                     return (
                       <div key={`right-${angle}`} className="relative h-24 rounded-md border border-white/10 bg-black/30">
-                        {photo ? <Image src={photo.image_data_url} alt={`${angle} ${rightDate}`} fill className="object-cover" sizes="120px" /> : null}
+                        {photo?.signed_url ? (
+                          <img
+                            src={photo.signed_url}
+                            alt={`${angle} ${rightDate}`}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : null}
                       </div>
                     );
                   })}
                 </div>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                startTransition(async () => {
+                  await ensureComparisonRows();
+                });
+              }}
+              className="rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Load Selected Dates
+            </button>
           </>
         ) : (
           <p className="text-xs text-zinc-500">Save at least one check-in date to compare.</p>

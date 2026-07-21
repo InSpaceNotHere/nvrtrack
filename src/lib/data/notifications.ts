@@ -1,6 +1,6 @@
 import { getAuthenticatedContext } from "./auth-context";
 import { fail, ok, type DataAccessResult } from "./result";
-import { asLooseSupabaseClient } from "./untyped-supabase";
+import type { Database } from "@/types/database";
 
 export type NotificationType =
   | "workout_reminder"
@@ -23,6 +23,8 @@ export interface NotificationRow {
   created_at: string;
   updated_at: string;
 }
+
+type NotificationInsert = Database["public"]["Tables"]["notifications"]["Insert"];
 
 export interface NotificationPreferencesRow {
   user_id: string;
@@ -61,7 +63,7 @@ export async function getMyNotificationPreferences(): Promise<DataAccessResult<N
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("notification_preferences")
     .select("*")
@@ -107,7 +109,7 @@ export async function updateMyNotificationPreferences(
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("notification_preferences")
     .update(input)
@@ -137,7 +139,7 @@ export async function getMyNotifications(limit = 40): Promise<DataAccessResult<N
     return auth;
   }
   const safeLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 200) : 40;
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("notifications")
     .select("*")
@@ -177,7 +179,7 @@ export async function createMyNotification(input: {
     });
   }
 
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("notifications")
     .insert({
@@ -186,7 +188,7 @@ export async function createMyNotification(input: {
       title: input.title.trim(),
       body: input.body.trim(),
       scheduled_for: input.scheduled_for ?? null,
-      metadata: input.metadata ?? {},
+      metadata: (input.metadata ?? {}) as NotificationInsert["metadata"],
       is_read: false,
       read_at: null,
     })
@@ -210,7 +212,7 @@ export async function markMyNotificationRead(notificationId: string): Promise<Da
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("notifications")
     .update({

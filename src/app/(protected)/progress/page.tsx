@@ -9,12 +9,13 @@ import { WeightLogManager } from "@/components/weight/weight-log-manager";
 import { WeightChart } from "@/components/weight/weight-chart";
 import { getMyBodyMeasurementEntries } from "@/lib/data/body-measurements";
 import { getMyProfile } from "@/lib/data/profile";
-import { getMyProgressPhotos } from "@/lib/data/progress-photos";
+import { getMyProgressPhotoDates, getMyProgressPhotoPage } from "@/lib/data/progress-photos";
 import { getMyWeeklyJournalEntries } from "@/lib/data/weekly-journal";
 import { getMyWorkoutExercisesForWorkoutIds, getMyWorkouts, getWorkoutSetsForWorkoutExerciseIds } from "@/lib/data/workouts";
 import { buildStrengthDashboardSummary } from "@/lib/training/strength";
 import { groupSetsByWorkoutExerciseId } from "@/lib/training/session";
 import { getWeightEntries } from "@/lib/data/weight";
+import { getCurrentWeekStartMondayInTimeZone, getDateStringInTimeZone, normalizeTimeZone } from "@/lib/timezone";
 import {
   MIN_ENTRIES_FOR_PERIOD_COMPARISON,
   computeWeightMetrics,
@@ -29,6 +30,8 @@ function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightU
 
 interface ProgressOverviewProps {
   displayUnit: WeightUnit;
+  todayDate: string;
+  profileTimeZone: string;
   latestWeight: number | null;
   latestChangeLabel: string;
   sevenDayAverage: number | null;
@@ -40,6 +43,8 @@ interface ProgressOverviewProps {
 
 function ProgressOverview({
   displayUnit,
+  todayDate,
+  profileTimeZone,
   latestWeight,
   latestChangeLabel,
   sevenDayAverage,
@@ -86,7 +91,13 @@ function ProgressOverview({
       </section>
 
       <Card title="Weight History">
-        <WeightLogManager entries={weightHistory} displayUnit={displayUnit} showHistory />
+        <WeightLogManager
+          entries={weightHistory}
+          displayUnit={displayUnit}
+          showHistory
+          initialEntryDate={todayDate}
+          timeZone={profileTimeZone}
+        />
       </Card>
 
       <Card title="Weight Chart" subtitle="Range filters + trend line">
@@ -166,12 +177,13 @@ function ProgressOverview({
 }
 
 export default async function ProgressPage() {
-  const [profileResult, weightEntriesResult, workoutsResult, progressPhotosResult, measurementEntriesResult, journalEntriesResult] =
+  const [profileResult, weightEntriesResult, workoutsResult, progressPhotosPageResult, progressPhotoDatesResult, measurementEntriesResult, journalEntriesResult] =
     await Promise.all([
       getMyProfile(),
       getWeightEntries(),
       getMyWorkouts(),
-      getMyProgressPhotos(),
+      getMyProgressPhotoPage(0, 24),
+      getMyProgressPhotoDates(),
       getMyBodyMeasurementEntries(),
       getMyWeeklyJournalEntries(),
     ]);
@@ -187,12 +199,16 @@ export default async function ProgressPage() {
     workoutsResult.error?.message ??
     workoutExercisesResult.error?.message ??
     workoutSetsResult.error?.message ??
-    progressPhotosResult.error?.message ??
+    progressPhotosPageResult.error?.message ??
+    progressPhotoDatesResult.error?.message ??
     measurementEntriesResult.error?.message ??
     journalEntriesResult.error?.message ??
     null;
   const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
-  const weightMetrics = computeWeightMetrics(weightEntriesResult.data ?? [], displayUnit);
+  const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
+  const todayDate = getDateStringInTimeZone(profileTimeZone, new Date());
+  const referenceDate = new Date(`${todayDate}T12:00:00.000Z`);
+  const weightMetrics = computeWeightMetrics(weightEntriesResult.data ?? [], displayUnit, referenceDate);
   const trendPoints = weightMetrics.trendChronological.map((entry) => ({
     label: shortDateLabel(entry.entryDate),
     value: entry.weight,
@@ -210,6 +226,7 @@ export default async function ProgressPage() {
     exercises: workoutExercisesResult.data ?? [],
     setsByExerciseId: groupSetsByWorkoutExerciseId(workoutSetsResult.data ?? []),
     displayUnit,
+    referenceDate,
   });
 
   return (
@@ -225,6 +242,8 @@ export default async function ProgressPage() {
         overview={
           <ProgressOverview
             displayUnit={displayUnit}
+            todayDate={todayDate}
+            profileTimeZone={profileTimeZone}
             latestWeight={latestWeight}
             latestChangeLabel={latestChangeLabel}
             sevenDayAverage={sevenDayAverage}
@@ -234,9 +253,21 @@ export default async function ProgressPage() {
             strengthSummary={strengthSummary}
           />
         }
-        photos={<ProgressPhotoManager photos={progressPhotosResult.data ?? []} />}
-        measurements={<BodyMeasurementManager entries={measurementEntriesResult.data ?? []} />}
-        journal={<WeeklyJournalManager entries={journalEntriesResult.data ?? []} />}
+        photos={
+          <ProgressPhotoManager
+            initialRows={progressPhotosPageResult.data?.rows ?? []}
+            initialNextOffset={progressPhotosPageResult.data?.nextOffset ?? null}
+            availableDates={progressPhotoDatesResult.data ?? []}
+            todayDate={todayDate}
+          />
+        }
+        measurements={<BodyMeasurementManager entries={measurementEntriesResult.data ?? []} todayDate={todayDate} />}
+        journal={
+          <WeeklyJournalManager
+            entries={journalEntriesResult.data ?? []}
+            initialWeekStart={getCurrentWeekStartMondayInTimeZone(profileTimeZone, referenceDate)}
+          />
+        }
       />
     </div>
   );

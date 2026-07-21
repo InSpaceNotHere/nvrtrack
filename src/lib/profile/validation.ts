@@ -1,4 +1,5 @@
 import type { Database } from "@/types/database";
+import { isValidIanaTimeZone, normalizeTimeZone } from "../timezone";
 
 export const PROFILE_DISPLAY_NAME_MAX_LENGTH = 60;
 export const HEIGHT_INCHES_MIN = 36;
@@ -16,6 +17,7 @@ export interface ProfileFormInput {
   carbohydrateGoal: string;
   fatGoal: string;
   preferredWeightUnit: string;
+  timezone: string;
 }
 
 export interface ProfileFormValues {
@@ -26,6 +28,7 @@ export interface ProfileFormValues {
   carbohydrateGoal: string;
   fatGoal: string;
   preferredWeightUnit: PreferredWeightUnit;
+  timezone: string;
 }
 
 export type ProfileFormField =
@@ -35,7 +38,8 @@ export type ProfileFormField =
   | "proteinGoal"
   | "carbohydrateGoal"
   | "fatGoal"
-  | "preferredWeightUnit";
+  | "preferredWeightUnit"
+  | "timezone";
 
 export type FieldErrors = Partial<Record<ProfileFormField, string>>;
 
@@ -47,6 +51,7 @@ export interface NormalizedProfileUpdate {
   carbohydrate_goal: number | null;
   fat_goal: number | null;
   preferred_weight_unit: PreferredWeightUnit;
+  timezone: string;
 }
 
 export interface ProfileValidationResult {
@@ -98,6 +103,7 @@ export function formatHeightFeetInches(totalInches: number | null | undefined): 
 }
 
 export function profileToFormValues(profile: ProfileRow | null): ProfileFormValues {
+  const profileTimezone = (profile as (ProfileRow & { timezone?: string | null }) | null)?.timezone;
   return {
     displayName: profile?.display_name ?? "",
     heightInches: profile?.height_inches?.toString() ?? "",
@@ -106,6 +112,7 @@ export function profileToFormValues(profile: ProfileRow | null): ProfileFormValu
     carbohydrateGoal: profile?.carbohydrate_goal?.toString() ?? "",
     fatGoal: profile?.fat_goal?.toString() ?? "",
     preferredWeightUnit: profile?.preferred_weight_unit === "kg" ? "kg" : "lb",
+    timezone: normalizeTimeZone(profileTimezone),
   };
 }
 
@@ -146,6 +153,10 @@ export function normalizeProfileInput(input: ProfileFormInput): ProfileValidatio
   if (!preferredWeightUnit) {
     fieldErrors.preferredWeightUnit = "Preferred unit must be lb or kg.";
   }
+  const timezone = input.timezone.trim();
+  if (!isValidIanaTimeZone(timezone)) {
+    fieldErrors.timezone = "Timezone must be a valid IANA timezone (for example, UTC or America/Los_Angeles).";
+  }
 
   if (Object.keys(fieldErrors).length > 0) {
     return { data: null, fieldErrors };
@@ -162,6 +173,7 @@ export function normalizeProfileInput(input: ProfileFormInput): ProfileValidatio
       carbohydrate_goal: carbohydrateGoal.value,
       fat_goal: fatGoal.value,
       preferred_weight_unit: safePreferredWeightUnit,
+      timezone: normalizeTimeZone(timezone),
     },
     fieldErrors: {},
   };

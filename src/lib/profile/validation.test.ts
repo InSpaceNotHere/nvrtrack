@@ -46,6 +46,7 @@ describe("profile form defaults", () => {
     expect(values.carbohydrateGoal).toBe("");
     expect(values.fatGoal).toBe("");
     expect(values.preferredWeightUnit).toBe("lb");
+    expect(values.timezone).toBe("UTC");
   });
 });
 
@@ -59,6 +60,7 @@ describe("profile input normalization", () => {
       carbohydrateGoal: "",
       fatGoal: "",
       preferredWeightUnit: "kg",
+      timezone: "America/Los_Angeles",
     });
 
     expect(result.fieldErrors).toEqual({});
@@ -70,6 +72,7 @@ describe("profile input normalization", () => {
       carbohydrate_goal: null,
       fat_goal: null,
       preferred_weight_unit: "kg",
+      timezone: "America/Los_Angeles",
     });
   });
 
@@ -82,6 +85,7 @@ describe("profile input normalization", () => {
       carbohydrateGoal: "20",
       fatGoal: "30",
       preferredWeightUnit: "lb",
+      timezone: "UTC",
     });
 
     expect(result.data).toBeNull();
@@ -98,6 +102,7 @@ describe("profile input normalization", () => {
       carbohydrateGoal: `${MACRO_GOAL_MAX + 1}`,
       fatGoal: `${MACRO_GOAL_MAX + 1}`,
       preferredWeightUnit: "lb",
+      timezone: "UTC",
     });
 
     expect(result.data).toBeNull();
@@ -121,6 +126,7 @@ describe("profile input normalization", () => {
       carbohydrateGoal: "220",
       fatGoal: "70",
       preferredWeightUnit: "stone",
+      timezone: "UTC",
     });
 
     expect(result.data).toBeNull();
@@ -136,6 +142,7 @@ describe("profile input normalization", () => {
       carbohydrateGoal: "230",
       fatGoal: "70",
       preferredWeightUnit: "lb",
+      timezone: "UTC",
     });
 
     expect(result.fieldErrors).toEqual({});
@@ -147,6 +154,23 @@ describe("profile input normalization", () => {
       carbohydrate_goal: 230,
       fat_goal: 70,
       preferred_weight_unit: "lb",
+      timezone: "UTC",
     });
+  });
+
+  it("rejects invalid timezone values", () => {
+    const result = normalizeProfileInput({
+      displayName: "Athlete",
+      heightInches: "70",
+      calorieGoal: "2400",
+      proteinGoal: "180",
+      carbohydrateGoal: "230",
+      fatGoal: "70",
+      preferredWeightUnit: "lb",
+      timezone: "Mars/OlympusMons",
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.fieldErrors.timezone).toContain("valid IANA timezone");
   });
 });

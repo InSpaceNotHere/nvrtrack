@@ -1,6 +1,5 @@
 import { getAuthenticatedContext } from "./auth-context";
 import { fail, ok, type DataAccessResult } from "./result";
-import { asLooseSupabaseClient } from "./untyped-supabase";
 
 export interface WeeklyJournalEntryRow {
   id: string;
@@ -40,7 +39,7 @@ export async function getMyWeeklyJournalEntries(): Promise<DataAccessResult<Week
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("weekly_journal_entries")
     .select("*")
@@ -63,7 +62,7 @@ export async function upsertMyWeeklyJournalEntry(
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const existing = await supabase
     .from("weekly_journal_entries")
     .select("*")
@@ -119,4 +118,34 @@ export async function upsertMyWeeklyJournalEntry(
     });
   }
   return ok(asRow<WeeklyJournalEntryRow>(created.data)!);
+}
+
+export async function deleteMyWeeklyJournalEntry(entryId: string): Promise<DataAccessResult<{ id: string }>> {
+  if (!entryId) {
+    return fail({ code: "INVALID_INPUT", message: "Weekly journal entry id is required." });
+  }
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
+  }
+  const supabase = auth.data.supabase;
+  const { data, error } = await supabase
+    .from("weekly_journal_entries")
+    .delete()
+    .eq("id", entryId)
+    .eq("user_id", auth.data.user.id)
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to delete weekly journal entry.",
+      cause: error.message,
+    });
+  }
+  const row = asRow<{ id: string }>(data);
+  if (!row) {
+    return fail({ code: "NOT_FOUND", message: "Weekly journal entry not found." });
+  }
+  return ok(row);
 }

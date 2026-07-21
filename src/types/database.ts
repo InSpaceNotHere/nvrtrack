@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      body_measurement_entries: {
+        Row: {
+          created_at: string
+          custom_measurements: Json
+          entry_date: string
+          id: string
+          measurements: Json
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_measurements?: Json
+          entry_date: string
+          id?: string
+          measurements?: Json
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_measurements?: Json
+          entry_date?: string
+          id?: string
+          measurements?: Json
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exercise_catalog: {
         Row: {
           aliases: string[]
@@ -23,8 +56,8 @@ export type Database = {
           id: string
           instructions: string | null
           is_active: boolean
-          muscle_metadata_version: number
           movement_pattern: string
+          muscle_metadata_version: number
           name: string
           normalized_name: string
           primary_muscle_group: string
@@ -41,8 +74,8 @@ export type Database = {
           id?: string
           instructions?: string | null
           is_active?: boolean
-          muscle_metadata_version?: number
           movement_pattern: string
+          muscle_metadata_version?: number
           name: string
           normalized_name: string
           primary_muscle_group: string
@@ -59,8 +92,8 @@ export type Database = {
           id?: string
           instructions?: string | null
           is_active?: boolean
-          muscle_metadata_version?: number
           movement_pattern?: string
+          muscle_metadata_version?: number
           name?: string
           normalized_name?: string
           primary_muscle_group?: string
@@ -77,9 +110,9 @@ export type Database = {
           created_at: string
           equipment: string | null
           id: string
+          movement_pattern: string | null
           muscle_group: string | null
           muscle_metadata_version: number
-          movement_pattern: string | null
           name: string
           notes: string | null
           primary_muscles: string[]
@@ -92,9 +125,9 @@ export type Database = {
           created_at?: string
           equipment?: string | null
           id?: string
+          movement_pattern?: string | null
           muscle_group?: string | null
           muscle_metadata_version?: number
-          movement_pattern?: string | null
           name: string
           notes?: string | null
           primary_muscles?: string[]
@@ -107,9 +140,9 @@ export type Database = {
           created_at?: string
           equipment?: string | null
           id?: string
+          movement_pattern?: string | null
           muscle_group?: string | null
           muscle_metadata_version?: number
-          movement_pattern?: string | null
           name?: string
           notes?: string | null
           primary_muscles?: string[]
@@ -460,6 +493,84 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          new_pr_enabled: boolean
+          photo_reminder_enabled: boolean
+          protein_reminder_enabled: boolean
+          updated_at: string
+          user_id: string
+          weight_reminder_enabled: boolean
+          workout_reminder_enabled: boolean
+          workout_streak_enabled: boolean
+        }
+        Insert: {
+          created_at?: string
+          new_pr_enabled?: boolean
+          photo_reminder_enabled?: boolean
+          protein_reminder_enabled?: boolean
+          updated_at?: string
+          user_id: string
+          weight_reminder_enabled?: boolean
+          workout_reminder_enabled?: boolean
+          workout_streak_enabled?: boolean
+        }
+        Update: {
+          created_at?: string
+          new_pr_enabled?: boolean
+          photo_reminder_enabled?: boolean
+          protein_reminder_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+          weight_reminder_enabled?: boolean
+          workout_reminder_enabled?: boolean
+          workout_streak_enabled?: boolean
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_read: boolean
+          metadata: Json
+          read_at: string | null
+          scheduled_for: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          metadata?: Json
+          read_at?: string | null
+          scheduled_for?: string | null
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          metadata?: Json
+          read_at?: string | null
+          scheduled_for?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           calorie_goal: number | null
@@ -471,6 +582,7 @@ export type Database = {
           id: string
           preferred_weight_unit: string
           protein_goal: number | null
+          timezone: string
           updated_at: string
         }
         Insert: {
@@ -483,6 +595,7 @@ export type Database = {
           id: string
           preferred_weight_unit?: string
           protein_goal?: number | null
+          timezone?: string
           updated_at?: string
         }
         Update: {
@@ -495,7 +608,95 @@ export type Database = {
           id?: string
           preferred_weight_unit?: string
           protein_goal?: number | null
+          timezone?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      progress_photos: {
+        Row: {
+          byte_size: number
+          created_at: string
+          id: string
+          mime_type: string
+          notes: string | null
+          original_filename: string
+          photo_date: string
+          storage_path: string
+          updated_at: string
+          user_id: string
+          view: string
+          weight: number | null
+          weight_unit: string | null
+        }
+        Insert: {
+          byte_size: number
+          created_at?: string
+          id?: string
+          mime_type: string
+          notes?: string | null
+          original_filename: string
+          photo_date: string
+          storage_path: string
+          updated_at?: string
+          user_id: string
+          view: string
+          weight?: number | null
+          weight_unit?: string | null
+        }
+        Update: {
+          byte_size?: number
+          created_at?: string
+          id?: string
+          mime_type?: string
+          notes?: string | null
+          original_filename?: string
+          photo_date?: string
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+          view?: string
+          weight?: number | null
+          weight_unit?: string | null
+        }
+        Relationships: []
+      }
+      weekly_journal_entries: {
+        Row: {
+          created_at: string
+          energy: number | null
+          id: string
+          mood: string | null
+          notes: string | null
+          recovery: number | null
+          sleep_hours: number | null
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          energy?: number | null
+          id?: string
+          mood?: string | null
+          notes?: string | null
+          recovery?: number | null
+          sleep_hours?: number | null
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          energy?: number | null
+          id?: string
+          mood?: string | null
+          notes?: string | null
+          recovery?: number | null
+          sleep_hours?: number | null
+          updated_at?: string
+          user_id?: string
+          week_start?: string
         }
         Relationships: []
       }
@@ -608,6 +809,66 @@ export type Database = {
           },
         ]
       }
+      workout_schedule_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          is_rest_day: boolean
+          moved_from_date: string | null
+          moved_to_date: string | null
+          notes: string | null
+          plan_date: string
+          status: string
+          template_id: string | null
+          updated_at: string
+          user_id: string
+          workout_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_rest_day?: boolean
+          moved_from_date?: string | null
+          moved_to_date?: string | null
+          notes?: string | null
+          plan_date: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+          user_id: string
+          workout_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_rest_day?: boolean
+          moved_from_date?: string | null
+          moved_to_date?: string | null
+          notes?: string | null
+          plan_date?: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+          user_id?: string
+          workout_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_schedule_overrides_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "workout_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_schedule_overrides_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workout_sets: {
         Row: {
           created_at: string
@@ -661,6 +922,153 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workout_exercises"
             referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      workout_template_exercises: {
+        Row: {
+          body_region: string | null
+          catalog_exercise_id: string | null
+          created_at: string
+          exercise_id: string | null
+          exercise_name: string
+          id: string
+          movement_pattern: string | null
+          notes: string | null
+          position: number
+          primary_muscles: string[]
+          secondary_muscles: string[]
+          template_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_region?: string | null
+          catalog_exercise_id?: string | null
+          created_at?: string
+          exercise_id?: string | null
+          exercise_name: string
+          id?: string
+          movement_pattern?: string | null
+          notes?: string | null
+          position: number
+          primary_muscles?: string[]
+          secondary_muscles?: string[]
+          template_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_region?: string | null
+          catalog_exercise_id?: string | null
+          created_at?: string
+          exercise_id?: string | null
+          exercise_name?: string
+          id?: string
+          movement_pattern?: string | null
+          notes?: string | null
+          position?: number
+          primary_muscles?: string[]
+          secondary_muscles?: string[]
+          template_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_template_exercises_catalog_exercise_id_fkey"
+            columns: ["catalog_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_template_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_template_exercises_template_owner_fkey"
+            columns: ["template_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "workout_templates"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      workout_templates: {
+        Row: {
+          created_at: string
+          estimated_duration_minutes: number | null
+          id: string
+          is_archived: boolean
+          name: string
+          notes: string | null
+          template_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          estimated_duration_minutes?: number | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          notes?: string | null
+          template_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          estimated_duration_minutes?: number | null
+          id?: string
+          is_archived?: boolean
+          name?: string
+          notes?: string | null
+          template_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      workout_weekday_schedule: {
+        Row: {
+          created_at: string
+          id: string
+          is_rest_day: boolean
+          template_id: string | null
+          updated_at: string
+          user_id: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_rest_day?: boolean
+          template_id?: string | null
+          updated_at?: string
+          user_id: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_rest_day?: boolean
+          template_id?: string | null
+          updated_at?: string
+          user_id?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_weekday_schedule_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "workout_templates"
+            referencedColumns: ["id"]
           },
         ]
       }

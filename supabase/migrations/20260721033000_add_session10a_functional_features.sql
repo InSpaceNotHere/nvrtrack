@@ -2,6 +2,24 @@
 -- Adds workout planner, progress photos, body measurements, weekly journal,
 -- and in-app notifications framework.
 
+alter table public.profiles
+  add column if not exists timezone text not null default 'UTC';
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'profiles_timezone_format_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles
+      add constraint profiles_timezone_format_check
+      check (char_length(btrim(timezone)) between 1 and 64);
+  end if;
+end
+$$;
+
 create table if not exists public.workout_templates (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -53,10 +71,27 @@ create table if not exists public.workout_template_exercises (
   constraint workout_template_exercises_template_position_unique unique (template_id, position),
   constraint workout_template_exercises_single_reference_check check (num_nonnulls(exercise_id, catalog_exercise_id) <= 1),
   constraint workout_template_exercises_muscle_arrays_no_overlap check (
-    not exists (
-      select 1
-      from unnest(primary_muscles) as muscle
-      where muscle = any(secondary_muscles)
+    not (primary_muscles && secondary_muscles)
+  ),
+  constraint workout_template_exercises_muscles_supported_values check (
+    (primary_muscles || secondary_muscles) <@ array[
+      'chest', 'front_delts', 'side_delts', 'rear_delts', 'triceps', 'biceps', 'forearms',
+      'lats', 'upper_back', 'traps', 'lower_back', 'abs', 'obliques', 'glutes',
+      'quads', 'hamstrings', 'adductors', 'calves', 'hip_flexors'
+    ]::text[]
+  ),
+  constraint workout_template_exercises_body_region_check check (
+    body_region is null
+    or body_region in ('upper_body', 'lower_body', 'core', 'posterior_chain', 'full_body')
+  ),
+  constraint workout_template_exercises_movement_pattern_check check (
+    movement_pattern is null
+    or movement_pattern in (
+      'horizontal_press', 'vertical_press', 'horizontal_pull', 'vertical_pull',
+      'squat', 'hinge', 'unilateral_leg', 'knee_extension', 'knee_flexion',
+      'ankle_plantarflexion', 'shoulder_abduction', 'shoulder_flexion',
+      'elbow_flexion', 'elbow_extension', 'upper_pull', 'core',
+      'hip_abduction', 'hip_adduction', 'carry', 'full_body', 'cardio', 'isometric'
     )
   )
 );
@@ -107,14 +142,22 @@ create table if not exists public.progress_photos (
   user_id uuid not null references auth.users (id) on delete cascade,
   photo_date date not null,
   view text not null,
-  image_data_url text not null,
+  storage_path text not null,
+  mime_type text not null,
+  byte_size integer not null,
+  original_filename text not null,
   weight numeric,
   weight_unit text,
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  constraint progress_photos_user_date_view_unique unique (user_id, photo_date, view),
   constraint progress_photos_view_check check (view in ('front', 'side', 'back')),
-  constraint progress_photos_image_not_blank check (btrim(image_data_url) <> ''),
+  constraint progress_photos_storage_path_not_blank check (btrim(storage_path) <> ''),
+  constraint progress_photos_mime_type_check check (mime_type in ('image/jpeg', 'image/png', 'image/webp')),
+  constraint progress_photos_byte_size_check check (byte_size > 0 and byte_size <= 4194304),
+  constraint progress_photos_original_filename_not_blank check (btrim(original_filename) <> ''),
+  constraint progress_photos_original_filename_max_len check (char_length(original_filename) <= 255),
   constraint progress_photos_weight_nonnegative check (weight is null or weight > 0),
   constraint progress_photos_weight_unit_check check (weight_unit is null or weight_unit in ('lb', 'kg')),
   constraint progress_photos_notes_max_len check (notes is null or char_length(notes) <= 1000)
@@ -122,6 +165,9 @@ create table if not exists public.progress_photos (
 
 create index if not exists progress_photos_user_id_photo_date_idx
   on public.progress_photos (user_id, photo_date desc, created_at desc);
+
+create unique index if not exists progress_photos_user_id_storage_path_unique_idx
+  on public.progress_photos (user_id, storage_path);
 
 create table if not exists public.body_measurement_entries (
   id uuid primary key default gen_random_uuid(),
@@ -541,3 +587,66 @@ grant select, insert, update, delete on public.body_measurement_entries to authe
 grant select, insert, update, delete on public.weekly_journal_entries to authenticated;
 grant select, insert, update, delete on public.notification_preferences to authenticated;
 grant select, insert, update, delete on public.notifications to authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'progress-photos',
+  'progress-photos',
+  false,
+  4194304,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists progress_photos_storage_select_own on storage.objects;
+create policy progress_photos_storage_select_own
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id = 'progress-photos'
+  and auth.uid() is not null
+  and name like auth.uid()::text || '/%'
+);
+
+drop policy if exists progress_photos_storage_insert_own on storage.objects;
+create policy progress_photos_storage_insert_own
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'progress-photos'
+  and auth.uid() is not null
+  and name like auth.uid()::text || '/%'
+);
+
+drop policy if exists progress_photos_storage_update_own on storage.objects;
+create policy progress_photos_storage_update_own
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'progress-photos'
+  and auth.uid() is not null
+  and name like auth.uid()::text || '/%'
+)
+with check (
+  bucket_id = 'progress-photos'
+  and auth.uid() is not null
+  and name like auth.uid()::text || '/%'
+);
+
+drop policy if exists progress_photos_storage_delete_own on storage.objects;
+create policy progress_photos_storage_delete_own
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'progress-photos'
+  and auth.uid() is not null
+  and name like auth.uid()::text || '/%'
+);

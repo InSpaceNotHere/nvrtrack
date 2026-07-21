@@ -19,6 +19,7 @@ export interface LoosePostgrestQueryBuilder extends PromiseLike<LoosePostgrestRe
   lte(column: string, value: unknown): LoosePostgrestQueryBuilder;
   order(column: string, options?: { ascending?: boolean }): LoosePostgrestQueryBuilder;
   limit(count: number): LoosePostgrestQueryBuilder;
+  range(from: number, to: number): LoosePostgrestQueryBuilder;
   maybeSingle(): Promise<LoosePostgrestResult>;
   single(): Promise<LoosePostgrestResult>;
 }

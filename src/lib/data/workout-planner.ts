@@ -1,8 +1,9 @@
 import { getExerciseCatalog } from "./exercise-catalog";
 import { getAuthenticatedContext } from "./auth-context";
+import { getMyProfile } from "./profile";
 import { fail, ok, type DataAccessResult } from "./result";
-import { asLooseSupabaseClient } from "./untyped-supabase";
 import { getTodayDateString } from "@/lib/nutrition/date";
+import { normalizeTimeZone } from "@/lib/timezone";
 
 export type WorkoutTemplateType = "push" | "pull" | "legs" | "upper" | "lower" | "custom";
 export type WorkoutScheduleStatus = "scheduled" | "completed" | "skipped" | "moved";
@@ -206,7 +207,7 @@ export async function getMyWorkoutTemplates(): Promise<DataAccessResult<WorkoutT
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("workout_templates")
     .select("*")
@@ -231,7 +232,7 @@ export async function getMyWorkoutTemplateExercises(
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   let query = supabase
     .from("workout_template_exercises")
     .select("*")
@@ -255,7 +256,7 @@ export async function getMyWeekdaySchedule(): Promise<DataAccessResult<WorkoutWe
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("workout_weekday_schedule")
     .select("*")
@@ -303,7 +304,7 @@ export async function getMyScheduleOverridesForRange(
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("workout_schedule_overrides")
     .select("*")
@@ -330,7 +331,7 @@ export async function createWorkoutTemplate(input: CreateTemplateInput): Promise
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("workout_templates")
     .insert({
@@ -364,7 +365,7 @@ export async function updateWorkoutTemplate(
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("workout_templates")
     .update({
@@ -403,7 +404,7 @@ export async function replaceWorkoutTemplateExercises(
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const remove = await supabase
     .from("workout_template_exercises")
     .delete()
@@ -500,7 +501,7 @@ export async function setWeekdaySchedule(
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const existing = await supabase
     .from("workout_weekday_schedule")
     .select("*")
@@ -571,7 +572,7 @@ export async function setScheduleOverride(
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const existing = await supabase
     .from("workout_schedule_overrides")
     .select("*")
@@ -639,7 +640,7 @@ export async function clearScheduleOverride(planDate: string): Promise<DataAcces
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("workout_schedule_overrides")
     .delete()
@@ -662,7 +663,9 @@ export async function clearScheduleOverride(planDate: string): Promise<DataAcces
 }
 
 export async function getTodayWeekPlannerSeed(): Promise<DataAccessResult<{ startDate: string; endDate: string }>> {
-  const today = getTodayDateString();
+  const profileResult = await getMyProfile();
+  const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
+  const today = getTodayDateString(profileTimeZone);
   const todayDate = new Date(`${today}T00:00:00.000Z`);
   const weekday = todayDate.getUTCDay();
   const distanceFromMonday = (weekday + 6) % 7;

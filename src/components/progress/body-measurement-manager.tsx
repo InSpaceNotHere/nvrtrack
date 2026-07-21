@@ -15,16 +15,13 @@ import {
 
 interface BodyMeasurementManagerProps {
   entries: BodyMeasurementEntryRow[];
+  todayDate: string;
 }
 
 interface CustomMeasurementInput {
   id: string;
   name: string;
   value: string;
-}
-
-function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function formatDate(date: string): string {
@@ -55,10 +52,10 @@ function toSvgPoints(points: MeasurementTrendPoint[]): string {
     .join(" ");
 }
 
-export function BodyMeasurementManager({ entries }: BodyMeasurementManagerProps) {
+export function BodyMeasurementManager({ entries, todayDate }: BodyMeasurementManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [entryDate, setEntryDate] = useState(todayDateString());
+  const [entryDate, setEntryDate] = useState(todayDate);
   const [notes, setNotes] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [custom, setCustom] = useState<CustomMeasurementInput[]>([]);
@@ -259,6 +256,7 @@ export function BodyMeasurementManager({ entries }: BodyMeasurementManagerProps)
                         .map(([field, value]) => `${formatFieldLabel(field)}: ${value}`)
                         .join(" • ")}
                     </p>
+                    {entry.notes ? <p className="mt-1 text-xs text-zinc-400">{entry.notes}</p> : null}
                   </div>
                   <button
                     type="button"

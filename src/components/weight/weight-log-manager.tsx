@@ -9,6 +9,7 @@ import {
   updateWeightEntryAction,
   type WeightActionInput,
 } from "@/app/(protected)/actions/weight-actions";
+import { getTodayDateString } from "@/lib/nutrition/date";
 import type { WeightEntryMetricPoint } from "@/lib/weight/metrics";
 import { formatWeight } from "@/lib/weight/metrics";
 import { roundWeight, type WeightUnit } from "@/lib/weight/conversions";
@@ -17,6 +18,8 @@ interface WeightLogManagerProps {
   entries: WeightEntryMetricPoint[];
   displayUnit: WeightUnit;
   showHistory?: boolean;
+  initialEntryDate?: string;
+  timeZone?: string;
 }
 
 interface FormState {
@@ -26,14 +29,12 @@ interface FormState {
   note: string;
 }
 
-const todayDateString = new Date().toISOString().slice(0, 10);
-
-function toFormState(unit: WeightUnit): FormState {
-  return { weight: "", unit, entryDate: todayDateString, note: "" };
+function toFormState(unit: WeightUnit, entryDate: string): FormState {
+  return { weight: "", unit, entryDate, note: "" };
 }
 
-function formatEntryDate(date: string): string {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(
+function formatEntryDate(date: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone }).format(
     new Date(`${date}T00:00:00.000Z`),
   );
 }
@@ -51,13 +52,20 @@ function formatRowDelta(delta: number | null, unit: WeightUnit): string {
   return `-${roundWeight(Math.abs(delta), 1)} ${unit}`;
 }
 
-export function WeightLogManager({ entries, displayUnit, showHistory = true }: WeightLogManagerProps) {
+export function WeightLogManager({
+  entries,
+  displayUnit,
+  showHistory = true,
+  initialEntryDate,
+  timeZone = "UTC",
+}: WeightLogManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const todayDateString = initialEntryDate ?? getTodayDateString("UTC");
 
   const [isEditorOpen, setIsEditorOpen] = useState(entries.length === 0);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(() => toFormState(displayUnit));
+  const [form, setForm] = useState<FormState>(() => toFormState(displayUnit, todayDateString));
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [duplicatePrompt, setDuplicatePrompt] = useState<WeightActionInput | null>(null);
@@ -74,7 +82,7 @@ export function WeightLogManager({ entries, displayUnit, showHistory = true }: W
   );
 
   function resetForm() {
-    setForm(toFormState(displayUnit));
+    setForm(toFormState(displayUnit, todayDateString));
     setEditingId(null);
     setDuplicatePrompt(null);
   }
@@ -197,7 +205,7 @@ export function WeightLogManager({ entries, displayUnit, showHistory = true }: W
               const next = !value;
               if (next) {
                 setEditingId(null);
-                setForm(toFormState(displayUnit));
+                setForm(toFormState(displayUnit, todayDateString));
               }
               return next;
             })
@@ -327,7 +335,7 @@ export function WeightLogManager({ entries, displayUnit, showHistory = true }: W
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="text-base font-semibold text-white">{formatWeight(entry.weight, displayUnit)}</p>
-                    <p className="text-xs text-zinc-400">{formatEntryDate(entry.entryDate)}</p>
+                    <p className="text-xs text-zinc-400">{formatEntryDate(entry.entryDate, timeZone)}</p>
                     {entry.note ? <p className="mt-1 text-xs text-zinc-500">{entry.note.slice(0, 100)}</p> : null}
                   </div>
                   <div className="text-right">
@@ -346,7 +354,7 @@ export function WeightLogManager({ entries, displayUnit, showHistory = true }: W
                     type="button"
                     onClick={() => startEdit(entry)}
                     className="rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                    aria-label={`Edit weight entry from ${formatEntryDate(entry.entryDate)}`}
+                    aria-label={`Edit weight entry from ${formatEntryDate(entry.entryDate, timeZone)}`}
                   >
                     Edit
                   </button>
@@ -357,7 +365,7 @@ export function WeightLogManager({ entries, displayUnit, showHistory = true }: W
                         onClick={() => handleDelete(entry.id)}
                         disabled={isPending}
                         className="rounded-md border border-rose-400/45 px-2.5 py-1 text-xs font-medium text-rose-200 transition-colors hover:bg-rose-500/15"
-                        aria-label={`Confirm delete weight entry from ${formatEntryDate(entry.entryDate)}`}
+                        aria-label={`Confirm delete weight entry from ${formatEntryDate(entry.entryDate, timeZone)}`}
                       >
                         {isPending ? "Deleting..." : "Confirm Delete"}
                       </button>
@@ -374,7 +382,7 @@ export function WeightLogManager({ entries, displayUnit, showHistory = true }: W
                       type="button"
                       onClick={() => setConfirmDeleteId(entry.id)}
                       className="rounded-md border border-rose-400/35 px-2.5 py-1 text-xs font-medium text-rose-200 transition-colors hover:bg-rose-500/15"
-                      aria-label={`Delete weight entry from ${formatEntryDate(entry.entryDate)}`}
+                      aria-label={`Delete weight entry from ${formatEntryDate(entry.entryDate, timeZone)}`}
                     >
                       Delete
                     </button>

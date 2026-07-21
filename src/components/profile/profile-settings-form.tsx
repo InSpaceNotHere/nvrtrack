@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { saveProfileAction } from "@/app/(protected)/actions/profile-actions";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -19,13 +19,44 @@ interface ProfileSettingsFormProps {
 
 export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps) {
   const [isPending, startTransition] = useTransition();
-  const [values, setValues] = useState<ProfileFormValues>(initialValues);
-  const [savedValues, setSavedValues] = useState<ProfileFormValues>(initialValues);
+  const browserTimeZone = typeof window !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" : "UTC";
+  const hydratedInitialValues: ProfileFormValues = {
+    ...initialValues,
+    timezone: initialValues.timezone || browserTimeZone,
+  };
+  const [values, setValues] = useState<ProfileFormValues>(hydratedInitialValues);
+  const [savedValues, setSavedValues] = useState<ProfileFormValues>(hydratedInitialValues);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"success" | "error">("success");
+  const autoTimezoneSyncAttemptedRef = useRef(false);
 
   const hasUnsavedChanges = useMemo(() => JSON.stringify(values) !== JSON.stringify(savedValues), [savedValues, values]);
+
+  useEffect(() => {
+    if (autoTimezoneSyncAttemptedRef.current) {
+      return;
+    }
+    const currentBrowserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    autoTimezoneSyncAttemptedRef.current = true;
+    if (savedValues.timezone === browserTimeZone) {
+      return;
+    }
+    if (savedValues.timezone && savedValues.timezone !== "UTC") {
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await saveProfileAction({
+        ...savedValues,
+        timezone: currentBrowserTimeZone,
+      });
+      if (result.status === "success") {
+        setValues(result.values);
+        setSavedValues(result.values);
+      }
+    });
+  }, [savedValues, startTransition, browserTimeZone]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) {
@@ -136,6 +167,28 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
             {fieldErrors.preferredWeightUnit ? (
               <p className="text-xs text-rose-300">{fieldErrors.preferredWeightUnit}</p>
             ) : null}
+          </label>
+          <label className="space-y-1.5 text-sm text-zinc-300 sm:col-span-2">
+            <span>Timezone</span>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                name="timezone"
+                value={values.timezone}
+                onChange={(event) => updateField("timezone", event.target.value)}
+                className="app-input"
+                autoComplete="off"
+                placeholder="UTC"
+              />
+              <button
+                type="button"
+                onClick={() => updateField("timezone", Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC")}
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+              >
+                Use Browser Timezone
+              </button>
+            </div>
+            {fieldErrors.timezone ? <p className="text-xs text-rose-300">{fieldErrors.timezone}</p> : null}
           </label>
         </div>
       </Card>

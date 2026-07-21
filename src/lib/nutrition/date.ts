@@ -1,7 +1,9 @@
+import { DEFAULT_TIMEZONE, getDateStringInTimeZone, normalizeTimeZone } from "../timezone";
+
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-export function getTodayDateString(reference = new Date()): string {
-  return reference.toISOString().slice(0, 10);
+export function getTodayDateString(timeZone = DEFAULT_TIMEZONE, reference = new Date()): string {
+  return getDateStringInTimeZone(timeZone, reference);
 }
 
 export function isValidDateString(value: string): boolean {
@@ -15,12 +17,13 @@ export function isValidDateString(value: string): boolean {
 export function normalizeDateParam(
   input: string | string[] | undefined,
   reference = new Date(),
+  timeZone = DEFAULT_TIMEZONE,
 ): { selectedDate: string; wasFallback: boolean } {
   if (typeof input === "string" && isValidDateString(input)) {
     return { selectedDate: input, wasFallback: false };
   }
 
-  return { selectedDate: getTodayDateString(reference), wasFallback: true };
+  return { selectedDate: getTodayDateString(normalizeTimeZone(timeZone), reference), wasFallback: true };
 }
 
 export function addDaysToDateString(date: string, dayDelta: number): string {

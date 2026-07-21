@@ -35,6 +35,7 @@ export async function saveProfileAction(input: ProfileFormInput): Promise<SavePr
     carbohydrateGoal: input.carbohydrateGoal,
     fatGoal: input.fatGoal,
     preferredWeightUnit: input.preferredWeightUnit === "kg" ? "kg" : "lb",
+    timezone: input.timezone,
   };
 
   if (!normalized.data) {

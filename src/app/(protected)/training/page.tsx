@@ -22,6 +22,7 @@ import {
 import { sortWorkoutsForHistory } from "@/lib/training/calculations";
 import { aggregateWorkoutMuscles, buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
 import { buildWeekDates, buildPlannerWeek, findPlannerDayForDate } from "@/lib/training/planner";
+import { getDateStringInTimeZone, normalizeTimeZone } from "@/lib/timezone";
 import {
   buildWorkoutSummaryStats,
   countCompletedWorkoutsThisWeek,
@@ -57,9 +58,12 @@ export default async function TrainingPage() {
     getMyWorkouts(),
     getMyProfile(),
   ]);
+  const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
+  const todayDate = getDateStringInTimeZone(profileTimeZone, new Date());
+  const referenceDate = new Date(`${todayDate}T12:00:00.000Z`);
   const workouts = sortWorkoutsForHistory(workoutsResult.data ?? []);
   const activeWorkout = selectMostRecentActiveWorkout(workouts);
-  const completedThisWeek = countCompletedWorkoutsThisWeek(workouts);
+  const completedThisWeek = countCompletedWorkoutsThisWeek(workouts, referenceDate);
   const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
 
   const recentWorkouts = workouts.slice(0, 5);
@@ -105,7 +109,7 @@ export default async function TrainingPage() {
     })),
   );
   const previewFocusLabel = buildPrimaryFocusLabel(previewWorkoutTargeting);
-  const weekDates = buildWeekDates(new Date());
+  const weekDates = buildWeekDates(referenceDate);
   const weekStart = weekDates[0];
   const weekEnd = weekDates[weekDates.length - 1];
 
@@ -127,10 +131,7 @@ export default async function TrainingPage() {
       .filter((workout) => workout.completed_at !== null)
       .map((workout) => ({ id: workout.id, workout_date: workout.workout_date, name: workout.name })),
   });
-  const todayPlan = findPlannerDayForDate(
-    plannerWeek,
-    new Date().toISOString().slice(0, 10),
-  );
+  const todayPlan = findPlannerDayForDate(plannerWeek, todayDate);
   const plannerExerciseOptions = [
     ...(catalogResult.data ?? []).map((exercise) => ({
       id: `catalog:${exercise.id}`,

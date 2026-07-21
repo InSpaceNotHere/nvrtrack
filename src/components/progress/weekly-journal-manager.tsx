@@ -3,19 +3,12 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { upsertWeeklyJournalAction } from "@/app/(protected)/actions/progress-actions";
+import { deleteWeeklyJournalAction, upsertWeeklyJournalAction } from "@/app/(protected)/actions/progress-actions";
 import type { WeeklyJournalEntryRow } from "@/lib/data/weekly-journal";
 
 interface WeeklyJournalManagerProps {
   entries: WeeklyJournalEntryRow[];
-}
-
-function getWeekStartMonday(date = new Date()): string {
-  const normalized = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const weekday = normalized.getUTCDay();
-  const distance = (weekday + 6) % 7;
-  normalized.setUTCDate(normalized.getUTCDate() - distance);
-  return normalized.toISOString().slice(0, 10);
+  initialWeekStart: string;
 }
 
 function formatDate(date: string): string {
@@ -24,10 +17,10 @@ function formatDate(date: string): string {
   );
 }
 
-export function WeeklyJournalManager({ entries }: WeeklyJournalManagerProps) {
+export function WeeklyJournalManager({ entries, initialWeekStart }: WeeklyJournalManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [weekStart, setWeekStart] = useState(getWeekStartMonday());
+  const [weekStart, setWeekStart] = useState(initialWeekStart);
   const [notes, setNotes] = useState("");
   const [mood, setMood] = useState("");
   const [recovery, setRecovery] = useState("5");
@@ -57,6 +50,16 @@ export function WeeklyJournalManager({ entries }: WeeklyJournalManagerProps) {
         energy: Number(energy),
         sleepHours: Number(sleepHours),
       });
+      setFeedback(result.message, result.status === "success" ? "success" : "error");
+      if (result.status === "success") {
+        router.refresh();
+      }
+    });
+  }
+
+  function handleDelete(entryId: string) {
+    startTransition(async () => {
+      const result = await deleteWeeklyJournalAction(entryId);
       setFeedback(result.message, result.status === "success" ? "success" : "error");
       if (result.status === "success") {
         router.refresh();
@@ -121,12 +124,23 @@ export function WeeklyJournalManager({ entries }: WeeklyJournalManagerProps) {
           <ul className="space-y-2">
             {entriesDescending.map((entry) => (
               <li key={entry.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                <p className="text-sm font-semibold text-zinc-100">Week of {formatDate(entry.week_start)}</p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Mood: {entry.mood ?? "n/a"} • Recovery: {entry.recovery ?? "n/a"} • Energy: {entry.energy ?? "n/a"} • Sleep:{" "}
-                  {entry.sleep_hours ?? "n/a"}h
-                </p>
-                {entry.notes ? <p className="mt-1.5 text-xs text-zinc-300">{entry.notes}</p> : null}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-100">Week of {formatDate(entry.week_start)}</p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      Mood: {entry.mood ?? "n/a"} • Recovery: {entry.recovery ?? "n/a"} • Energy: {entry.energy ?? "n/a"} • Sleep:{" "}
+                      {entry.sleep_hours ?? "n/a"}h
+                    </p>
+                    {entry.notes ? <p className="mt-1.5 text-xs text-zinc-300">{entry.notes}</p> : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(entry.id)}
+                    className="rounded-md border border-rose-400/35 px-2 py-1 text-[11px] text-rose-200 transition-colors hover:bg-rose-500/15"
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

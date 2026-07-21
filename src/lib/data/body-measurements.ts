@@ -1,6 +1,5 @@
 import { getAuthenticatedContext } from "./auth-context";
 import { fail, ok, type DataAccessResult } from "./result";
-import { asLooseSupabaseClient } from "./untyped-supabase";
 
 export interface BodyMeasurementEntryRow {
   id: string;
@@ -36,7 +35,7 @@ export async function getMyBodyMeasurementEntries(): Promise<DataAccessResult<Bo
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("body_measurement_entries")
     .select("*")
@@ -60,7 +59,7 @@ export async function upsertMyBodyMeasurementEntry(
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const existing = await supabase
     .from("body_measurement_entries")
     .select("*")
@@ -124,7 +123,7 @@ export async function deleteMyBodyMeasurementEntry(entryId: string): Promise<Dat
   if (auth.error) {
     return auth;
   }
-  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const supabase = auth.data.supabase;
   const { data, error } = await supabase
     .from("body_measurement_entries")
     .delete()

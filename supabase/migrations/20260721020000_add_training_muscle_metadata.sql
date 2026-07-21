@@ -68,11 +68,7 @@ begin
     alter table public.exercise_catalog
       add constraint exercise_catalog_muscle_arrays_no_overlap
       check (
-        not exists (
-          select 1
-          from unnest(primary_muscles) as muscle
-          where muscle = any(secondary_muscles)
-        )
+        not (primary_muscles && secondary_muscles)
       );
   end if;
 end
@@ -89,15 +85,11 @@ begin
     alter table public.exercise_catalog
       add constraint exercise_catalog_muscles_supported_values
       check (
-        not exists (
-          select 1
-          from unnest(primary_muscles || secondary_muscles) as muscle
-          where muscle not in (
-            'chest', 'front_delts', 'side_delts', 'rear_delts', 'triceps', 'biceps', 'forearms',
-            'lats', 'upper_back', 'traps', 'lower_back', 'abs', 'obliques', 'glutes',
-            'quads', 'hamstrings', 'adductors', 'calves', 'hip_flexors'
-          )
-        )
+        (primary_muscles || secondary_muscles) <@ array[
+          'chest', 'front_delts', 'side_delts', 'rear_delts', 'triceps', 'biceps', 'forearms',
+          'lats', 'upper_back', 'traps', 'lower_back', 'abs', 'obliques', 'glutes',
+          'quads', 'hamstrings', 'adductors', 'calves', 'hip_flexors'
+        ]::text[]
       );
   end if;
 end
@@ -114,11 +106,7 @@ begin
     alter table public.exercises
       add constraint exercises_muscle_arrays_no_overlap
       check (
-        not exists (
-          select 1
-          from unnest(primary_muscles) as muscle
-          where muscle = any(secondary_muscles)
-        )
+        not (primary_muscles && secondary_muscles)
       );
   end if;
 end
@@ -135,15 +123,11 @@ begin
     alter table public.exercises
       add constraint exercises_muscles_supported_values
       check (
-        not exists (
-          select 1
-          from unnest(primary_muscles || secondary_muscles) as muscle
-          where muscle not in (
-            'chest', 'front_delts', 'side_delts', 'rear_delts', 'triceps', 'biceps', 'forearms',
-            'lats', 'upper_back', 'traps', 'lower_back', 'abs', 'obliques', 'glutes',
-            'quads', 'hamstrings', 'adductors', 'calves', 'hip_flexors'
-          )
-        )
+        (primary_muscles || secondary_muscles) <@ array[
+          'chest', 'front_delts', 'side_delts', 'rear_delts', 'triceps', 'biceps', 'forearms',
+          'lats', 'upper_back', 'traps', 'lower_back', 'abs', 'obliques', 'glutes',
+          'quads', 'hamstrings', 'adductors', 'calves', 'hip_flexors'
+        ]::text[]
       );
   end if;
 end
@@ -160,11 +144,7 @@ begin
     alter table public.workout_exercises
       add constraint workout_exercises_source_muscle_arrays_no_overlap
       check (
-        not exists (
-          select 1
-          from unnest(source_primary_muscles) as muscle
-          where muscle = any(source_secondary_muscles)
-        )
+        not (source_primary_muscles && source_secondary_muscles)
       );
   end if;
 end
@@ -181,15 +161,11 @@ begin
     alter table public.workout_exercises
       add constraint workout_exercises_source_muscles_supported_values
       check (
-        not exists (
-          select 1
-          from unnest(source_primary_muscles || source_secondary_muscles) as muscle
-          where muscle not in (
-            'chest', 'front_delts', 'side_delts', 'rear_delts', 'triceps', 'biceps', 'forearms',
-            'lats', 'upper_back', 'traps', 'lower_back', 'abs', 'obliques', 'glutes',
-            'quads', 'hamstrings', 'adductors', 'calves', 'hip_flexors'
-          )
-        )
+        (source_primary_muscles || source_secondary_muscles) <@ array[
+          'chest', 'front_delts', 'side_delts', 'rear_delts', 'triceps', 'biceps', 'forearms',
+          'lats', 'upper_back', 'traps', 'lower_back', 'abs', 'obliques', 'glutes',
+          'quads', 'hamstrings', 'adductors', 'calves', 'hip_flexors'
+        ]::text[]
       );
   end if;
 end

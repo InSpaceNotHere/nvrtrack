@@ -24,6 +24,7 @@ import {
 import { getWeightEntries } from "@/lib/data/weight";
 import { calculateDailyTotals } from "@/lib/nutrition/calculations";
 import { getTodayDateString } from "@/lib/nutrition/date";
+import { normalizeTimeZone } from "@/lib/timezone";
 import { buildPlannerWeek, buildWeekDates, findPlannerDayForDate } from "@/lib/training/planner";
 import { buildWorkoutSummaryStats, groupSetsByWorkoutExerciseId, selectMostRecentActiveWorkout } from "@/lib/training/session";
 import { computeWorkoutDayStreak, computeWorkoutWeeklyStreak } from "@/lib/training/streaks";
@@ -40,9 +41,11 @@ function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightU
 
 export default async function HomePage() {
   await initializePlannerDefaultsIfNeeded();
-  const todayDate = getTodayDateString();
-  const [profileResult, weightEntriesResult, nutritionEntriesResult, recentFoodEntriesResult, workoutsResult] = await Promise.all([
-    getMyProfile(),
+  const profileResult = await getMyProfile();
+  const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
+  const todayDate = getTodayDateString(profileTimeZone);
+  const referenceDate = new Date(`${todayDate}T12:00:00.000Z`);
+  const [weightEntriesResult, nutritionEntriesResult, recentFoodEntriesResult, workoutsResult] = await Promise.all([
     getWeightEntries(),
     getMyFoodEntriesForDate(todayDate),
     getMyRecentFoodEntries(6),
@@ -56,7 +59,7 @@ export default async function HomePage() {
 
   const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
   const weightEntries = weightEntriesResult.data ?? [];
-  const weightMetrics = computeWeightMetrics(weightEntries, displayUnit);
+  const weightMetrics = computeWeightMetrics(weightEntries, displayUnit, referenceDate);
   const displayName = profileResult.data?.display_name?.trim() || null;
   const nutritionTotals = calculateDailyTotals(nutritionEntriesResult.data ?? []);
 
@@ -100,9 +103,10 @@ export default async function HomePage() {
     exercises: allWorkoutExercisesResult.data ?? [],
     setsByExerciseId: groupSetsByWorkoutExerciseId(allWorkoutSetsResult.data ?? []),
     displayUnit: displayUnit as TrainingWeightUnit,
+    referenceDate,
   });
 
-  const weekDates = buildWeekDates(new Date());
+  const weekDates = buildWeekDates(referenceDate);
   const [templatesResult, templateExercisesResult, weekdayScheduleResult, scheduleOverridesResult] = await Promise.all([
     getMyWorkoutTemplates(),
     getMyWorkoutTemplateExercises(),
@@ -323,7 +327,13 @@ export default async function HomePage() {
       </section>
 
       <Card title="Quick Weight Entry" subtitle="Live body-weight logging">
-        <WeightLogManager entries={weightMetrics.historyNewestFirst} displayUnit={displayUnit} showHistory={false} />
+        <WeightLogManager
+          entries={weightMetrics.historyNewestFirst}
+          displayUnit={displayUnit}
+          showHistory={false}
+          initialEntryDate={todayDate}
+          timeZone={profileTimeZone}
+        />
       </Card>
 
       <section className="grid gap-3 md:grid-cols-2">

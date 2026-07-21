@@ -11,6 +11,7 @@ export interface UpdateMyProfileInput {
   carbohydrate_goal?: number | null;
   fat_goal?: number | null;
   preferred_weight_unit?: "lb" | "kg";
+  timezone?: string;
 }
 
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
@@ -51,6 +52,7 @@ export async function updateMyProfile(input: UpdateMyProfileInput): Promise<Data
     carbohydrate_goal: input.carbohydrate_goal,
     fat_goal: input.fat_goal,
     preferred_weight_unit: input.preferred_weight_unit,
+    timezone: input.timezone,
   };
 
   const { data, error } = await supabase
