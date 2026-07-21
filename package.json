@@ -1,0 +1,42 @@
+{
+  "name": "nvrtrack",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "usda:discover": "tsx scripts/usda/discover-candidates.ts",
+    "usda:fetch-reviewed": "tsx scripts/usda/fetch-reviewed-foods.ts",
+    "usda:generate-reviewed": "tsx scripts/usda/generate-food-catalog-seed.ts",
+    "usda:verify-reviewed": "tsx scripts/usda/verify-pilot.ts",
+    "usda:fetch-pilot": "npm run usda:fetch-reviewed",
+    "usda:generate-pilot": "npm run usda:generate-reviewed",
+    "usda:verify-pilot": "npm run usda:verify-reviewed"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.7",
+    "lucide-react": "^1.25.0",
+    "next": "16.2.10",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.1",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  }
+}
