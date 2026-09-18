@@ -15,6 +15,9 @@ const LIVE_USDA_DEFAULT_LIMIT = 12;
 const LIVE_USDA_MAX_LIMIT = 20;
 const LIVE_USDA_SEARCH_CACHE_TTL_MS = 60_000;
 const LIVE_USDA_DETAIL_CACHE_TTL_MS = 10 * 60_000;
+// Process-local bounds sized for single-user development to prevent unbounded memory growth.
+export const LIVE_USDA_SEARCH_CACHE_MAX_ENTRIES = 32;
+export const LIVE_USDA_DETAIL_CACHE_MAX_ENTRIES = 128;
 const MAX_QUERY_TERMS = 6;
 
 const GENERIC_TYPE_PRIORITY = ["foundation", "survey", "legacy"] as const;
@@ -431,15 +434,25 @@ function mapUsdaClientError(error: unknown): LiveUsdaError {
   return new LiveUsdaError("service_unavailable", "USDA request could not be completed at this time.", 503);
 }
 
+function pruneExpiredCacheEntries<K extends string | number, T>(cache: Map<K, CacheRecord<T>>, now: number): void {
+  for (const [entryKey, entry] of cache.entries()) {
+    if (entry.expiresAt <= now) {
+      cache.delete(entryKey);
+    }
+  }
+}
+
 function getCachedValue<K extends string | number, T>(cache: Map<K, CacheRecord<T>>, key: K): T | null {
+  const now = Date.now();
+  pruneExpiredCacheEntries(cache, now);
   const record = cache.get(key);
   if (!record) {
     return null;
   }
-  if (record.expiresAt <= Date.now()) {
-    cache.delete(key);
-    return null;
-  }
+
+  // Refresh recency for deterministic LRU ordering while preserving original TTL expiry.
+  cache.delete(key);
+  cache.set(key, record);
   return record.value;
 }
 
@@ -448,11 +461,23 @@ function setCachedValue<K extends string | number, T>(
   key: K,
   value: T,
   ttlMs: number,
+  maxEntries: number,
 ): void {
+  const now = Date.now();
+  pruneExpiredCacheEntries(cache, now);
+  cache.delete(key);
   cache.set(key, {
     value,
-    expiresAt: Date.now() + ttlMs,
+    expiresAt: now + ttlMs,
   });
+
+  while (cache.size > maxEntries) {
+    const oldestEntry = cache.keys().next();
+    if (oldestEntry.done) {
+      break;
+    }
+    cache.delete(oldestEntry.value);
+  }
 }
 
 function createPortionId(portion: { id: number | null; quantity: number; unit: string; gramWeight: number }): string {
@@ -619,7 +644,7 @@ export async function searchLiveUsdaFoods(input: SearchLiveUsdaFoodsInput): Prom
       truncated: deduped.length > limit,
     };
 
-    setCachedValue(searchCache, cacheKey, payload, LIVE_USDA_SEARCH_CACHE_TTL_MS);
+    setCachedValue(searchCache, cacheKey, payload, LIVE_USDA_SEARCH_CACHE_TTL_MS, LIVE_USDA_SEARCH_CACHE_MAX_ENTRIES);
     return payload;
   } catch (error) {
     throw mapUsdaClientError(error);
@@ -642,7 +667,7 @@ export async function resolveLiveUsdaFoodDetail(
       ? await getFixtureUsdaFoodDetail(fdcId)
       : await getUsdaFoodDetail(fdcId);
     const preview = buildDetailPreview(detail);
-    setCachedValue(detailCache, fdcId, preview, LIVE_USDA_DETAIL_CACHE_TTL_MS);
+    setCachedValue(detailCache, fdcId, preview, LIVE_USDA_DETAIL_CACHE_TTL_MS, LIVE_USDA_DETAIL_CACHE_MAX_ENTRIES);
     return preview;
   } catch (error) {
     throw mapUsdaClientError(error);
@@ -685,4 +710,11 @@ export function resolveSourceServingFromPortionSelection(input: {
 export function clearLiveUsdaCachesForTests(): void {
   searchCache.clear();
   detailCache.clear();
+}
+
+export function getLiveUsdaCacheStatsForTests(): { searchSize: number; detailSize: number } {
+  return {
+    searchSize: searchCache.size,
+    detailSize: detailCache.size,
+  };
 }
