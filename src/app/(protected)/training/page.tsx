@@ -12,7 +12,6 @@ import {
   getMyWeekdaySchedule,
   getMyWorkoutTemplateExercises,
   getMyWorkoutTemplates,
-  initializePlannerDefaultsIfNeeded,
 } from "@/lib/data/workout-planner";
 import {
   getMyWorkoutExercisesForWorkoutIds,
@@ -53,7 +52,6 @@ function titleCase(value: string): string {
 }
 
 export default async function TrainingPage() {
-  await initializePlannerDefaultsIfNeeded();
   const [workoutsResult, profileResult] = await Promise.all([
     getMyWorkouts(),
     getMyProfile(),

@@ -13,7 +13,6 @@ import {
   getMyWeekdaySchedule,
   getMyWorkoutTemplateExercises,
   getMyWorkoutTemplates,
-  initializePlannerDefaultsIfNeeded,
 } from "@/lib/data/workout-planner";
 import {
   getMyWorkoutExercises,
@@ -40,7 +39,6 @@ function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightU
 }
 
 export default async function HomePage() {
-  await initializePlannerDefaultsIfNeeded();
   const profileResult = await getMyProfile();
   const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
   const todayDate = getTodayDateString(profileTimeZone);

@@ -8,6 +8,7 @@ import {
   clearScheduleOverrideAction,
   createWorkoutTemplateAction,
   duplicateWorkoutTemplateAction,
+  initializePlannerDefaultsAction,
   moveScheduledWorkoutAction,
   quickStartWorkoutFromTemplateAction,
   skipScheduledWorkoutAction,
@@ -91,6 +92,7 @@ export function WorkoutPlanner({
     return map;
   }, [templateExercises]);
   const scheduledByWeekday = useMemo(() => new Map(weekPlans.map((plan) => [plan.weekday, plan])), [weekPlans]);
+  const isPlannerUninitialized = templates.length === 0 && weekPlans.every((plan) => plan.status === "none");
 
   function setFeedback(nextMessage: string, tone: "success" | "error" = "success") {
     setMessage(nextMessage);
@@ -180,6 +182,16 @@ export function WorkoutPlanner({
     });
   }
 
+  function handleInitializePlanner() {
+    startTransition(async () => {
+      const result = await initializePlannerDefaultsAction();
+      setFeedback(result.message, result.status === "success" ? "success" : "error");
+      if (result.status === "success") {
+        router.refresh();
+      }
+    });
+  }
+
   function handleSkip(planDate: string) {
     startTransition(async () => {
       const result = await skipScheduledWorkoutAction(planDate);
@@ -242,7 +254,19 @@ export function WorkoutPlanner({
                 </button>
               </>
             ) : (
-              <p className="text-xs text-zinc-500">No workout template assigned for today.</p>
+              <div className="space-y-2">
+                <p className="text-xs text-zinc-500">No workout template assigned for today.</p>
+                {isPlannerUninitialized ? (
+                  <button
+                    type="button"
+                    onClick={handleInitializePlanner}
+                    disabled={isPending}
+                    className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10 disabled:opacity-60"
+                  >
+                    {isPending ? "Setting up..." : "Create Starter Schedule"}
+                  </button>
+                ) : null}
+              </div>
             )}
           </div>
         ) : (

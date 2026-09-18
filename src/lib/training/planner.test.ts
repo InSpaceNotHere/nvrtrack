@@ -98,4 +98,77 @@ describe("training planner week builder", () => {
     expect(findPlannerDayForDate(week, "2026-07-22")?.status).toBe("moved");
     expect(findPlannerDayForDate(week, "2026-07-23")?.status).toBe("rest");
   });
+
+  it("keeps skip and reschedule semantics while completed workouts satisfy scheduled days", () => {
+    const week = buildPlannerWeek({
+      referenceDate: new Date("2026-07-22T00:00:00.000Z"),
+      templates: [
+        {
+          id: "template-lower",
+          name: "Lower",
+          template_type: "lower",
+          estimated_duration_minutes: 65,
+        },
+      ],
+      templateExercises: [
+        {
+          id: "exercise-1",
+          template_id: "template-lower",
+          exercise_id: null,
+          catalog_exercise_id: null,
+          exercise_name: "Back Squat",
+          position: 0,
+          primary_muscles: ["quads"],
+          secondary_muscles: ["glutes"],
+        },
+      ],
+      weekdayScheduleRows: [
+        {
+          id: "weekday-2",
+          weekday: 2,
+          template_id: "template-lower",
+          is_rest_day: false,
+        },
+        {
+          id: "weekday-4",
+          weekday: 4,
+          template_id: "template-lower",
+          is_rest_day: false,
+        },
+      ],
+      scheduleOverrideRows: [
+        {
+          id: "override-skip",
+          plan_date: "2026-07-21",
+          template_id: "template-lower",
+          status: "skipped",
+          is_rest_day: false,
+          moved_to_date: null,
+          moved_from_date: null,
+          workout_id: null,
+        },
+        {
+          id: "override-move",
+          plan_date: "2026-07-23",
+          template_id: "template-lower",
+          status: "moved",
+          is_rest_day: false,
+          moved_to_date: "2026-07-24",
+          moved_from_date: null,
+          workout_id: null,
+        },
+      ],
+      completedWorkouts: [
+        {
+          id: "workout-complete",
+          workout_date: "2026-07-24",
+          name: "Lower",
+        },
+      ],
+    });
+
+    expect(findPlannerDayForDate(week, "2026-07-21")?.status).toBe("skipped");
+    expect(findPlannerDayForDate(week, "2026-07-23")?.status).toBe("moved");
+    expect(findPlannerDayForDate(week, "2026-07-24")?.status).toBe("completed");
+  });
 });

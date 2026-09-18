@@ -6,6 +6,7 @@ import {
   clearScheduleOverride,
   createWorkoutTemplate,
   duplicateWorkoutTemplate,
+  initializePlannerDefaults,
   replaceWorkoutTemplateExercises,
   setScheduleOverride,
   setWeekdaySchedule,
@@ -82,6 +83,29 @@ export async function createWorkoutTemplateAction(input: {
   return {
     status: "success",
     message: "Workout template created.",
+  };
+}
+
+export async function initializePlannerDefaultsAction(): Promise<PlannerActionResult> {
+  const result = await initializePlannerDefaults();
+  if (result.error) {
+    return {
+      status: "error",
+      message: result.error.message,
+    };
+  }
+
+  revalidatePlannerViews();
+  if (!result.data.created) {
+    return {
+      status: "success",
+      message: "Planner already configured. No starter schedule was applied.",
+    };
+  }
+
+  return {
+    status: "success",
+    message: "Starter planner schedule created.",
   };
 }
 

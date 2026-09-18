@@ -2,8 +2,8 @@ import { getExerciseCatalog } from "./exercise-catalog";
 import { getAuthenticatedContext } from "./auth-context";
 import { getMyProfile } from "./profile";
 import { fail, ok, type DataAccessResult } from "./result";
-import { getTodayDateString } from "@/lib/nutrition/date";
-import { normalizeTimeZone } from "@/lib/timezone";
+import { getTodayDateString } from "../nutrition/date";
+import { normalizeTimeZone } from "../timezone";
 
 export type WorkoutTemplateType = "push" | "pull" | "legs" | "upper" | "lower" | "custom";
 export type WorkoutScheduleStatus = "scheduled" | "completed" | "skipped" | "moved";
@@ -91,6 +91,11 @@ interface SetScheduleOverrideInput {
   notes?: string | null;
 }
 
+export interface PlannerSetupResult {
+  created: boolean;
+  skippedReason: "already_configured" | null;
+}
+
 function asRows<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
@@ -119,13 +124,49 @@ function defaultWeekdayRows(userId: string): Array<Pick<WorkoutWeekdayScheduleRo
   }));
 }
 
-async function ensureDefaultTemplates(): Promise<DataAccessResult<void>> {
-  const existing = await getMyWorkoutTemplates();
-  if (existing.error) {
-    return existing;
+async function ensureDefaultTemplates(): Promise<DataAccessResult<PlannerSetupResult>> {
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
   }
-  if (existing.data.length > 0) {
-    return ok(undefined);
+  const supabase = auth.data.supabase;
+  const userId = auth.data.user.id;
+
+  const [existingTemplatesResult, existingScheduleResult] = await Promise.all([
+    supabase
+      .from("workout_templates")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_archived", false)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("workout_weekday_schedule")
+      .select("*")
+      .eq("user_id", userId)
+      .order("weekday", { ascending: true }),
+  ]);
+  if (existingTemplatesResult.error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to load existing workout templates.",
+      cause: existingTemplatesResult.error.message,
+    });
+  }
+  if (existingScheduleResult.error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to load existing weekday schedule.",
+      cause: existingScheduleResult.error.message,
+    });
+  }
+
+  const existingTemplates = asRows<WorkoutTemplateRow>(existingTemplatesResult.data);
+  const existingSchedule = asRows<WorkoutWeekdayScheduleRow>(existingScheduleResult.data);
+  if (existingTemplates.length > 0 || existingSchedule.length > 0) {
+    return ok({
+      created: false,
+      skippedReason: "already_configured",
+    });
   }
 
   const defaults: CreateTemplateInput[] = [
@@ -136,20 +177,47 @@ async function ensureDefaultTemplates(): Promise<DataAccessResult<void>> {
     { name: "Lower", template_type: "lower", estimated_duration_minutes: 65 },
   ];
 
-  const createdTemplates: WorkoutTemplateRow[] = [];
   for (const template of defaults) {
-    const createResult = await createWorkoutTemplate(template);
-    if (createResult.error) {
-      return createResult;
+    const insertResult = await supabase
+      .from("workout_templates")
+      .insert({
+        user_id: userId,
+        name: normalizeTemplateName(template.name),
+        template_type: template.template_type,
+        estimated_duration_minutes: template.estimated_duration_minutes ?? null,
+        notes: template.notes?.trim() || null,
+        is_archived: false,
+      })
+      .select("*")
+      .maybeSingle();
+    if (insertResult.error) {
+      return fail({
+        code: "DB_ERROR",
+        message: "Failed to create starter workout templates.",
+        cause: insertResult.error.message,
+      });
     }
-    createdTemplates.push(createResult.data);
   }
 
-  const catalogResult = await getExerciseCatalog({ limit: 600 });
-  if (catalogResult.error) {
-    return ok(undefined);
+  const createdTemplatesResult = await supabase
+    .from("workout_templates")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("is_archived", false)
+    .order("created_at", { ascending: true });
+  if (createdTemplatesResult.error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to reload starter workout templates.",
+      cause: createdTemplatesResult.error.message,
+    });
   }
-  const catalogByName = new Map(catalogResult.data.map((exercise) => [exercise.name.toLowerCase(), exercise]));
+  const createdTemplates = asRows<WorkoutTemplateRow>(createdTemplatesResult.data);
+
+  const catalogResult = await getExerciseCatalog({ limit: 600 });
+  const catalogByName = new Map(
+    (catalogResult.error ? [] : catalogResult.data).map((exercise) => [exercise.name.toLowerCase(), exercise]),
+  );
 
   const defaultTemplateExerciseNames: Record<string, string[]> = {
     push: ["Barbell Bench Press", "Incline Dumbbell Bench Press", "Overhead Press", "Triceps Pushdown"],
@@ -179,27 +247,42 @@ async function ensureDefaultTemplates(): Promise<DataAccessResult<void>> {
     await replaceWorkoutTemplateExercises(template.id, exercises);
   }
 
-  const schedule = await getMyWeekdaySchedule();
-  if (schedule.error || schedule.data.length > 0) {
-    return ok(undefined);
-  }
-
   const orderedDefaults = ["push", "pull", "legs", "upper", "lower"] as const;
+  const defaultTemplateByWeekday = new Map<number, string | null>([
+    [0, null],
+    [1, null],
+    [2, null],
+    [3, null],
+    [4, null],
+    [5, null],
+    [6, null],
+  ]);
   for (let weekday = 1; weekday <= 5; weekday += 1) {
     const templateType = orderedDefaults[weekday - 1];
     const template = createdTemplates.find((item) => item.template_type === templateType) ?? null;
-    if (!template) {
-      continue;
-    }
-    await setWeekdaySchedule(weekday, {
-      template_id: template.id,
-      is_rest_day: false,
+    defaultTemplateByWeekday.set(weekday, template?.id ?? null);
+  }
+  const scheduleRows = defaultWeekdayRows(userId).map((row) => ({
+    ...row,
+    template_id: defaultTemplateByWeekday.get(row.weekday) ?? null,
+    is_rest_day: row.weekday === 0 || row.weekday === 6,
+  }));
+  const scheduleUpsert = await supabase
+    .from("workout_weekday_schedule")
+    .upsert(scheduleRows, { onConflict: "user_id,weekday" })
+    .select("id");
+  if (scheduleUpsert.error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to initialize starter weekday schedule.",
+      cause: scheduleUpsert.error.message,
     });
   }
-  await setWeekdaySchedule(0, { template_id: null, is_rest_day: true });
-  await setWeekdaySchedule(6, { template_id: null, is_rest_day: true });
 
-  return ok(undefined);
+  return ok({
+    created: true,
+    skippedReason: null,
+  });
 }
 
 export async function getMyWorkoutTemplates(): Promise<DataAccessResult<WorkoutTemplateRow[]>> {
@@ -271,22 +354,7 @@ export async function getMyWeekdaySchedule(): Promise<DataAccessResult<WorkoutWe
     });
   }
 
-  let rows = asRows<WorkoutWeekdayScheduleRow>(data);
-  if (rows.length === 0) {
-    const seed = await supabase
-      .from("workout_weekday_schedule")
-      .insert(defaultWeekdayRows(auth.data.user.id))
-      .select("*");
-    if (seed.error) {
-      return fail({
-        code: "DB_ERROR",
-        message: "Failed to initialize weekday schedule.",
-        cause: seed.error.message,
-      });
-    }
-    rows = asRows<WorkoutWeekdayScheduleRow>(seed.data).sort((left, right) => left.weekday - right.weekday);
-  }
-
+  const rows = asRows<WorkoutWeekdayScheduleRow>(data);
   return ok(rows);
 }
 
@@ -680,9 +748,10 @@ export async function getTodayWeekPlannerSeed(): Promise<DataAccessResult<{ star
 }
 
 export async function initializePlannerDefaultsIfNeeded(): Promise<DataAccessResult<void>> {
-  const auth = await getAuthenticatedContext();
-  if (auth.error) {
-    return auth;
-  }
+  // Read paths must remain side-effect free; this no-op is preserved only for backward compatibility.
+  return ok(undefined);
+}
+
+export async function initializePlannerDefaults(): Promise<DataAccessResult<PlannerSetupResult>> {
   return ensureDefaultTemplates();
 }
