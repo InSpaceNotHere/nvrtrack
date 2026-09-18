@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -40,6 +41,8 @@ interface WorkoutPlannerProps {
   weekPlans: PlannerDayPlan[];
   todayPlan: PlannerDayPlan | null;
   exerciseOptions: ExerciseOption[];
+  activeWorkout: { id: string; name: string; workout_date: string } | null;
+  completedThisWeek: number;
 }
 
 const WEEKDAYS: Array<{ value: PlannerDayPlan["weekday"]; label: string }> = [
@@ -88,6 +91,8 @@ export function WorkoutPlanner({
   weekPlans,
   todayPlan,
   exerciseOptions,
+  activeWorkout,
+  completedThisWeek,
 }: WorkoutPlannerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -277,6 +282,26 @@ export function WorkoutPlanner({
   return (
     <div className="space-y-3.5">
       <Card title="Workout Planner" variant="primary">
+        {activeWorkout ? (
+          <div className="mb-3 rounded-xl border border-[#87a3ff]/35 bg-[#87a3ff]/10 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-zinc-100">Workout in progress</p>
+                <p className="text-xs text-zinc-400">{activeWorkout.name}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <StateChip state="active" />
+                <Link
+                  href={`/training/workouts/${activeWorkout.id}`}
+                  className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
+                >
+                  Resume Workout
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {todayPlan ? (
           <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
             <p className="text-sm font-semibold text-zinc-100">Today&apos;s Workout</p>
@@ -308,17 +333,27 @@ export function WorkoutPlanner({
         ) : (
           <p className="text-sm text-zinc-500">Planner preview unavailable.</p>
         )}
+      </Card>
 
-        <div className="mt-3 grid gap-2 md:grid-cols-2">
+      <Card title="This Week" subtitle="Schedule and completion status" variant="secondary">
+        <div className="mb-3 flex items-end justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+          <div>
+            <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Completed</p>
+            <p className="text-xl font-semibold leading-none text-white">{completedThisWeek}</p>
+          </div>
+          <p className="text-xs text-zinc-500">Mon–Sun week view</p>
+        </div>
+
+        <div className="mb-3 grid gap-1.5 sm:grid-cols-2">
           {WEEKDAYS.map((weekday) => {
             const dayPlan = scheduledByWeekday.get(weekday.value) ?? null;
             return (
-              <label key={weekday.value} className="space-y-1.5 text-xs text-zinc-400">
+              <label key={weekday.value} className="space-y-1 text-xs text-zinc-400">
                 <span>{weekday.label}</span>
                 <Select
                   value={dayPlan?.status === "rest" ? "__rest__" : dayPlan?.template_id ?? ""}
                   onChange={(event) => handleWeekdayAssignment(weekday.value, event.target.value)}
-                  className="app-input h-9 text-sm"
+                  className="app-input h-8 text-xs"
                 >
                   <option value="">Unassigned</option>
                   <option value="__rest__">Rest Day</option>
@@ -332,20 +367,19 @@ export function WorkoutPlanner({
             );
           })}
         </div>
-      </Card>
 
-      <Card title="Weekly Schedule" variant="secondary">
-        <ul className="space-y-2">
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-[0.08em] text-zinc-300">Weekly Schedule</h3>
+        <ul className="space-y-1.5">
           {weekPlans.map((plan) => (
-            <li key={plan.date} className="rounded-xl border border-white/10 bg-black/20 p-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-zinc-100">
+            <li key={plan.date} className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-zinc-100">
                     {plan.weekday_label} • {plan.date}
                   </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <StateChip state={toPlannerState(plan.status)} label={formatStatus(plan.status)} />
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-[11px] text-zinc-500">
                       {plan.template_name ?? "No template"} • {plan.exercise_count} exercises
                     </p>
                   </div>
@@ -353,21 +387,21 @@ export function WorkoutPlanner({
                 <div className="flex flex-wrap gap-1.5">
                   {plan.status === "scheduled" ? (
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <Button type="button" onClick={() => handleSkip(plan.date)} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[11px]">
+                      <Button type="button" onClick={() => handleSkip(plan.date)} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[10px]">
                         Skip
                       </Button>
                       <DatePicker
                         value={moveTargets[plan.date] ?? ""}
                         onChange={(event) => setMoveTargets((state) => ({ ...state, [plan.date]: event.target.value }))}
-                        className="h-7 px-2 text-[11px]"
+                        className="h-7 px-2 text-[10px]"
                       />
-                      <Button type="button" onClick={() => handleMove(plan.date, plan.template_id, moveTargets[plan.date] ?? "")} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[11px]">
+                      <Button type="button" onClick={() => handleMove(plan.date, plan.template_id, moveTargets[plan.date] ?? "")} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[10px]">
                         Move
                       </Button>
                     </div>
                   ) : null}
                   {(plan.status === "skipped" || plan.status === "moved") ? (
-                    <Button type="button" onClick={() => handleClearOverride(plan.date)} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[11px]">
+                    <Button type="button" onClick={() => handleClearOverride(plan.date)} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[10px]">
                       Reset
                     </Button>
                   ) : null}
@@ -378,32 +412,35 @@ export function WorkoutPlanner({
         </ul>
       </Card>
 
-      <Card title="Template Library" variant="tertiary">
-        <ul className="space-y-2">
-          {templates.map((template) => {
-            const count = (exercisesByTemplateId.get(template.id) ?? []).length;
-            return (
-              <li key={template.id} className="rounded-xl border border-white/10 bg-black/20 p-2.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-zinc-100">{template.name}</p>
-                    <p className="text-xs text-zinc-500">
-                      {formatTemplateType(template.template_type)} • {count} exercises •{" "}
-                      {template.estimated_duration_minutes ?? Math.max(15, count * 8)} min
-                    </p>
+      <Card title="Program Management" subtitle="Templates and split configuration" variant="tertiary">
+        <details className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">Template Library</summary>
+          <ul className="mt-2 space-y-2">
+            {templates.map((template) => {
+              const count = (exercisesByTemplateId.get(template.id) ?? []).length;
+              return (
+                <li key={template.id} className="rounded-lg border border-white/10 bg-black/20 p-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-100">{template.name}</p>
+                      <p className="text-xs text-zinc-500">
+                        {formatTemplateType(template.template_type)} • {count} exercises •{" "}
+                        {template.estimated_duration_minutes ?? Math.max(15, count * 8)} min
+                      </p>
+                    </div>
+                    <Button type="button" onClick={() => handleTemplateDuplicate(template.id)} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
+                      Duplicate
+                    </Button>
                   </div>
-                  <Button type="button" onClick={() => handleTemplateDuplicate(template.id)} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
-                    Duplicate
-                  </Button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </Card>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
 
-      <Card title="Create Template" variant="secondary">
-        <form onSubmit={handleCreateTemplate} className="space-y-2.5">
+        <details className="mt-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2" open={templates.length === 0}>
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">Create Template</summary>
+          <form onSubmit={handleCreateTemplate} className="mt-2 space-y-2.5">
           <div className="grid gap-2 sm:grid-cols-3">
             <label className="space-y-1 text-xs text-zinc-400">
               <span>Name</span>
@@ -493,10 +530,11 @@ export function WorkoutPlanner({
             )}
           </label>
 
-          <Button type="submit" disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
-            {isPending ? "Saving..." : "Save Template"}
-          </Button>
-        </form>
+            <Button type="submit" disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
+              {isPending ? "Saving..." : "Save Template"}
+            </Button>
+          </form>
+        </details>
       </Card>
 
       {message ? <Toast tone={isError ? "error" : "success"} role={isError ? "alert" : "status"}>{message}</Toast> : null}

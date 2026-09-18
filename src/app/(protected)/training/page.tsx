@@ -1,9 +1,7 @@
 import Link from "next/link";
 
-import { MuscleMap } from "@/components/training/muscle-map";
 import { WorkoutPlanner } from "@/components/training/workout-planner";
 import { Card } from "@/components/ui/card";
-import { MetricValue } from "@/components/ui/metric-value";
 import { PageHeader } from "@/components/ui/page-header";
 import { StateChip } from "@/components/ui/state-chip";
 import { getExerciseCatalog } from "@/lib/data/exercise-catalog";
@@ -23,7 +21,6 @@ import {
   getWorkoutSetsForWorkoutExerciseIds,
 } from "@/lib/data/workouts";
 import { sortWorkoutsForHistory } from "@/lib/training/calculations";
-import { aggregateWorkoutMuscles, buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
 import { buildWeekDates, buildPlannerWeek, findPlannerDayForDate } from "@/lib/training/planner";
 import { formatCalendarDate, getDateStringInTimeZone, normalizeTimeZone } from "@/lib/timezone";
 import {
@@ -38,15 +35,6 @@ function getDisplayUnit(preferredWeightUnit: string | null | undefined): "lb" | 
 
 function formatDate(date: string): string {
   return formatCalendarDate(date);
-}
-
-function titleCase(value: string): string {
-  return value
-    .replaceAll("_", " ")
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 export default async function TrainingPage() {
@@ -97,17 +85,6 @@ export default async function TrainingPage() {
     }
   }
 
-  const previewWorkout = activeWorkout ?? recentWorkouts[0] ?? null;
-  const previewWorkoutExercises = previewWorkout ? exercisesByWorkoutId.get(previewWorkout.id) ?? [] : [];
-  const previewWorkoutTargeting = aggregateWorkoutMuscles(
-    previewWorkoutExercises.map((exercise) => ({
-      exercise_id: exercise.id,
-      exercise_name: exercise.exercise_name,
-      primary_muscles: exercise.source_primary_muscles ?? [],
-      secondary_muscles: exercise.source_secondary_muscles ?? [],
-    })),
-  );
-  const previewFocusLabel = buildPrimaryFocusLabel(previewWorkoutTargeting);
   const [templatesResult, templateExercisesResult, weekdayScheduleResult, scheduleOverridesResult, catalogResult, customExercisesResult] =
     await Promise.all([
       getMyWorkoutTemplates(),
@@ -166,7 +143,6 @@ export default async function TrainingPage() {
     customExercisesResult.error?.message ??
     profileResult.error?.message ??
     null;
-  const hasWorkouts = recentWorkouts.length > 0 || activeWorkout !== null;
 
   return (
     <div className="space-y-4">
@@ -185,155 +161,74 @@ export default async function TrainingPage() {
         weekPlans={plannerWeek}
         todayPlan={todayPlan}
         exerciseOptions={plannerExerciseOptions}
+        activeWorkout={
+          activeWorkout
+            ? { id: activeWorkout.id, name: activeWorkout.name, workout_date: activeWorkout.workout_date }
+            : null
+        }
+        completedThisWeek={completedThisWeek}
       />
 
-      {!hasWorkouts ? (
-        <Card title="Start Your First Workout" variant="primary">
-          <p className="text-sm text-zinc-300">No workouts logged yet. Create a workout and begin adding exercises and sets.</p>
-          <Link
-            href="/training/start"
-            className="mt-3 inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
-          >
-            Start Workout
-          </Link>
-        </Card>
-      ) : (
-        <>
-          <Card title="Current Week">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <MetricValue value={String(completedThisWeek)} unit="completed" />
-                <p className="mt-1 text-xs uppercase tracking-[0.08em] text-zinc-500">Completed workouts this week</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {activeWorkout ? (
-                  <Link
-                    href={`/training/workouts/${activeWorkout.id}`}
-                    className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
-                  >
-                    Continue Active Workout
-                  </Link>
-                ) : (
-                  <Link
-                    href="/training/start"
-                    className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
-                  >
-                    Start Workout
-                  </Link>
-                )}
-                <Link
-                  href="/training/history"
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                >
-                  History
-                </Link>
-              </div>
-            </div>
-          </Card>
+      <Card title="History" subtitle="Recent sessions and exercise context" variant="tertiary">
+        <details className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">Recent Workouts</summary>
+          <ul className="mt-2 space-y-1.5">
+            {recentWorkouts.map((workout) => {
+              const workoutExercises = exercisesByWorkoutId.get(workout.id) ?? [];
+              const summary = buildWorkoutSummaryStats({
+                workout,
+                exercises: workoutExercises,
+                setsByExerciseId,
+                displayUnit,
+              });
 
-          {activeWorkout ? (
-            <Card title="Continue Active Workout" variant="primary">
-              <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-                <p className="text-base font-semibold text-white">{activeWorkout.name}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  <StateChip state="active" />
-                  <p className="text-xs text-zinc-500">
-                    <span className="text-zinc-400">Date:</span> {formatDate(activeWorkout.workout_date)}
-                  </p>
-                </div>
-                <Link
-                  href={`/training/workouts/${activeWorkout.id}`}
-                  className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
-                >
-                  Resume Workout
-                </Link>
-              </div>
-            </Card>
-          ) : null}
-
-          {previewWorkout ? (
-            <Card title="Workout Targeting Preview" variant="secondary">
-              <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
-                <p className="text-sm font-semibold text-zinc-100">{previewWorkout.name}</p>
-                <p className="text-xs text-zinc-500">
-                  {activeWorkout ? "Most recent active workout" : "Most recent workout"} • {previewWorkoutExercises.length} exercises
-                </p>
-                <div>
-                  <StateChip state={activeWorkout ? "active" : "planned"} label={activeWorkout ? "In progress focus" : "Recent focus"} />
-                </div>
-                <MuscleMap aggregation={previewWorkoutTargeting} testId="training-dashboard-muscle-map" />
-                <p className="text-xs text-zinc-400">
-                  {previewFocusLabel ?? "Primary focus unavailable"}.
-                  {" "}
-                  Region:{" "}
-                  {previewWorkoutTargeting.ranked_muscles[0]
-                    ? titleCase(previewWorkoutExercises.find((exercise) =>
-                      (exercise.source_primary_muscles ?? []).includes(previewWorkoutTargeting.ranked_muscles[0].muscle),
-                    )?.source_body_region ?? "mixed")
-                    : "unavailable"}
-                </p>
-              </div>
-            </Card>
-          ) : null}
-
-          <Card title="Recent Workouts" variant="tertiary">
-            <ul className="space-y-2">
-              {recentWorkouts.map((workout) => {
-                const workoutExercises = exercisesByWorkoutId.get(workout.id) ?? [];
-                const summary = buildWorkoutSummaryStats({
-                  workout,
-                  exercises: workoutExercises,
-                  setsByExerciseId,
-                  displayUnit,
-                });
-
-                return (
-                  <li key={workout.id} className="rounded-lg border border-white/10 bg-black/25 p-2.5">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-zinc-100">{workout.name}</p>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                          <StateChip state={workout.completed_at ? "completed" : "active"} label={workout.completed_at ? "Completed" : "In progress"} />
-                          <p className="text-xs text-zinc-500">{formatDate(workout.workout_date)}</p>
-                        </div>
-                        <p className="mt-1 text-xs text-zinc-500">
-                          {summary.exerciseCount} exercises • {summary.completedSetCount}/{summary.totalSetCount} sets complete
-                        </p>
+              return (
+                <li key={workout.id} className="rounded-lg border border-white/10 bg-black/25 px-2.5 py-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-100">{workout.name}</p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                        <StateChip state={workout.completed_at ? "completed" : "active"} label={workout.completed_at ? "Completed" : "In progress"} />
+                        <p className="text-xs text-zinc-500">{formatDate(workout.workout_date)}</p>
                       </div>
-                      <Link
-                        href={`/training/workouts/${workout.id}`}
-                        className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                      >
-                        Open
-                      </Link>
+                      <p className="mt-1 text-[11px] text-zinc-500">
+                        {summary.exerciseCount} exercises • {summary.completedSetCount}/{summary.totalSetCount} sets complete
+                      </p>
                     </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </Card>
-        </>
-      )}
-
-      <Card title="Recent Exercises" variant="tertiary">
-        {recentExerciseSnapshots.length ? (
-          <ul className="space-y-2">
-            {recentExerciseSnapshots.map((exercise) => (
-              <li key={`${exercise.name}-${exercise.source}`} className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
-                <p className="text-sm font-medium text-zinc-100">{exercise.name}</p>
-                <p className="mt-0.5 text-xs text-zinc-500">{exercise.source}</p>
-              </li>
-            ))}
+                    <Link
+                      href={`/training/workouts/${workout.id}`}
+                      className="inline-flex h-7 items-center justify-center rounded-md border border-white/15 px-2 text-[11px] font-medium text-zinc-100 transition-colors hover:bg-white/10"
+                    >
+                      Open
+                    </Link>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
-        ) : (
-          <p className="text-sm text-zinc-500">No recent exercises yet.</p>
-        )}
-        <Link
-          href="/training/exercises"
-          className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-        >
-          Browse Exercise Catalog
-        </Link>
+        </details>
+
+        <details className="mt-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">Recent Exercises</summary>
+          {recentExerciseSnapshots.length ? (
+            <ul className="mt-2 space-y-1.5">
+              {recentExerciseSnapshots.map((exercise) => (
+                <li key={`${exercise.name}-${exercise.source}`} className="rounded-lg border border-white/10 bg-black/25 px-2.5 py-2">
+                  <p className="text-sm font-medium text-zinc-100">{exercise.name}</p>
+                  <p className="mt-0.5 text-[11px] text-zinc-500">{exercise.source}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-zinc-500">No recent exercises yet.</p>
+          )}
+          <Link
+            href="/training/exercises"
+            className="mt-3 inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+          >
+            Browse Exercise Catalog
+          </Link>
+        </details>
       </Card>
     </div>
   );
