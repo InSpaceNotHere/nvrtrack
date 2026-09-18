@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import { cache } from "react";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
@@ -18,7 +19,7 @@ export interface AuthenticatedContext {
   user: User;
 }
 
-export async function getAuthenticatedContext(): Promise<DataAccessResult<AuthenticatedContext>> {
+const getAuthenticatedContextCached = cache(async (): Promise<DataAccessResult<AuthenticatedContext>> => {
   const supabase = await createServerSupabaseClient();
 
   if (!supabase) {
@@ -42,6 +43,10 @@ export async function getAuthenticatedContext(): Promise<DataAccessResult<Authen
   }
 
   return ok({ supabase, user });
+});
+
+export async function getAuthenticatedContext(): Promise<DataAccessResult<AuthenticatedContext>> {
+  return getAuthenticatedContextCached();
 }
 
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
