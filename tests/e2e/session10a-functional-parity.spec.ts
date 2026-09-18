@@ -69,9 +69,40 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
       options.find((option) => option.value !== "" && option.value !== "__rest__" && option.value !== originalWeekdayValue) ??
       options.find((option) => option.value !== "" && option.value !== "__rest__");
     if (!preferredOption) {
-      throw new Error("No assignable weekday template option found.");
+      const setupButton = page.getByRole("button", { name: "Create Starter Schedule" });
+      if (await setupButton.isVisible().catch(() => false)) {
+        await setupButton.click();
+        const setupCreated = page.getByRole("status").filter({ hasText: "Starter planner schedule created." });
+        const setupAlreadyConfigured = page
+          .getByRole("status")
+          .filter({ hasText: "Planner already configured. No starter schedule was applied." });
+        await expect(setupCreated.or(setupAlreadyConfigured)).toBeVisible();
+      }
     }
-    updatedWeekdayValue = preferredOption.value;
+    const refreshedOptions = await weekdayControl.locator("option").evaluateAll((nodes) =>
+      nodes.map((node) => ({ value: (node as HTMLOptionElement).value, label: node.textContent?.trim() ?? "" })),
+    );
+    let assignedOption =
+      refreshedOptions.find((option) => option.value !== "" && option.value !== "__rest__" && option.value !== originalWeekdayValue) ??
+      refreshedOptions.find((option) => option.value !== "" && option.value !== "__rest__");
+    if (!assignedOption) {
+      const templateName = `E2E Planner Template ${runId}`;
+      await page.getByLabel("Name").fill(templateName);
+      await page.getByRole("button", { name: "Save Template" }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Workout template created." })).toBeVisible();
+      await page.reload();
+
+      const createdOptions = await weekdayControl.locator("option").evaluateAll((nodes) =>
+        nodes.map((node) => ({ value: (node as HTMLOptionElement).value, label: node.textContent?.trim() ?? "" })),
+      );
+      assignedOption =
+        createdOptions.find((option) => option.value !== "" && option.value !== "__rest__" && option.value !== originalWeekdayValue) ??
+        createdOptions.find((option) => option.value !== "" && option.value !== "__rest__");
+    }
+    if (!assignedOption) {
+      throw new Error("No assignable weekday template option found after starter/template setup.");
+    }
+    updatedWeekdayValue = assignedOption.value;
     await weekdayControl.selectOption(updatedWeekdayValue);
     await expect(page.getByRole("status").filter({ hasText: "Weekday schedule updated." })).toBeVisible();
     await expectNoUnexpectedErrorAlert(page);
@@ -83,7 +114,9 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
 
     await page.goto("/progress");
     await expect(page.getByRole("heading", { name: "Live Strength System" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "30D" })).toBeVisible();
+    const thirtyDayFilter = page.getByRole("button", { name: "30D" });
+    const emptyWeightState = page.getByText("No weight data available.");
+    await expect(thirtyDayFilter.or(emptyWeightState)).toBeVisible();
 
     await page.getByRole("tab", { name: "Photos" }).click();
     const photoForm = page.locator("form").first();

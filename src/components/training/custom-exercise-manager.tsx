@@ -42,7 +42,10 @@ function toEditorState(exercise?: ExerciseRow | null): ExerciseEditorState {
     name: exercise?.name ?? "",
     equipment: exercise?.equipment ?? "",
     notes: exercise?.notes ?? "",
-    canonical_lift: ((exercise as ExerciseRow & { canonical_lift?: string | null }).canonical_lift as CanonicalLift | null) ?? "",
+    canonical_lift:
+      ((exercise as (ExerciseRow & { canonical_lift?: string | null }) | null | undefined)?.canonical_lift as
+        | CanonicalLift
+        | null) ?? "",
     body_region: exercise?.body_region ?? "",
     movement_pattern: exercise?.movement_pattern ?? "",
     primary_muscles: exercise?.primary_muscles?.length ? exercise.primary_muscles : legacyPrimary,
