@@ -26,6 +26,7 @@ interface WeightLogManagerProps {
   displayUnit: WeightUnit;
   showHistory?: boolean;
   initialEntryDate?: string;
+  defaultEditorOpen?: boolean;
 }
 
 interface FormState {
@@ -61,12 +62,13 @@ export function WeightLogManager({
   displayUnit,
   showHistory = true,
   initialEntryDate,
+  defaultEditorOpen,
 }: WeightLogManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const todayDateString = initialEntryDate ?? getTodayDateString("UTC");
 
-  const [isEditorOpen, setIsEditorOpen] = useState(entries.length === 0);
+  const [isEditorOpen, setIsEditorOpen] = useState(defaultEditorOpen ?? entries.length === 0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(() => toFormState(displayUnit, todayDateString));
   const [message, setMessage] = useState<string | null>(null);

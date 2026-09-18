@@ -44,9 +44,8 @@ export function ProgressTabs({ overview, photos, measurements, journal }: Progre
   return (
     <section className="space-y-4">
       <p className="text-xs text-zinc-500">
-        New here? Use <span className="text-zinc-300">Photos</span> for visual check-ins,{" "}
-        <span className="text-zinc-300">Measurements</span> for body stats, and{" "}
-        <span className="text-zinc-300">Journal</span> for weekly notes.
+        Use <span className="text-zinc-300">Photos</span>, <span className="text-zinc-300">Measurements</span>, and{" "}
+        <span className="text-zinc-300">Journal</span> for deeper progress tracking.
       </p>
       <Tabs value={tab} options={TAB_CONTROL_OPTIONS} onChange={setTab} ariaLabel="Progress views" />
       <div>{content}</div>

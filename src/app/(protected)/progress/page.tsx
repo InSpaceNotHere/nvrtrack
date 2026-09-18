@@ -59,9 +59,13 @@ function ProgressOverview({
         <Card title="Current Weight" variant="primary">
           <MetricValue value={latestWeight !== null ? latestWeight.toFixed(1) : "--"} unit={displayUnit} />
           <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-zinc-400">{latestChangeLabel}</p>
-          <div className="mt-2.5">
-            <TrendSparkline points={trendPoints} unit={displayUnit} />
-          </div>
+          {trendPoints.length ? (
+            <div className="mt-2.5">
+              <TrendSparkline points={trendPoints} unit={displayUnit} />
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-zinc-500">Log your first weigh-in to start trend tracking.</p>
+          )}
           {trendPoints.length ? (
             <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-500">
               <span>{trendPoints[0]?.label}</span>
@@ -72,9 +76,13 @@ function ProgressOverview({
         <Card title="Seven-Day Average" variant="secondary">
           <MetricValue value={sevenDayAverage !== null ? sevenDayAverage.toFixed(1) : "--"} unit={displayUnit} />
           <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-zinc-400">{sevenDayAverageLabel}</p>
-          <div className="mt-2.5">
-            <TrendSparkline points={trendPoints} unit={displayUnit} />
-          </div>
+          {trendPoints.length ? (
+            <div className="mt-2.5">
+              <TrendSparkline points={trendPoints} unit={displayUnit} />
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-zinc-500">Seven-day average activates with regular weigh-ins.</p>
+          )}
           {trendPoints.length ? (
             <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-500">
               <span>{trendPoints[0]?.label}</span>
@@ -84,16 +92,7 @@ function ProgressOverview({
         </Card>
       </section>
 
-      <Card title="Weight History" variant="tertiary">
-        <WeightLogManager
-          entries={weightHistory}
-          displayUnit={displayUnit}
-          showHistory
-          initialEntryDate={todayDate}
-        />
-      </Card>
-
-      <Card title="Weight Chart" subtitle="Range filters + trend line" variant="tertiary">
+      <Card title="Weight Chart" subtitle="Range filters + trend line" variant="secondary">
         <WeightChart entries={weightHistory} unit={displayUnit} />
       </Card>
 
@@ -126,11 +125,7 @@ function ProgressOverview({
                   <StateChip state="missing" label="Need tested bench, squat, and deadlift" />
                 )}
               </div>
-              <p className="text-[11px] text-zinc-500">
-                {strengthSummary.thousand_club_progress_percent !== null
-                  ? "Progress is based on tested canonical bench, squat, and deadlift totals."
-                  : "Estimated 1RMs never qualify for a tested 1000 LB Club total."}
-              </p>
+              <p className="text-[11px] text-zinc-500">Estimated 1RMs never qualify for tested 1000 LB Club.</p>
             </div>
           </div>
           {strengthSummary.latest_pr ? (
@@ -171,6 +166,23 @@ function ProgressOverview({
           )}
         </Card>
       </section>
+
+      <Card title="Weight History" subtitle="Log new entries and manage history" variant="tertiary">
+        <details className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
+            Log Weight / Manage History
+          </summary>
+          <div className="mt-2">
+            <WeightLogManager
+              entries={weightHistory}
+              displayUnit={displayUnit}
+              showHistory
+              initialEntryDate={todayDate}
+              defaultEditorOpen={false}
+            />
+          </div>
+        </details>
+      </Card>
     </div>
   );
 }
@@ -221,7 +233,7 @@ export default async function ProgressPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Progress" subtitle="Track trends in Overview, then use Photos, Measurements, and Journal for weekly check-ins." />
+      <PageHeader title="Progress" subtitle="Review trends first, then log check-ins." />
       {weightLoadError ? (
         <Card variant="tertiary">
           <p className="text-sm text-rose-200">Weight data is temporarily unavailable.</p>
