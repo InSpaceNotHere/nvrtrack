@@ -2,6 +2,7 @@ import { getAuthenticatedContext } from "./auth-context";
 import { asLooseSupabaseClient } from "./untyped-supabase";
 import { fail, ok, type DataAccessResult } from "./result";
 import { filterCatalogExercises } from "@/lib/training/catalog";
+import type { CanonicalLift } from "@/lib/training/canonical-lifts";
 
 export interface ExerciseCatalogRow {
   id: string;
@@ -15,6 +16,7 @@ export interface ExerciseCatalogRow {
   body_region: string | null;
   equipment: string;
   movement_pattern: string;
+  canonical_lift: CanonicalLift | null;
   muscle_metadata_version: number;
   instructions: string | null;
   is_active: boolean;

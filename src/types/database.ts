@@ -51,6 +51,7 @@ export type Database = {
         Row: {
           aliases: string[]
           body_region: string | null
+          canonical_lift: string | null
           created_at: string
           equipment: string
           id: string
@@ -69,6 +70,7 @@ export type Database = {
         Insert: {
           aliases?: string[]
           body_region?: string | null
+          canonical_lift?: string | null
           created_at?: string
           equipment: string
           id?: string
@@ -87,6 +89,7 @@ export type Database = {
         Update: {
           aliases?: string[]
           body_region?: string | null
+          canonical_lift?: string | null
           created_at?: string
           equipment?: string
           id?: string
@@ -107,6 +110,7 @@ export type Database = {
       exercises: {
         Row: {
           body_region: string | null
+          canonical_lift: string | null
           created_at: string
           equipment: string | null
           id: string
@@ -122,6 +126,7 @@ export type Database = {
         }
         Insert: {
           body_region?: string | null
+          canonical_lift?: string | null
           created_at?: string
           equipment?: string | null
           id?: string
@@ -137,6 +142,7 @@ export type Database = {
         }
         Update: {
           body_region?: string | null
+          canonical_lift?: string | null
           created_at?: string
           equipment?: string | null
           id?: string
@@ -743,6 +749,7 @@ export type Database = {
           notes: string | null
           position: number
           source_body_region: string | null
+          source_canonical_lift: string | null
           source_movement_pattern: string | null
           source_muscle_metadata_version: number | null
           source_primary_muscles: string[]
@@ -760,6 +767,7 @@ export type Database = {
           notes?: string | null
           position: number
           source_body_region?: string | null
+          source_canonical_lift?: string | null
           source_movement_pattern?: string | null
           source_muscle_metadata_version?: number | null
           source_primary_muscles?: string[]
@@ -777,6 +785,7 @@ export type Database = {
           notes?: string | null
           position?: number
           source_body_region?: string | null
+          source_canonical_lift?: string | null
           source_movement_pattern?: string | null
           source_muscle_metadata_version?: number | null
           source_primary_muscles?: string[]

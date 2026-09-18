@@ -31,6 +31,7 @@ import { buildDuplicateSetInput, countMeaningfulCompletedSets, groupSetsByWorkou
 import { computeWorkoutDayStreak } from "@/lib/training/streaks";
 import { buildStrengthDashboardSummary } from "@/lib/training/strength";
 import { normalizeWorkoutInput } from "@/lib/training/validation";
+import type { CanonicalLift } from "@/lib/training/canonical-lifts";
 import type { ExerciseRow, WorkoutExerciseRow, WorkoutRow, WorkoutSetRow } from "@/lib/data/auth-context";
 
 type BaseActionResult = {
@@ -82,6 +83,7 @@ export interface ExerciseInputPayload {
   muscle_group?: string;
   equipment?: string;
   notes?: string;
+  canonical_lift?: CanonicalLift | null;
   primary_muscles?: string[];
   secondary_muscles?: string[];
   body_region?: string;
@@ -476,6 +478,7 @@ export async function createExerciseAndAddToWorkoutAction(
     secondary_muscles?: string[];
     body_region?: string;
     movement_pattern?: string;
+    canonical_lift?: CanonicalLift | null;
     workoutExerciseNotes?: string;
   },
 ): Promise<WorkoutExerciseActionResult> {
@@ -488,6 +491,7 @@ export async function createExerciseAndAddToWorkoutAction(
     secondary_muscles: input.secondary_muscles,
     body_region: input.body_region,
     movement_pattern: input.movement_pattern,
+    canonical_lift: input.canonical_lift,
   });
   if (createExerciseResult.error) {
     return {

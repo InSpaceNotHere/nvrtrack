@@ -6,6 +6,7 @@ import {
   type MovementPattern,
   type MuscleId,
 } from "./muscles";
+import { toCanonicalLift, type CanonicalLift } from "./canonical-lifts";
 import type { TrainingWeightUnit, WorkoutSetType } from "./types";
 
 export const EXERCISE_NAME_MAX_LENGTH = 120;
@@ -32,6 +33,7 @@ export interface ExerciseInput {
   muscle_group?: string | null;
   equipment?: string | null;
   notes?: string | null;
+  canonical_lift?: string | null;
   primary_muscles?: string[] | null;
   secondary_muscles?: string[] | null;
   body_region?: string | null;
@@ -43,6 +45,7 @@ export interface ExerciseNormalized {
   muscle_group: string | null;
   equipment: string | null;
   notes: string | null;
+  canonical_lift: CanonicalLift | null;
   primary_muscles: MuscleId[];
   secondary_muscles: MuscleId[];
   body_region: BodyRegion | null;
@@ -113,6 +116,7 @@ export type ExerciseField =
   | "muscle_group"
   | "equipment"
   | "notes"
+  | "canonical_lift"
   | "primary_muscles"
   | "secondary_muscles"
   | "body_region"
@@ -248,6 +252,10 @@ export function normalizeExerciseInput(
 
   const notes = parseOptionalText(input.notes, "Notes", EXERCISE_NOTES_MAX_LENGTH);
   if (notes.error) errors.notes = notes.error;
+  const canonicalLift = toCanonicalLift(input.canonical_lift);
+  if (input.canonical_lift !== undefined && input.canonical_lift !== null && !canonicalLift) {
+    errors.canonical_lift = "Canonical lift must be bench_press, squat, deadlift, or empty.";
+  }
 
   const legacyPrimaryMuscles =
     input.primary_muscles === undefined && input.secondary_muscles === undefined
@@ -279,6 +287,7 @@ export function normalizeExerciseInput(
       muscle_group: legacyMuscleGroup ?? muscleGroup.value,
       equipment: equipment.value,
       notes: notes.value,
+      canonical_lift: canonicalLift,
       primary_muscles: normalizedMuscles.primary_muscles,
       secondary_muscles: normalizedMuscles.secondary_muscles,
       body_region: normalizedMuscles.body_region,

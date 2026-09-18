@@ -18,6 +18,7 @@ import {
   isMuscleId,
   mapLegacyMuscleGroupToPrimaryMuscles,
 } from "@/lib/training/muscles";
+import { CANONICAL_LIFTS, type CanonicalLift } from "@/lib/training/canonical-lifts";
 import type { ExerciseRow } from "@/lib/training/types";
 
 interface CustomExerciseManagerProps {
@@ -28,6 +29,7 @@ interface ExerciseEditorState {
   name: string;
   equipment: string;
   notes: string;
+  canonical_lift: CanonicalLift | "";
   body_region: string;
   movement_pattern: string;
   primary_muscles: string[];
@@ -40,6 +42,7 @@ function toEditorState(exercise?: ExerciseRow | null): ExerciseEditorState {
     name: exercise?.name ?? "",
     equipment: exercise?.equipment ?? "",
     notes: exercise?.notes ?? "",
+    canonical_lift: ((exercise as ExerciseRow & { canonical_lift?: string | null }).canonical_lift as CanonicalLift | null) ?? "",
     body_region: exercise?.body_region ?? "",
     movement_pattern: exercise?.movement_pattern ?? "",
     primary_muscles: exercise?.primary_muscles?.length ? exercise.primary_muscles : legacyPrimary,
@@ -136,6 +139,7 @@ export function CustomExerciseManager({ exercises }: CustomExerciseManagerProps)
         name: createForm.name,
         equipment: createForm.equipment || undefined,
         notes: createForm.notes || undefined,
+        canonical_lift: createForm.canonical_lift || null,
         body_region: createForm.body_region || undefined,
         movement_pattern: createForm.movement_pattern || undefined,
         primary_muscles: createForm.primary_muscles,
@@ -161,6 +165,7 @@ export function CustomExerciseManager({ exercises }: CustomExerciseManagerProps)
         name: editForm.name,
         equipment: editForm.equipment || undefined,
         notes: editForm.notes || undefined,
+        canonical_lift: editForm.canonical_lift || null,
         body_region: editForm.body_region || undefined,
         movement_pattern: editForm.movement_pattern || undefined,
         primary_muscles: editForm.primary_muscles,
@@ -224,6 +229,21 @@ export function CustomExerciseManager({ exercises }: CustomExerciseManagerProps)
               {BODY_REGIONS.map((bodyRegion) => (
                 <option key={bodyRegion} value={bodyRegion}>
                   {getBodyRegionLabel(bodyRegion)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1 text-xs text-zinc-300">
+            <span>Canonical lift (optional)</span>
+            <select
+              className="app-input"
+              value={createForm.canonical_lift}
+              onChange={(event) => updateCreateForm({ canonical_lift: event.target.value as CanonicalLift | "" })}
+            >
+              <option value="">Not canonical</option>
+              {CANONICAL_LIFTS.map((lift) => (
+                <option key={lift} value={lift}>
+                  {titleCase(lift)}
                 </option>
               ))}
             </select>
@@ -297,6 +317,9 @@ export function CustomExerciseManager({ exercises }: CustomExerciseManagerProps)
                         {(exercise.body_region ? titleCase(exercise.body_region) : "Unspecified region")} •{" "}
                         {(exercise.movement_pattern ? titleCase(exercise.movement_pattern) : "Unspecified pattern")}
                       </p>
+                      <p className="mt-0.5 text-xs text-zinc-500">
+                        Canonical: {titleCase(((exercise as ExerciseRow & { canonical_lift?: string | null }).canonical_lift ?? "not_canonical"))}
+                      </p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <button
                           type="button"
@@ -333,6 +356,21 @@ export function CustomExerciseManager({ exercises }: CustomExerciseManagerProps)
                           {BODY_REGIONS.map((bodyRegion) => (
                             <option key={bodyRegion} value={bodyRegion}>
                               {getBodyRegionLabel(bodyRegion)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="space-y-1 text-xs text-zinc-300">
+                        <span>Canonical lift (optional)</span>
+                        <select
+                          className="app-input"
+                          value={editForm.canonical_lift}
+                          onChange={(event) => updateEditForm({ canonical_lift: event.target.value as CanonicalLift | "" })}
+                        >
+                          <option value="">Not canonical</option>
+                          {CANONICAL_LIFTS.map((lift) => (
+                            <option key={lift} value={lift}>
+                              {titleCase(lift)}
                             </option>
                           ))}
                         </select>

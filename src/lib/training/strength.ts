@@ -1,15 +1,21 @@
+import { convertWeight, isWeightUnit, roundWeight } from "../weight/conversions";
 import { calculateExerciseVolume, estimateSetOneRepMax } from "./calculations";
+import { toCanonicalLift, type CanonicalLift } from "./canonical-lifts";
 import type { TrainingWeightUnit, WorkoutExerciseRow, WorkoutRow, WorkoutSetLike, WorkoutSetRow } from "./types";
 
 export type StrengthLiftKey = "bench" | "squat" | "deadlift";
+const MAX_REPS_FOR_ESTIMATED_1RM = 12;
 
 export interface StrengthHistoryPoint {
   workout_id: string;
   workout_name: string;
   workout_date: string;
   estimated_one_rep_max: number | null;
+  tested_one_rep_max: number | null;
   heaviest_weight: number | null;
   rep_pr: number | null;
+  rep_pr_reps: number | null;
+  rep_prs_by_reps: Record<string, number>;
   total_volume: number | null;
   is_lifetime_pr: boolean;
 }
@@ -17,9 +23,14 @@ export interface StrengthHistoryPoint {
 export interface ExerciseStrengthSnapshot {
   exercise_key: string;
   exercise_name: string;
+  canonical_lift: CanonicalLift | null;
   current_estimated_one_rep_max: number | null;
   lifetime_estimated_one_rep_max: number | null;
+  current_tested_one_rep_max: number | null;
+  lifetime_tested_one_rep_max: number | null;
   rep_pr: number | null;
+  rep_pr_reps: number | null;
+  rep_prs_by_reps: Record<string, number>;
   heaviest_weight: number | null;
   total_volume: number | null;
   last_pr_workout_date: string | null;
@@ -31,12 +42,16 @@ export interface StrengthLiftSummary {
   key: StrengthLiftKey;
   current_estimated_one_rep_max: number | null;
   lifetime_estimated_one_rep_max: number | null;
+  current_tested_one_rep_max: number | null;
+  lifetime_tested_one_rep_max: number | null;
 }
 
 export interface StrengthDashboardSummary {
   bench: StrengthLiftSummary;
   squat: StrengthLiftSummary;
   deadlift: StrengthLiftSummary;
+  total_tested: number | null;
+  total_estimated: number | null;
   total_current: number | null;
   total_lifetime: number | null;
   thousand_club_progress_percent: number | null;
@@ -62,17 +77,10 @@ function exerciseIdentityKey(exercise: WorkoutExerciseRow): string {
   return `snapshot:${normalizeText(exercise.exercise_name)}`;
 }
 
-function classifyStrengthLift(exerciseName: string): StrengthLiftKey | null {
-  const normalized = normalizeText(exerciseName);
-  if (normalized.includes("deadlift")) {
-    return "deadlift";
-  }
-  if (normalized.includes("bench") && normalized.includes("press")) {
-    return "bench";
-  }
-  if (normalized.includes("squat")) {
-    return "squat";
-  }
+function canonicalLiftToStrengthKey(canonicalLift: CanonicalLift | null): StrengthLiftKey | null {
+  if (canonicalLift === "bench_press") return "bench";
+  if (canonicalLift === "squat") return "squat";
+  if (canonicalLift === "deadlift") return "deadlift";
   return null;
 }
 
@@ -90,6 +98,28 @@ function toWorkoutSetLike(set: WorkoutSetRow, exercise: WorkoutExerciseRow): Wor
     exercise_id: exercise.exercise_id,
     exercise_name: exercise.exercise_name,
   };
+}
+
+function toCanonicalLiftFromExercise(exercise: WorkoutExerciseRow): CanonicalLift | null {
+  return toCanonicalLift((exercise as WorkoutExerciseRow & { source_canonical_lift?: string | null }).source_canonical_lift ?? null);
+}
+
+function toConvertedWeight(set: WorkoutSetLike, displayUnit: TrainingWeightUnit): number | null {
+  if (!set.is_completed || set.weight === null || set.weight <= 0 || set.weight_unit === null || !isWeightUnit(set.weight_unit)) {
+    return null;
+  }
+  return roundWeight(convertWeight(set.weight, set.weight_unit, displayUnit), 2);
+}
+
+function sumStrict(values: Array<number | null>): number | null {
+  if (values.some((value) => value === null)) {
+    return null;
+  }
+  let total = 0;
+  for (const value of values) {
+    total += value as number;
+  }
+  return roundWeight(total, 2);
 }
 
 function isRecentPr(workoutDate: string, referenceDate: Date): boolean {
@@ -115,6 +145,7 @@ export function buildStrengthDashboardSummary(params: {
 
   const historyByExercise = new Map<string, StrengthHistoryPoint[]>();
   const exerciseNameByKey = new Map<string, string>();
+  const canonicalByExerciseKey = new Map<string, CanonicalLift | null>();
 
   for (const exercise of exercises) {
     const workout = workoutsById.get(exercise.workout_id);
@@ -125,19 +156,35 @@ export function buildStrengthDashboardSummary(params: {
     const setRows = setsByExerciseId.get(exercise.id) ?? [];
     const setLikes = setRows.map((set) => toWorkoutSetLike(set, exercise));
     const completedWeightedSets = setLikes.filter((set) => set.is_completed);
-    const bestEstimate = completedWeightedSets
+    const estimateEligibleSets = completedWeightedSets.filter((set) => (set.reps ?? 0) >= 1 && (set.reps ?? 0) <= MAX_REPS_FOR_ESTIMATED_1RM);
+    const bestEstimate = estimateEligibleSets
       .map((set) => estimateSetOneRepMax(set, displayUnit)?.estimatedOneRepMax ?? null)
       .filter((value): value is number => value !== null)
       .sort((left, right) => right - left)[0] ?? null;
-    const heaviestWeight = completedWeightedSets
-      .filter((set) => set.weight !== null && set.weight_unit !== null)
-      .map((set) => estimateSetOneRepMax({ ...set, reps: 1 }, displayUnit)?.estimatedOneRepMax ?? null)
+    const testedOneRepMax = completedWeightedSets
+      .filter((set) => set.reps === 1)
+      .map((set) => toConvertedWeight(set, displayUnit))
       .filter((value): value is number => value !== null)
       .sort((left, right) => right - left)[0] ?? null;
-    const repPr = completedWeightedSets
-      .map((set) => set.reps)
-      .filter((value): value is number => typeof value === "number")
+    const heaviestWeight = completedWeightedSets
+      .map((set) => toConvertedWeight(set, displayUnit))
+      .filter((value): value is number => value !== null)
       .sort((left, right) => right - left)[0] ?? null;
+    const repPrByReps = new Map<number, number>();
+    for (const set of completedWeightedSets) {
+      if (!set.reps || set.reps <= 0) {
+        continue;
+      }
+      const converted = toConvertedWeight(set, displayUnit);
+      if (converted === null) {
+        continue;
+      }
+      const previous = repPrByReps.get(set.reps);
+      if (previous === undefined || converted > previous) {
+        repPrByReps.set(set.reps, converted);
+      }
+    }
+    const topRepPr = [...repPrByReps.entries()].sort((left, right) => right[1] - left[1])[0] ?? null;
     const totalVolume = calculateExerciseVolume(setLikes, displayUnit);
 
     const exerciseKey = exerciseIdentityKey(exercise);
@@ -147,8 +194,11 @@ export function buildStrengthDashboardSummary(params: {
       workout_name: workout.name,
       workout_date: workout.workout_date,
       estimated_one_rep_max: bestEstimate,
+      tested_one_rep_max: testedOneRepMax,
       heaviest_weight: heaviestWeight,
-      rep_pr: repPr,
+      rep_pr: topRepPr?.[1] ?? null,
+      rep_pr_reps: topRepPr?.[0] ?? null,
+      rep_prs_by_reps: Object.fromEntries([...repPrByReps.entries()].map(([reps, weight]) => [String(reps), weight])),
       total_volume: totalVolume,
       is_lifetime_pr: false,
     });
@@ -156,41 +206,87 @@ export function buildStrengthDashboardSummary(params: {
     if (!exerciseNameByKey.has(exerciseKey)) {
       exerciseNameByKey.set(exerciseKey, exercise.exercise_name);
     }
+    if (!canonicalByExerciseKey.has(exerciseKey)) {
+      canonicalByExerciseKey.set(exerciseKey, toCanonicalLiftFromExercise(exercise));
+    }
   }
 
   const exerciseSnapshots: ExerciseStrengthSnapshot[] = [];
   for (const [exerciseKey, points] of historyByExercise.entries()) {
     const sortedAscending = [...points].sort(sortByWorkoutDateAscending);
-    let runningBest: number | null = null;
+    let runningEstimatedBest: number | null = null;
+    let runningTestedBest: number | null = null;
+    let runningHeaviest: number | null = null;
+    const runningRepPrs = new Map<number, number>();
     let lastPrDate: string | null = null;
     for (const point of sortedAscending) {
-      if (point.estimated_one_rep_max === null) {
-        continue;
+      let pointIsPr = false;
+
+      if (point.estimated_one_rep_max !== null && (runningEstimatedBest === null || point.estimated_one_rep_max > runningEstimatedBest)) {
+        runningEstimatedBest = point.estimated_one_rep_max;
+        pointIsPr = true;
       }
-      if (runningBest === null || point.estimated_one_rep_max > runningBest) {
-        runningBest = point.estimated_one_rep_max;
-        point.is_lifetime_pr = true;
+      if (point.tested_one_rep_max !== null && (runningTestedBest === null || point.tested_one_rep_max > runningTestedBest)) {
+        runningTestedBest = point.tested_one_rep_max;
+        pointIsPr = true;
+      }
+      if (point.heaviest_weight !== null && (runningHeaviest === null || point.heaviest_weight > runningHeaviest)) {
+        runningHeaviest = point.heaviest_weight;
+        pointIsPr = true;
+      }
+
+      for (const [repsValue, weight] of Object.entries(point.rep_prs_by_reps)) {
+        const reps = Number(repsValue);
+        if (!Number.isFinite(reps) || reps <= 0) {
+          continue;
+        }
+        const previous = runningRepPrs.get(reps);
+        if (previous === undefined || weight > previous) {
+          runningRepPrs.set(reps, weight);
+          pointIsPr = true;
+        }
+      }
+
+      point.is_lifetime_pr = pointIsPr;
+      if (pointIsPr) {
         lastPrDate = point.workout_date;
       }
     }
+
     const sortedDescending = [...sortedAscending].reverse();
     const current = sortedDescending.find((point) => point.estimated_one_rep_max !== null) ?? null;
+    const currentTested = sortedDescending.find((point) => point.tested_one_rep_max !== null) ?? null;
     const heaviestWeight = sortedDescending
       .map((point) => point.heaviest_weight)
       .filter((value): value is number => value !== null)
       .sort((left, right) => right - left)[0] ?? null;
-    const repPr = sortedDescending
-      .map((point) => point.rep_pr)
-      .filter((value): value is number => value !== null)
-      .sort((left, right) => right - left)[0] ?? null;
+    const lifetimeRepPrs = new Map<number, number>();
+    for (const point of sortedDescending) {
+      for (const [repsValue, weight] of Object.entries(point.rep_prs_by_reps)) {
+        const reps = Number(repsValue);
+        if (!Number.isFinite(reps) || reps <= 0) {
+          continue;
+        }
+        const previous = lifetimeRepPrs.get(reps);
+        if (previous === undefined || weight > previous) {
+          lifetimeRepPrs.set(reps, weight);
+        }
+      }
+    }
+    const topRepPr = [...lifetimeRepPrs.entries()].sort((left, right) => right[1] - left[1])[0] ?? null;
     const totalVolume = sortedDescending.reduce((sum, point) => sum + (point.total_volume ?? 0), 0);
 
     exerciseSnapshots.push({
       exercise_key: exerciseKey,
       exercise_name: exerciseNameByKey.get(exerciseKey) ?? "Exercise",
+      canonical_lift: canonicalByExerciseKey.get(exerciseKey) ?? null,
       current_estimated_one_rep_max: current?.estimated_one_rep_max ?? null,
-      lifetime_estimated_one_rep_max: runningBest,
-      rep_pr: repPr,
+      lifetime_estimated_one_rep_max: runningEstimatedBest,
+      current_tested_one_rep_max: currentTested?.tested_one_rep_max ?? null,
+      lifetime_tested_one_rep_max: runningTestedBest,
+      rep_pr: topRepPr?.[1] ?? null,
+      rep_pr_reps: topRepPr?.[0] ?? null,
+      rep_prs_by_reps: Object.fromEntries([...lifetimeRepPrs.entries()].sort((a, b) => a[0] - b[0]).map(([reps, weight]) => [String(reps), weight])),
       heaviest_weight: heaviestWeight,
       total_volume: totalVolume > 0 ? totalVolume : null,
       last_pr_workout_date: lastPrDate,
@@ -200,13 +296,31 @@ export function buildStrengthDashboardSummary(params: {
   }
 
   const liftSummaries: Record<StrengthLiftKey, StrengthLiftSummary> = {
-    bench: { key: "bench", current_estimated_one_rep_max: null, lifetime_estimated_one_rep_max: null },
-    squat: { key: "squat", current_estimated_one_rep_max: null, lifetime_estimated_one_rep_max: null },
-    deadlift: { key: "deadlift", current_estimated_one_rep_max: null, lifetime_estimated_one_rep_max: null },
+    bench: {
+      key: "bench",
+      current_estimated_one_rep_max: null,
+      lifetime_estimated_one_rep_max: null,
+      current_tested_one_rep_max: null,
+      lifetime_tested_one_rep_max: null,
+    },
+    squat: {
+      key: "squat",
+      current_estimated_one_rep_max: null,
+      lifetime_estimated_one_rep_max: null,
+      current_tested_one_rep_max: null,
+      lifetime_tested_one_rep_max: null,
+    },
+    deadlift: {
+      key: "deadlift",
+      current_estimated_one_rep_max: null,
+      lifetime_estimated_one_rep_max: null,
+      current_tested_one_rep_max: null,
+      lifetime_tested_one_rep_max: null,
+    },
   };
 
   for (const snapshot of exerciseSnapshots) {
-    const liftKey = classifyStrengthLift(snapshot.exercise_name);
+    const liftKey = canonicalLiftToStrengthKey(snapshot.canonical_lift);
     if (!liftKey) {
       continue;
     }
@@ -223,18 +337,31 @@ export function buildStrengthDashboardSummary(params: {
     ) {
       lift.lifetime_estimated_one_rep_max = snapshot.lifetime_estimated_one_rep_max;
     }
+    if (
+      snapshot.current_tested_one_rep_max !== null &&
+      (lift.current_tested_one_rep_max === null || snapshot.current_tested_one_rep_max > lift.current_tested_one_rep_max)
+    ) {
+      lift.current_tested_one_rep_max = snapshot.current_tested_one_rep_max;
+    }
+    if (
+      snapshot.lifetime_tested_one_rep_max !== null &&
+      (lift.lifetime_tested_one_rep_max === null || snapshot.lifetime_tested_one_rep_max > lift.lifetime_tested_one_rep_max)
+    ) {
+      lift.lifetime_tested_one_rep_max = snapshot.lifetime_tested_one_rep_max;
+    }
   }
 
-  const liftCurrents = [liftSummaries.bench, liftSummaries.squat, liftSummaries.deadlift]
-    .map((lift) => lift.current_estimated_one_rep_max)
-    .filter((value): value is number => value !== null);
-  const liftLifetimes = [liftSummaries.bench, liftSummaries.squat, liftSummaries.deadlift]
-    .map((lift) => lift.lifetime_estimated_one_rep_max)
-    .filter((value): value is number => value !== null);
-
-  const totalCurrent = liftCurrents.length ? liftCurrents.reduce((sum, value) => sum + value, 0) : null;
-  const totalLifetime = liftLifetimes.length ? liftLifetimes.reduce((sum, value) => sum + value, 0) : null;
-  const thousandClubProgressPercent = totalCurrent !== null ? Math.min(100, (totalCurrent / 1000) * 100) : null;
+  const totalTested = sumStrict([
+    liftSummaries.bench.lifetime_tested_one_rep_max,
+    liftSummaries.squat.lifetime_tested_one_rep_max,
+    liftSummaries.deadlift.lifetime_tested_one_rep_max,
+  ]);
+  const totalEstimated = sumStrict([
+    liftSummaries.bench.lifetime_estimated_one_rep_max,
+    liftSummaries.squat.lifetime_estimated_one_rep_max,
+    liftSummaries.deadlift.lifetime_estimated_one_rep_max,
+  ]);
+  const thousandClubProgressPercent = totalTested !== null ? Math.min(100, (totalTested / 1000) * 100) : null;
 
   const latestPrHistoryPoint = exerciseSnapshots
     .flatMap((snapshot) =>
@@ -257,8 +384,10 @@ export function buildStrengthDashboardSummary(params: {
     bench: liftSummaries.bench,
     squat: liftSummaries.squat,
     deadlift: liftSummaries.deadlift,
-    total_current: totalCurrent,
-    total_lifetime: totalLifetime,
+    total_tested: totalTested,
+    total_estimated: totalEstimated,
+    total_current: totalTested,
+    total_lifetime: totalEstimated,
     thousand_club_progress_percent: thousandClubProgressPercent,
     latest_pr: latestPrHistoryPoint,
     exercise_snapshots: exerciseSnapshots.sort((left, right) => {

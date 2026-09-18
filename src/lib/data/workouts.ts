@@ -16,6 +16,7 @@ import type {
   WorkoutSetRow,
 } from "@/lib/training/types";
 import { coerceMuscleIdArray, mapLegacyMuscleGroupToPrimaryMuscles } from "@/lib/training/muscles";
+import { toCanonicalLift, type CanonicalLift } from "@/lib/training/canonical-lifts";
 import { isValidDateString } from "@/lib/nutrition/date";
 
 function sanitizeLimit(limit: number, fallback = 20): number {
@@ -76,6 +77,7 @@ interface WorkoutExerciseMuscleSnapshot {
   source_secondary_muscles: string[];
   source_body_region: string | null;
   source_movement_pattern: string | null;
+  source_canonical_lift: CanonicalLift | null;
   source_muscle_metadata_version: number | null;
 }
 
@@ -85,6 +87,7 @@ function emptyWorkoutExerciseMuscleSnapshot(): WorkoutExerciseMuscleSnapshot {
     source_secondary_muscles: [],
     source_body_region: null,
     source_movement_pattern: null,
+    source_canonical_lift: null,
     source_muscle_metadata_version: null,
   };
 }
@@ -97,6 +100,7 @@ function toWorkoutExerciseMuscleSnapshot(input: {
   muscle_group?: unknown;
   body_region: unknown;
   movement_pattern: unknown;
+  canonical_lift?: unknown;
   muscle_metadata_version: unknown;
 }): WorkoutExerciseMuscleSnapshot {
   const primaryMusclesFromNewColumns = coerceMuscleIdArray(input.primary_muscles);
@@ -119,6 +123,7 @@ function toWorkoutExerciseMuscleSnapshot(input: {
     source_secondary_muscles: secondaryMuscles,
     source_body_region: typeof input.body_region === "string" ? input.body_region : null,
     source_movement_pattern: typeof input.movement_pattern === "string" ? input.movement_pattern : null,
+    source_canonical_lift: toCanonicalLift(typeof input.canonical_lift === "string" ? input.canonical_lift : null),
     source_muscle_metadata_version:
       typeof input.muscle_metadata_version === "number" ? input.muscle_metadata_version : 1,
   };
@@ -655,6 +660,7 @@ export async function addExerciseToWorkout(
     source_secondary_muscles: snapshotMetadata.source_secondary_muscles,
     source_body_region: snapshotMetadata.source_body_region,
     source_movement_pattern: snapshotMetadata.source_movement_pattern,
+    source_canonical_lift: snapshotMetadata.source_canonical_lift,
     source_muscle_metadata_version: snapshotMetadata.source_muscle_metadata_version,
   };
   let { data, error } = await supabase
@@ -730,6 +736,9 @@ export async function updateWorkoutExercise(
     source_secondary_muscles: existing.source_secondary_muscles ?? [],
     source_body_region: existing.source_body_region ?? null,
     source_movement_pattern: existing.source_movement_pattern ?? null,
+    source_canonical_lift: toCanonicalLift(
+      (existing as WorkoutExerciseRow & { source_canonical_lift?: string | null }).source_canonical_lift ?? null,
+    ),
     source_muscle_metadata_version: existing.source_muscle_metadata_version ?? null,
   };
 
@@ -821,6 +830,7 @@ export async function updateWorkoutExercise(
     source_secondary_muscles: snapshotMetadata.source_secondary_muscles,
     source_body_region: snapshotMetadata.source_body_region,
     source_movement_pattern: snapshotMetadata.source_movement_pattern,
+    source_canonical_lift: snapshotMetadata.source_canonical_lift,
     source_muscle_metadata_version: snapshotMetadata.source_muscle_metadata_version,
   };
   let { data, error } = await supabase

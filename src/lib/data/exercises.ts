@@ -5,6 +5,7 @@ import {
   normalizeExerciseInput,
   type ExerciseInput,
 } from "@/lib/training/validation";
+import type { CanonicalLift } from "@/lib/training/canonical-lifts";
 import type { ExerciseRow } from "@/lib/training/types";
 
 export type CreateMyExerciseInput = ExerciseInput;
@@ -14,6 +15,7 @@ export interface UpdateMyExerciseInput {
   muscle_group?: string | null;
   equipment?: string | null;
   notes?: string | null;
+  canonical_lift?: CanonicalLift | null;
   primary_muscles?: string[] | null;
   secondary_muscles?: string[] | null;
   body_region?: string | null;
@@ -188,6 +190,7 @@ export async function createMyExercise(input: CreateMyExerciseInput): Promise<Da
     muscle_group: normalized.data.muscle_group,
     equipment: normalized.data.equipment,
     notes: normalized.data.notes,
+    canonical_lift: normalized.data.canonical_lift,
     primary_muscles: normalized.data.primary_muscles,
     secondary_muscles: normalized.data.secondary_muscles,
     body_region: normalized.data.body_region,
@@ -263,6 +266,7 @@ export async function updateMyExercise(
     muscle_group: input.muscle_group ?? existing.muscle_group,
     equipment: input.equipment ?? existing.equipment,
     notes: input.notes ?? existing.notes,
+    canonical_lift: input.canonical_lift ?? (existing as ExerciseRow & { canonical_lift?: string | null }).canonical_lift,
     primary_muscles: input.primary_muscles ?? existing.primary_muscles,
     secondary_muscles: input.secondary_muscles ?? existing.secondary_muscles,
     body_region: input.body_region ?? existing.body_region,
@@ -287,6 +291,7 @@ export async function updateMyExercise(
     muscle_group: normalized.data.muscle_group,
     equipment: normalized.data.equipment,
     notes: normalized.data.notes,
+    canonical_lift: normalized.data.canonical_lift,
     primary_muscles: normalized.data.primary_muscles,
     secondary_muscles: normalized.data.secondary_muscles,
     body_region: normalized.data.body_region,

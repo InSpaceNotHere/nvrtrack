@@ -13,6 +13,7 @@ import {
   getWorkoutSetsForWorkoutExerciseIds,
 } from "@/lib/data/workouts";
 import { coerceMuscleIdArray, mapLegacyMuscleGroupToPrimaryMuscles } from "@/lib/training/muscles";
+import { toCanonicalLift } from "@/lib/training/canonical-lifts";
 import { buildPreviousPerformanceMap, buildWorkoutSummaryStats, groupSetsByWorkoutExerciseId } from "@/lib/training/session";
 import type { TrainingWeightUnit } from "@/lib/training/types";
 
@@ -109,6 +110,12 @@ export default async function WorkoutDetailPage({ params, searchParams }: Workou
       bodyRegion: exercise.source_body_region ?? customSource?.body_region ?? catalogSource?.body_region ?? null,
       movementPattern:
         exercise.source_movement_pattern ?? customSource?.movement_pattern ?? catalogSource?.movement_pattern ?? null,
+      canonicalLift: toCanonicalLift(
+        (exercise as typeof exercise & { source_canonical_lift?: string | null }).source_canonical_lift ??
+          (customSource as (typeof customSource & { canonical_lift?: string | null }) | null)?.canonical_lift ??
+          (catalogSource as (typeof catalogSource & { canonical_lift?: string | null }) | null)?.canonical_lift ??
+          null,
+      ),
       muscleMetadataVersion:
         exercise.source_muscle_metadata_version ??
         customSource?.muscle_metadata_version ??

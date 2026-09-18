@@ -25,6 +25,7 @@ describe("training validation - exercises", () => {
       muscle_group: "chest",
       equipment: "Barbell",
       notes: "Main lift",
+      canonical_lift: null,
       primary_muscles: ["chest"],
       secondary_muscles: ["front_delts", "triceps"],
       body_region: "upper_body",

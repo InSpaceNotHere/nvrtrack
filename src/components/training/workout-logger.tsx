@@ -40,6 +40,7 @@ import {
   isMuscleId,
   mapLegacyMuscleGroupToPrimaryMuscles,
 } from "@/lib/training/muscles";
+import { CANONICAL_LIFTS, toCanonicalLift, type CanonicalLift } from "@/lib/training/canonical-lifts";
 import type { TrainingWeightUnit, WorkoutSetLike, WorkoutSetRow } from "@/lib/training/types";
 
 type ComposerMode = "catalog" | "custom";
@@ -64,6 +65,7 @@ interface WorkoutLoggerExercise {
   secondaryMuscles: string[];
   bodyRegion: string | null;
   movementPattern: string | null;
+  canonicalLift: CanonicalLift | null;
   muscleMetadataVersion: number | null;
   position: number;
   sets: WorkoutSetRow[];
@@ -211,6 +213,7 @@ export function WorkoutLogger({
   const [customSecondaryMuscles, setCustomSecondaryMuscles] = useState<string[]>([]);
   const [customBodyRegion, setCustomBodyRegion] = useState("");
   const [customMovementPattern, setCustomMovementPattern] = useState("");
+  const [customCanonicalLift, setCustomCanonicalLift] = useState<CanonicalLift | "">("");
 
   const isCompletedWorkout = Boolean(workout.completedAt);
   const facets = useMemo(() => buildCatalogFacets(catalogExercises), [catalogExercises]);
@@ -305,6 +308,7 @@ export function WorkoutLogger({
       source_secondary_muscles?: string[] | null;
       source_body_region?: string | null;
       source_movement_pattern?: string | null;
+      source_canonical_lift?: string | null;
       source_muscle_metadata_version?: number | null;
     },
     fallbackMetadata: {
@@ -312,6 +316,7 @@ export function WorkoutLogger({
       secondaryMuscles?: string[];
       bodyRegion?: string | null;
       movementPattern?: string | null;
+      canonicalLift?: CanonicalLift | null;
       muscleMetadataVersion?: number | null;
     },
   ) {
@@ -332,6 +337,7 @@ export function WorkoutLogger({
           secondaryMuscles: workoutExercise.source_secondary_muscles ?? fallbackMetadata.secondaryMuscles ?? [],
           bodyRegion: workoutExercise.source_body_region ?? fallbackMetadata.bodyRegion ?? null,
           movementPattern: workoutExercise.source_movement_pattern ?? fallbackMetadata.movementPattern ?? null,
+          canonicalLift: toCanonicalLift(workoutExercise.source_canonical_lift) ?? fallbackMetadata.canonicalLift ?? null,
           muscleMetadataVersion:
             workoutExercise.source_muscle_metadata_version ?? fallbackMetadata.muscleMetadataVersion ?? null,
           position: workoutExercise.position,
@@ -361,6 +367,7 @@ export function WorkoutLogger({
     setCustomSecondaryMuscles([]);
     setCustomBodyRegion("");
     setCustomMovementPattern("");
+    setCustomCanonicalLift("");
   }
 
   function closeComposer() {
@@ -440,6 +447,7 @@ export function WorkoutLogger({
             secondaryMuscles: selectedExercise.secondary_muscles ?? [],
             bodyRegion: selectedExercise.body_region ?? null,
             movementPattern: selectedExercise.movement_pattern ?? null,
+            canonicalLift: selectedExercise.canonical_lift ?? null,
             muscleMetadataVersion: selectedExercise.muscle_metadata_version ?? 1,
           });
         }
@@ -488,6 +496,7 @@ export function WorkoutLogger({
               secondaryMuscles: selectedCustom.secondary_muscles ?? [],
               bodyRegion: selectedCustom.body_region ?? null,
               movementPattern: selectedCustom.movement_pattern ?? null,
+              canonicalLift: (selectedCustom as ExerciseRow & { canonical_lift?: CanonicalLift | null }).canonical_lift ?? null,
               muscleMetadataVersion: selectedCustom.muscle_metadata_version ?? 1,
             });
           }
@@ -507,6 +516,7 @@ export function WorkoutLogger({
           secondary_muscles: customSecondaryMuscles,
           body_region: customBodyRegion || undefined,
           movement_pattern: customMovementPattern || undefined,
+          canonical_lift: customCanonicalLift || null,
           workoutExerciseNotes: exerciseNotesDraft,
         });
         if (resultFromCreate.status === "success") {
@@ -517,6 +527,7 @@ export function WorkoutLogger({
               secondaryMuscles: customSecondaryMuscles,
               bodyRegion: customBodyRegion || null,
               movementPattern: customMovementPattern || null,
+              canonicalLift: customCanonicalLift || null,
               muscleMetadataVersion: 1,
             });
           }
@@ -542,6 +553,7 @@ export function WorkoutLogger({
             secondaryMuscles: [],
             bodyRegion: null,
             movementPattern: null,
+            canonicalLift: null,
             muscleMetadataVersion: null,
           });
         }
@@ -1187,6 +1199,21 @@ export function WorkoutLogger({
                                 {MOVEMENT_PATTERNS.map((movementPattern) => (
                                   <option key={movementPattern} value={movementPattern}>
                                     {getMovementPatternLabel(movementPattern)}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="space-y-1 text-xs text-zinc-300">
+                              <span>Canonical lift</span>
+                              <select
+                                value={customCanonicalLift}
+                                onChange={(event) => setCustomCanonicalLift(event.target.value as CanonicalLift | "")}
+                                className="app-input"
+                              >
+                                <option value="">Not canonical</option>
+                                {CANONICAL_LIFTS.map((lift) => (
+                                  <option key={lift} value={lift}>
+                                    {lift.replace("_", " ")}
                                   </option>
                                 ))}
                               </select>

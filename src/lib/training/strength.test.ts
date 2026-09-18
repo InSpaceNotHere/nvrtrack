@@ -37,7 +37,7 @@ function makeExercise(overrides: Partial<WorkoutExerciseRow>): WorkoutExerciseRo
     created_at: "2026-07-20T10:05:00.000Z",
     updated_at: "2026-07-20T10:05:00.000Z",
     ...overrides,
-  };
+  } as WorkoutExerciseRow;
 }
 
 function makeSet(overrides: Partial<WorkoutSetRow>): WorkoutSetRow {
@@ -60,21 +60,24 @@ function makeSet(overrides: Partial<WorkoutSetRow>): WorkoutSetRow {
 }
 
 describe("training strength summary", () => {
-  it("computes live bench/squat/deadlift current totals and 1000 club progress", () => {
+  it("uses canonical lift metadata and excludes similarly named non-canonical variations", () => {
     const workouts = [
       makeWorkout({ id: "w1", workout_date: "2026-07-10" }),
       makeWorkout({ id: "w2", workout_date: "2026-07-11" }),
       makeWorkout({ id: "w3", workout_date: "2026-07-12" }),
+      makeWorkout({ id: "w4", workout_date: "2026-07-13" }),
     ];
     const exercises = [
-      makeExercise({ id: "bench-ex", workout_id: "w1", exercise_name: "Barbell Bench Press" }),
-      makeExercise({ id: "squat-ex", workout_id: "w2", exercise_name: "Back Squat" }),
-      makeExercise({ id: "deadlift-ex", workout_id: "w3", exercise_name: "Conventional Deadlift" }),
-    ];
+      { ...makeExercise({ id: "bench-ex", workout_id: "w1", exercise_name: "Barbell Bench Press" }), source_canonical_lift: "bench_press" },
+      { ...makeExercise({ id: "incline-ex", workout_id: "w2", exercise_name: "Incline Bench Press" }), source_canonical_lift: null },
+      { ...makeExercise({ id: "squat-ex", workout_id: "w3", exercise_name: "Back Squat" }), source_canonical_lift: "squat" },
+      { ...makeExercise({ id: "deadlift-ex", workout_id: "w4", exercise_name: "Conventional Deadlift" }), source_canonical_lift: "deadlift" },
+    ] as WorkoutExerciseRow[];
     const sets = [
-      makeSet({ id: "bench-set", workout_exercise_id: "bench-ex", weight: 235, reps: 3 }),
-      makeSet({ id: "squat-set", workout_exercise_id: "squat-ex", weight: 315, reps: 3 }),
-      makeSet({ id: "deadlift-set", workout_exercise_id: "deadlift-ex", weight: 405, reps: 3 }),
+      makeSet({ id: "bench-set", workout_exercise_id: "bench-ex", weight: 250, reps: 1 }),
+      makeSet({ id: "incline-set", workout_exercise_id: "incline-ex", weight: 315, reps: 1 }),
+      makeSet({ id: "squat-set", workout_exercise_id: "squat-ex", weight: 350, reps: 1 }),
+      makeSet({ id: "deadlift-set", workout_exercise_id: "deadlift-ex", weight: 410, reps: 1 }),
     ];
     const summary = buildStrengthDashboardSummary({
       workouts,
@@ -84,41 +87,137 @@ describe("training strength summary", () => {
       referenceDate: new Date("2026-07-13T00:00:00.000Z"),
     });
 
-    expect(summary.bench.current_estimated_one_rep_max).toBeGreaterThan(250);
-    expect(summary.squat.current_estimated_one_rep_max).toBeGreaterThan(340);
-    expect(summary.deadlift.current_estimated_one_rep_max).toBeGreaterThan(440);
-    expect(summary.total_current).toBeGreaterThan(1000);
+    expect(summary.bench.lifetime_tested_one_rep_max).toBe(250);
+    expect(summary.squat.lifetime_tested_one_rep_max).toBe(350);
+    expect(summary.deadlift.lifetime_tested_one_rep_max).toBe(410);
+    expect(summary.bench.lifetime_tested_one_rep_max).not.toBe(315);
+    expect(summary.total_tested).toBe(1010);
     expect(summary.thousand_club_progress_percent).toBe(100);
   });
 
-  it("marks lifetime PRs and recent PR indicators", () => {
-    const workouts = [
-      makeWorkout({ id: "w1", workout_date: "2026-07-01" }),
-      makeWorkout({ id: "w2", workout_date: "2026-07-15" }),
-      makeWorkout({ id: "w3", workout_date: "2026-07-20" }),
-    ];
+  it("separates tested 1RM from estimated 1RM", () => {
+    const workouts = [makeWorkout({ id: "w1", workout_date: "2026-07-20" })];
     const exercises = [
-      makeExercise({ id: "e1", workout_id: "w1", exercise_name: "Barbell Bench Press" }),
-      makeExercise({ id: "e2", workout_id: "w2", exercise_name: "Barbell Bench Press" }),
-      makeExercise({ id: "e3", workout_id: "w3", exercise_name: "Barbell Bench Press" }),
-    ];
-    const sets = [
-      makeSet({ id: "s1", workout_exercise_id: "e1", weight: 205, reps: 5 }),
-      makeSet({ id: "s2", workout_exercise_id: "e2", weight: 225, reps: 5 }),
-      makeSet({ id: "s3", workout_exercise_id: "e3", weight: 220, reps: 5 }),
-    ];
+      { ...makeExercise({ id: "e1", workout_id: "w1", exercise_name: "Barbell Bench Press" }), source_canonical_lift: "bench_press" },
+    ] as WorkoutExerciseRow[];
+    const sets = [makeSet({ id: "s1", workout_exercise_id: "e1", weight: 225, reps: 5 })];
     const summary = buildStrengthDashboardSummary({
       workouts,
       exercises,
       setsByExerciseId: groupSetsByWorkoutExerciseId(sets),
       displayUnit: "lb",
-      referenceDate: new Date("2026-07-25T00:00:00.000Z"),
+      referenceDate: new Date("2026-07-20T00:00:00.000Z"),
+    });
+
+    expect(summary.bench.lifetime_tested_one_rep_max).toBeNull();
+    expect(summary.bench.lifetime_estimated_one_rep_max).toBe(262.5);
+    expect(summary.total_tested).toBeNull();
+  });
+
+  it("calculates rep PRs by exact rep count and tracks lifetime heaviest weight", () => {
+    const workouts = [
+      makeWorkout({ id: "w1", workout_date: "2026-07-01" }),
+      makeWorkout({ id: "w2", workout_date: "2026-07-08" }),
+    ];
+    const exercises = [
+      { ...makeExercise({ id: "e1", workout_id: "w1", exercise_name: "Barbell Bench Press" }), source_canonical_lift: "bench_press" },
+      { ...makeExercise({ id: "e2", workout_id: "w2", exercise_name: "Barbell Bench Press" }), source_canonical_lift: "bench_press" },
+    ] as WorkoutExerciseRow[];
+    const sets = [
+      makeSet({ id: "s1", workout_exercise_id: "e1", weight: 215, reps: 5 }),
+      makeSet({ id: "s2", workout_exercise_id: "e2", weight: 225, reps: 4 }),
+      makeSet({ id: "s3", workout_exercise_id: "e2", weight: 220, reps: 5 }),
+    ];
+
+    const summary = buildStrengthDashboardSummary({
+      workouts,
+      exercises,
+      setsByExerciseId: groupSetsByWorkoutExerciseId(sets),
+      displayUnit: "lb",
+      referenceDate: new Date("2026-07-08T00:00:00.000Z"),
     });
 
     const benchSnapshot = summary.exercise_snapshots.find((snapshot) => snapshot.exercise_name === "Barbell Bench Press");
-    expect(benchSnapshot).not.toBeUndefined();
-    expect(benchSnapshot?.lifetime_estimated_one_rep_max).toBeGreaterThan(250);
-    expect(benchSnapshot?.has_recent_pr).toBe(true);
-    expect(summary.latest_pr?.exercise_name).toBe("Barbell Bench Press");
+    expect(benchSnapshot?.rep_prs_by_reps["5"]).toBe(220);
+    expect(benchSnapshot?.rep_prs_by_reps["4"]).toBe(225);
+    expect(benchSnapshot?.heaviest_weight).toBe(225);
+  });
+
+  it("applies Epley estimate only within the configured rep limit", () => {
+    const workouts = [makeWorkout({ id: "w1", workout_date: "2026-07-20" })];
+    const exercises = [
+      { ...makeExercise({ id: "e1", workout_id: "w1", exercise_name: "Barbell Bench Press" }), source_canonical_lift: "bench_press" },
+    ] as WorkoutExerciseRow[];
+    const sets = [
+      makeSet({ id: "s1", workout_exercise_id: "e1", weight: 135, reps: 20 }),
+      makeSet({ id: "s2", workout_exercise_id: "e1", weight: 185, reps: 8 }),
+    ];
+
+    const summary = buildStrengthDashboardSummary({
+      workouts,
+      exercises,
+      setsByExerciseId: groupSetsByWorkoutExerciseId(sets),
+      displayUnit: "lb",
+    });
+
+    expect(summary.bench.lifetime_estimated_one_rep_max).toBe(234.33);
+  });
+
+  it("normalizes units before strict tested 1000 LB Club qualification", () => {
+    const workouts = [
+      makeWorkout({ id: "w1", workout_date: "2026-07-10" }),
+      makeWorkout({ id: "w2", workout_date: "2026-07-11" }),
+      makeWorkout({ id: "w3", workout_date: "2026-07-12" }),
+    ];
+    const exercises = [
+      { ...makeExercise({ id: "b1", workout_id: "w1", exercise_name: "Barbell Bench Press" }), source_canonical_lift: "bench_press" },
+      { ...makeExercise({ id: "s1", workout_id: "w2", exercise_name: "Back Squat" }), source_canonical_lift: "squat" },
+      { ...makeExercise({ id: "d1", workout_id: "w3", exercise_name: "Conventional Deadlift" }), source_canonical_lift: "deadlift" },
+    ] as WorkoutExerciseRow[];
+    const sets = [
+      makeSet({ id: "sb", workout_exercise_id: "b1", weight: 120, weight_unit: "kg", reps: 1 }),
+      makeSet({ id: "ss", workout_exercise_id: "s1", weight: 160, weight_unit: "kg", reps: 1 }),
+      makeSet({ id: "sd", workout_exercise_id: "d1", weight: 190, weight_unit: "kg", reps: 1 }),
+    ];
+
+    const summary = buildStrengthDashboardSummary({
+      workouts,
+      exercises,
+      setsByExerciseId: groupSetsByWorkoutExerciseId(sets),
+      displayUnit: "lb",
+    });
+
+    expect(summary.total_tested).toBe(1036.17);
+    expect(summary.thousand_club_progress_percent).toBe(100);
+  });
+
+  it("requires all three canonical tested lifts and preserves ambiguous historical exercises as unclassified", () => {
+    const workouts = [
+      makeWorkout({ id: "w1", workout_date: "2026-07-10" }),
+      makeWorkout({ id: "w2", workout_date: "2026-07-11" }),
+      makeWorkout({ id: "w3", workout_date: "2026-07-12" }),
+    ];
+    const exercises = [
+      { ...makeExercise({ id: "bench", workout_id: "w1", exercise_name: "Barbell Bench Press" }), source_canonical_lift: "bench_press" },
+      { ...makeExercise({ id: "squat", workout_id: "w2", exercise_name: "Back Squat" }), source_canonical_lift: "squat" },
+      { ...makeExercise({ id: "ambiguous", workout_id: "w3", exercise_name: "Bench Press" }), source_canonical_lift: null },
+    ] as WorkoutExerciseRow[];
+    const sets = [
+      makeSet({ id: "sb", workout_exercise_id: "bench", weight: 245, reps: 1 }),
+      makeSet({ id: "ss", workout_exercise_id: "squat", weight: 335, reps: 1 }),
+      makeSet({ id: "sa", workout_exercise_id: "ambiguous", weight: 255, reps: 1 }),
+    ];
+
+    const summary = buildStrengthDashboardSummary({
+      workouts,
+      exercises,
+      setsByExerciseId: groupSetsByWorkoutExerciseId(sets),
+      displayUnit: "lb",
+    });
+
+    expect(summary.total_tested).toBeNull();
+    expect(summary.deadlift.lifetime_tested_one_rep_max).toBeNull();
+    const ambiguousSnapshot = summary.exercise_snapshots.find((snapshot) => snapshot.exercise_name === "Bench Press");
+    expect(ambiguousSnapshot?.canonical_lift).toBeNull();
   });
 });

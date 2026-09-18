@@ -108,30 +108,32 @@ function ProgressOverview({
         <Card title="Live Strength System">
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Current Bench</p>
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Bench (Est. 1RM)</p>
               <p className="mt-1 text-xl font-semibold text-white">
                 {strengthSummary.bench.current_estimated_one_rep_max?.toFixed(1) ?? "--"} {displayUnit}
               </p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Current Squat</p>
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Squat (Est. 1RM)</p>
               <p className="mt-1 text-xl font-semibold text-white">
                 {strengthSummary.squat.current_estimated_one_rep_max?.toFixed(1) ?? "--"} {displayUnit}
               </p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Current Deadlift</p>
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Deadlift (Est. 1RM)</p>
               <p className="mt-1 text-xl font-semibold text-white">
                 {strengthSummary.deadlift.current_estimated_one_rep_max?.toFixed(1) ?? "--"} {displayUnit}
               </p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Total</p>
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Tested Total</p>
               <p className="mt-1 text-xl font-semibold text-white">
-                {strengthSummary.total_current?.toFixed(1) ?? "--"} {displayUnit}
+                {strengthSummary.total_tested?.toFixed(1) ?? "--"} {displayUnit}
               </p>
               <p className="text-[11px] text-zinc-500">
-                1000 LB Club {strengthSummary.thousand_club_progress_percent?.toFixed(0) ?? 0}%
+                {strengthSummary.thousand_club_progress_percent !== null
+                  ? `1000 LB Club ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`
+                  : "Need tested bench, squat, and deadlift 1RM"}
               </p>
             </div>
           </div>
@@ -161,7 +163,10 @@ function ProgressOverview({
                   <p className="mt-1 text-[11px] text-zinc-400">
                     1RM {snapshot.current_estimated_one_rep_max?.toFixed(1) ?? "--"} • Lifetime{" "}
                     {snapshot.lifetime_estimated_one_rep_max?.toFixed(1) ?? "--"} • Heaviest{" "}
-                    {snapshot.heaviest_weight?.toFixed(1) ?? "--"} • Rep PR {snapshot.rep_pr ?? "--"}
+                    {snapshot.heaviest_weight?.toFixed(1) ?? "--"} • Best Rep PR{" "}
+                    {snapshot.rep_pr !== null && snapshot.rep_pr_reps !== null
+                      ? `${snapshot.rep_pr.toFixed(1)} x ${snapshot.rep_pr_reps}`
+                      : "--"}
                   </p>
                   <p className="text-[11px] text-zinc-500">Total volume: {snapshot.total_volume?.toFixed(1) ?? "--"} {displayUnit}</p>
                 </li>
