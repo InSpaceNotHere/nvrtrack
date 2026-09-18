@@ -11,9 +11,9 @@ function formatValue(value: number): string {
 
 export function MacroSummary({ macros }: MacroSummaryProps) {
   return (
-    <ul className="space-y-3">
+    <ul className="space-y-2.5">
       {macros.map((macro) => (
-        <li key={macro.name} className="space-y-1.5">
+        <li key={macro.name} className="space-y-1.5 rounded-[var(--ds-radius-md)] border border-white/10 bg-black/20 p-2.5">
           <div className="flex items-center justify-between text-sm">
             <span className="text-zinc-400">{macro.name}</span>
             {macro.goal === null ? (

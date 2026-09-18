@@ -41,13 +41,13 @@ export function WeightSummary({
     <Card title="Body Weight">
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.1rem]">
+          <p className="ds-metric text-white sm:text-[2.1rem]">
             {currentWeight.toFixed(1)} <span className="text-lg text-zinc-300">{unit}</span>
           </p>
           <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-zinc-400">{currentChange}</p>
         </div>
-        <div>
-          <p className="text-xl font-semibold text-white">
+        <div className="rounded-[var(--ds-radius-md)] border border-white/10 bg-black/20 p-2.5 sm:p-3">
+          <p className="text-lg font-semibold text-white sm:text-xl">
             {sevenDayAverage.toFixed(1)} <span className="text-sm text-zinc-300">{unit} avg</span>
           </p>
           <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-zinc-400">{averageChange}</p>
