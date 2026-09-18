@@ -7,6 +7,7 @@ import { CalorieRing } from "@/components/ui/calorie-ring";
 import { Chip } from "@/components/ui/chip";
 import { MetricValue } from "@/components/ui/metric-value";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { StateChip } from "@/components/ui/state-chip";
 import { WeightLogManager } from "@/components/weight/weight-log-manager";
 import { getMyFoodEntriesForDate, getMyRecentFoodEntries } from "@/lib/data/nutrition";
 import { getMyProfile } from "@/lib/data/profile";
@@ -134,6 +135,7 @@ export default async function HomePage() {
   let workoutCardActionHref = "/training/start";
   let workoutCardExercises: number | null = null;
   let workoutCardSets: number | null = null;
+  let workoutCardState: "active" | "completed" | "planned" | "neutral" = "planned";
 
   if (workoutCardTarget) {
     const workoutExercisesResult = await getMyWorkoutExercises(workoutCardTarget.id);
@@ -151,11 +153,13 @@ export default async function HomePage() {
     if (workoutCardTarget.completed_at) {
       workoutCardName = workoutCardTarget.name;
       workoutCardStatus = "Completed today";
+      workoutCardState = "completed";
       workoutCardActionLabel = "View Workout";
       workoutCardActionHref = `/training/workouts/${workoutCardTarget.id}?view=summary`;
     } else {
       workoutCardName = workoutCardTarget.name;
       workoutCardStatus = "Workout in progress";
+      workoutCardState = "active";
       workoutCardActionLabel = "Continue Workout";
       workoutCardActionHref = `/training/workouts/${workoutCardTarget.id}`;
     }
@@ -240,6 +244,7 @@ export default async function HomePage() {
         <WorkoutCard
           workoutName={workoutCardName}
           statusText={workoutCardStatus}
+          statusState={workoutCardState}
           exercises={workoutCardExercises}
           totalSets={workoutCardSets}
           actionLabel={workoutCardActionLabel}
@@ -315,8 +320,8 @@ export default async function HomePage() {
         />
         <Card title="Strength Dashboard" variant="secondary">
           <div className="mb-2 flex flex-wrap gap-1.5">
-            <Chip tone="accent">Estimated lift tiles</Chip>
-            <Chip>Canonical total only</Chip>
+            <StateChip state="estimated" label="Estimated lift tiles" />
+            <StateChip state="tested" label="Canonical tested total only" />
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
@@ -334,11 +339,16 @@ export default async function HomePage() {
             <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
               <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Tested Total</p>
               <MetricValue value={strengthSummary.total_tested?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
-              <p className="text-[11px] text-zinc-500">
-                {strengthSummary.thousand_club_progress_percent !== null
-                  ? `1000 LB Club ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`
-                  : "Need tested bench, squat, and deadlift 1RM"}
-              </p>
+              {strengthSummary.thousand_club_progress_percent === null ? (
+                <p className="text-[11px] text-zinc-500">Need tested bench, squat, and deadlift 1RM</p>
+              ) : null}
+              <div className="mt-1">
+                {strengthSummary.thousand_club_progress_percent !== null ? (
+                  <Chip tone="success">{`1000 LB Club ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`}</Chip>
+                ) : (
+                  <StateChip state="missing" label="1000 LB Club requirements missing" />
+                )}
+              </div>
             </div>
           </div>
           {strengthSummary.latest_pr ? (

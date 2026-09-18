@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/components/ui/cn";
 
 interface ToastProps {
-  tone?: "success" | "error" | "neutral";
+  tone?: "success" | "error" | "neutral" | "warning" | "info";
   children: ReactNode;
   role?: "status" | "alert";
   className?: string;
@@ -12,6 +12,8 @@ interface ToastProps {
 const toneClass = {
   success: "border-accent/35 bg-accent/10 text-zinc-100",
   error: "border-rose-400/35 bg-rose-500/10 text-rose-200",
+  warning: "border-amber-400/35 bg-amber-500/10 text-amber-100",
+  info: "border-sky-400/35 bg-sky-500/10 text-sky-100",
   neutral: "border-white/15 bg-black/25 text-zinc-100",
 } as const;
 

@@ -3,10 +3,12 @@ import { Dumbbell } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { MetricValue } from "@/components/ui/metric-value";
+import { StateChip } from "@/components/ui/state-chip";
 
 interface WorkoutCardProps {
   workoutName: string;
   statusText: string;
+  statusState?: "active" | "completed" | "planned" | "neutral";
   exercises: number | null;
   totalSets: number | null;
   actionLabel?: string;
@@ -16,6 +18,7 @@ interface WorkoutCardProps {
 export function WorkoutCard({
   workoutName,
   statusText,
+  statusState = "neutral",
   exercises,
   totalSets,
   actionLabel,
@@ -29,7 +32,10 @@ export function WorkoutCard({
         </div>
         <div>
           <p className="text-xl font-semibold leading-tight text-white">{workoutName}</p>
-          <p className="mt-1 text-sm text-zinc-400">{statusText}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <StateChip state={statusState} />
+            <p className="text-sm text-zinc-400">{statusText}</p>
+          </div>
           {exercises !== null && totalSets !== null ? (
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
               <MetricValue value={String(exercises)} unit="exercises" tone="secondary" className="text-base" />

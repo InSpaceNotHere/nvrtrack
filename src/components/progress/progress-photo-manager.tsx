@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { StateChip } from "@/components/ui/state-chip";
 import { Toast } from "@/components/ui/toast";
 import { Textarea } from "@/components/ui/textarea";
 import type { ProgressPhotoSignedRow } from "@/lib/data/progress-photos";
@@ -215,7 +216,7 @@ export function ProgressPhotoManager({ initialRows, initialNextOffset, available
                 <div className="mt-2 grid gap-2 sm:grid-cols-3">
                   {rows.map((photo) => (
                     <div key={photo.id} className="space-y-1 rounded-lg border border-white/10 bg-black/25 p-2">
-                      <p className="text-[11px] uppercase tracking-[0.08em] text-zinc-400">{photo.view}</p>
+                      <StateChip state="neutral" label={photo.view} className="text-[10px]" />
                       <div className="relative h-36 overflow-hidden rounded-md border border-white/10 bg-black/40">
                         {photo.signed_url ? (
                           <img
@@ -240,7 +241,10 @@ export function ProgressPhotoManager({ initialRows, initialNextOffset, available
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-zinc-500">No photos saved yet.</p>
+          <div className="space-y-1">
+            <StateChip state="missing" label="No photos saved" />
+            <p className="text-sm text-zinc-500">No photos saved yet.</p>
+          </div>
         )}
         {nextOffset !== null ? (
           <Button type="button" onClick={handleLoadMore} disabled={isPending} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
@@ -327,7 +331,10 @@ export function ProgressPhotoManager({ initialRows, initialNextOffset, available
             </Button>
           </>
         ) : (
-          <p className="text-xs text-zinc-500">Save at least one check-in date to compare.</p>
+          <div className="space-y-1">
+            <StateChip state="missing" label="Comparison unavailable" />
+            <p className="text-xs text-zinc-500">Save at least one check-in date to compare.</p>
+          </div>
         )}
       </div>
 

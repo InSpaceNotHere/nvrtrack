@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { StateChip } from "@/components/ui/state-chip";
 import { Toast } from "@/components/ui/toast";
 import { Textarea } from "@/components/ui/textarea";
 import type { BodyMeasurementEntryRow } from "@/lib/data/body-measurements";
@@ -228,7 +229,10 @@ export function BodyMeasurementManager({ entries, todayDate }: BodyMeasurementMa
             </div>
           </>
         ) : (
-          <p className="text-xs text-zinc-500">No data for this field yet.</p>
+          <div className="space-y-1">
+            <StateChip state="missing" label="Trend unavailable" />
+            <p className="text-xs text-zinc-500">No data for this field yet.</p>
+          </div>
         )}
       </div>
 
@@ -257,7 +261,10 @@ export function BodyMeasurementManager({ entries, todayDate }: BodyMeasurementMa
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-zinc-500">No measurement history yet.</p>
+          <div className="space-y-1">
+            <StateChip state="missing" label="No measurement history" />
+            <p className="text-sm text-zinc-500">No measurement history yet.</p>
+          </div>
         )}
       </div>
 

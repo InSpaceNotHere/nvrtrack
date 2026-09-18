@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { MetricValue } from "@/components/ui/metric-value";
 import { PageHeader } from "@/components/ui/page-header";
+import { StateChip } from "@/components/ui/state-chip";
 import { TrendSparkline } from "@/components/ui/trend-sparkline";
 import { WeightLogManager } from "@/components/weight/weight-log-manager";
 import { WeightChart } from "@/components/weight/weight-chart";
@@ -99,8 +100,8 @@ function ProgressOverview({
       <section className="grid gap-3 md:grid-cols-[1.3fr_1fr]">
         <Card title="Live Strength System" variant="secondary">
           <div className="mb-2 flex flex-wrap gap-1.5">
-            <Chip tone="accent">Estimated 1RM</Chip>
-            <Chip>Tested Total tracked separately</Chip>
+            <StateChip state="estimated" label="Estimated 1RM" />
+            <StateChip state="tested" label="Tested total tracked separately" />
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
@@ -122,7 +123,7 @@ function ProgressOverview({
                 {strengthSummary.thousand_club_progress_percent !== null ? (
                   <Chip tone="success">{`1000 LB Club ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`}</Chip>
                 ) : (
-                  <Chip tone="default">1000 LB Club requires tested bench, squat, and deadlift</Chip>
+                  <StateChip state="missing" label="Need tested bench, squat, and deadlift" />
                 )}
               </div>
               <p className="text-[11px] text-zinc-500">
@@ -150,9 +151,7 @@ function ProgressOverview({
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium text-zinc-100">{snapshot.exercise_name}</p>
                     {snapshot.has_recent_pr ? (
-                      <span className="rounded-full border border-[#87a3ff]/60 bg-[#87a3ff]/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-[#bfd0ff]">
-                        Recent PR
-                      </span>
+                      <StateChip state="pr" label="Recent PR" className="text-[10px]" />
                     ) : null}
                   </div>
                   <p className="mt-1 text-[11px] text-zinc-400">

@@ -5,6 +5,7 @@ import { WorkoutPlanner } from "@/components/training/workout-planner";
 import { Card } from "@/components/ui/card";
 import { MetricValue } from "@/components/ui/metric-value";
 import { PageHeader } from "@/components/ui/page-header";
+import { StateChip } from "@/components/ui/state-chip";
 import { getExerciseCatalog } from "@/lib/data/exercise-catalog";
 import { getMyExercises } from "@/lib/data/exercises";
 import { getMyProfile } from "@/lib/data/profile";
@@ -234,9 +235,12 @@ export default async function TrainingPage() {
             <Card title="Continue Active Workout" variant="primary">
               <div className="rounded-xl border border-white/10 bg-black/20 p-3">
                 <p className="text-base font-semibold text-white">{activeWorkout.name}</p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  <span className="text-zinc-400">Date:</span> {formatDate(activeWorkout.workout_date)}
-                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <StateChip state="active" />
+                  <p className="text-xs text-zinc-500">
+                    <span className="text-zinc-400">Date:</span> {formatDate(activeWorkout.workout_date)}
+                  </p>
+                </div>
                 <Link
                   href={`/training/workouts/${activeWorkout.id}`}
                   className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
@@ -254,6 +258,9 @@ export default async function TrainingPage() {
                 <p className="text-xs text-zinc-500">
                   {activeWorkout ? "Most recent active workout" : "Most recent workout"} • {previewWorkoutExercises.length} exercises
                 </p>
+                <div>
+                  <StateChip state={activeWorkout ? "active" : "planned"} label={activeWorkout ? "In progress focus" : "Recent focus"} />
+                </div>
                 <MuscleMap aggregation={previewWorkoutTargeting} testId="training-dashboard-muscle-map" />
                 <p className="text-xs text-zinc-400">
                   {previewFocusLabel ?? "Primary focus unavailable"}.
@@ -285,9 +292,10 @@ export default async function TrainingPage() {
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-semibold text-zinc-100">{workout.name}</p>
-                        <p className="mt-0.5 text-xs text-zinc-500">
-                          {formatDate(workout.workout_date)} • {workout.completed_at ? "Completed" : "In progress"}
-                        </p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                          <StateChip state={workout.completed_at ? "completed" : "active"} label={workout.completed_at ? "Completed" : "In progress"} />
+                          <p className="text-xs text-zinc-500">{formatDate(workout.workout_date)}</p>
+                        </div>
                         <p className="mt-1 text-xs text-zinc-500">
                           {summary.exerciseCount} exercises • {summary.completedSetCount}/{summary.totalSetCount} sets complete
                         </p>

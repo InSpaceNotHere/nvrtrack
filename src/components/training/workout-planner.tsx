@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { StateChip } from "@/components/ui/state-chip";
 import { Toast } from "@/components/ui/toast";
 import type { PlannerDayPlan, PlannerTemplate, PlannerTemplateExercise } from "@/lib/training/planner";
 
@@ -53,6 +54,25 @@ const WEEKDAYS: Array<{ value: PlannerDayPlan["weekday"]; label: string }> = [
 
 function formatStatus(status: PlannerDayPlan["status"]): string {
   return status.replaceAll("_", " ").replace(/^\w/, (value) => value.toUpperCase());
+}
+
+function toPlannerState(status: PlannerDayPlan["status"]): "planned" | "completed" | "skipped" | "moved" | "rest" | "missing" {
+  if (status === "scheduled") {
+    return "planned";
+  }
+  if (status === "completed") {
+    return "completed";
+  }
+  if (status === "skipped") {
+    return "skipped";
+  }
+  if (status === "moved") {
+    return "moved";
+  }
+  if (status === "rest") {
+    return "rest";
+  }
+  return "missing";
 }
 
 function formatTemplateType(type: string | null): string {
@@ -261,10 +281,12 @@ export function WorkoutPlanner({
           <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
             <p className="text-sm font-semibold text-zinc-100">Today&apos;s Workout</p>
             <p className="text-base font-semibold text-white">{todayPlan.template_name ?? "Rest / Unscheduled"}</p>
-            <p className="text-xs text-zinc-400">
-              {formatStatus(todayPlan.status)} • {todayPlan.exercise_count} exercises •{" "}
-              {todayPlan.estimated_duration_minutes ?? 0} min
-            </p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <StateChip state={toPlannerState(todayPlan.status)} label={formatStatus(todayPlan.status)} />
+              <p className="text-xs text-zinc-400">
+                {todayPlan.exercise_count} exercises • {todayPlan.estimated_duration_minutes ?? 0} min
+              </p>
+            </div>
             {todayPlan.template_id ? (
               <>
                 <MuscleMap aggregation={todayPlan.muscle_targeting} testId="today-workout-muscle-map" />
@@ -321,9 +343,12 @@ export function WorkoutPlanner({
                   <p className="text-sm font-semibold text-zinc-100">
                     {plan.weekday_label} • {plan.date}
                   </p>
-                  <p className="text-xs text-zinc-500">
-                    {plan.template_name ?? "No template"} • {formatStatus(plan.status)} • {plan.exercise_count} exercises
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <StateChip state={toPlannerState(plan.status)} label={formatStatus(plan.status)} />
+                    <p className="text-xs text-zinc-500">
+                      {plan.template_name ?? "No template"} • {plan.exercise_count} exercises
+                    </p>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {plan.status === "scheduled" ? (

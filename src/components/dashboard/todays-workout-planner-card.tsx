@@ -8,6 +8,7 @@ import { MuscleMap } from "@/components/training/muscle-map";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MetricValue } from "@/components/ui/metric-value";
+import { StateChip } from "@/components/ui/state-chip";
 import { Toast } from "@/components/ui/toast";
 import type { PlannerDayPlan, PlannerTemplateExercise } from "@/lib/training/planner";
 
@@ -65,11 +66,10 @@ export function TodaysWorkoutPlannerCard({ todayPlan, templateExercises }: Today
       <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
         <p className="text-base font-semibold text-white">{todayPlan.template_name}</p>
         <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+          <StateChip state={todayPlan.status === "completed" ? "completed" : todayPlan.status === "scheduled" ? "planned" : "neutral"} label={todayPlan.status} />
           <MetricValue value={String(todayPlan.exercise_count)} unit="exercises" tone="secondary" className="text-base" />
           <span>•</span>
           <MetricValue value={String(todayPlan.estimated_duration_minutes ?? 0)} unit="min" tone="secondary" className="text-base" />
-          <span>•</span>
-          <span className="text-zinc-400">{todayPlan.status}</span>
         </div>
         <MuscleMap aggregation={todayPlan.muscle_targeting} testId="dashboard-today-muscle-map" />
         <Button type="button" disabled={isPending} onClick={quickStart} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">

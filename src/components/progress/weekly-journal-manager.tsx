@@ -7,6 +7,7 @@ import { deleteWeeklyJournalAction, upsertWeeklyJournalAction } from "@/app/(pro
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
+import { StateChip } from "@/components/ui/state-chip";
 import { Toast } from "@/components/ui/toast";
 import { Textarea } from "@/components/ui/textarea";
 import type { WeeklyJournalEntryRow } from "@/lib/data/weekly-journal";
@@ -141,7 +142,10 @@ export function WeeklyJournalManager({ entries, initialWeekStart }: WeeklyJourna
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-zinc-500">No weekly journal entries yet.</p>
+          <div className="space-y-1">
+            <StateChip state="missing" label="No weekly journal entries" />
+            <p className="text-sm text-zinc-500">No weekly journal entries yet.</p>
+          </div>
         )}
       </div>
 

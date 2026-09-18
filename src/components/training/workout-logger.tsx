@@ -26,6 +26,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { MetricValue } from "@/components/ui/metric-value";
 import { Select } from "@/components/ui/select";
+import { StateChip } from "@/components/ui/state-chip";
 import { Toast } from "@/components/ui/toast";
 import { Textarea } from "@/components/ui/textarea";
 import type { ExerciseRow } from "@/lib/data/auth-context";
@@ -158,6 +159,16 @@ function titleCase(value: string): string {
     .filter(Boolean)
     .map((part) => part[0].toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function toSetState(setType: string, isCompleted: boolean): "completed" | "planned" | "warning" {
+  if (isCompleted) {
+    return "completed";
+  }
+  if (setType === "warmup") {
+    return "warning";
+  }
+  return "planned";
 }
 
 export function WorkoutLogger({
@@ -803,6 +814,9 @@ export function WorkoutLogger({
               {isCompletedWorkout ? "Workout Summary" : "Active Workout"}
             </p>
             <h1 className="mt-1 text-lg font-semibold text-white">{workout.name}</h1>
+            <div className="mt-1">
+              <StateChip state={isCompletedWorkout ? "completed" : "active"} />
+            </div>
             <p className="mt-0.5 text-xs text-zinc-500">
               {formatDate(workout.workoutDate)} • Started {formatDateTime(workout.startedAt, profileTimeZone)}
             </p>
@@ -858,12 +872,14 @@ export function WorkoutLogger({
                 Exercises with metadata: {workoutTargeting.exercises_with_metadata}/{workoutTargeting.exercise_count}
               </p>
               {workoutTargeting.metadata_coverage === "partial" ? (
-                <p className="mt-1 text-xs text-amber-200">
-                  Partial coverage: some exercises in this workout do not have muscle metadata.
-                </p>
+                <div className="mt-1">
+                  <StateChip state="warning" label="Partial metadata coverage" />
+                </div>
               ) : null}
               {workoutTargeting.metadata_coverage === "none" ? (
-                <p className="mt-1 text-xs text-zinc-500">Muscle targeting unavailable.</p>
+                <div className="mt-1">
+                  <StateChip state="missing" label="Muscle targeting unavailable" />
+                </div>
               ) : null}
               {workoutTargeting.ranked_muscles.length ? (
                 <ol data-testid="workout-muscle-ranked-list" className="mt-2 space-y-1 text-xs text-zinc-300">
@@ -1273,7 +1289,9 @@ export function WorkoutLogger({
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <h2 className="text-base font-semibold text-white">{exercise.exerciseName}</h2>
-                    <p className="mt-0.5 text-xs text-zinc-500">{sourceLabel}</p>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                      <StateChip state="neutral" label={sourceLabel} />
+                    </div>
                     <p className="mt-0.5 text-xs text-zinc-500">Primary: {formatMuscleList(exercise.primaryMuscles)}</p>
                     <p className="mt-0.5 text-xs text-zinc-500">Secondary: {formatMuscleList(exercise.secondaryMuscles)}</p>
                     <p className="mt-0.5 text-xs text-zinc-500">
@@ -1480,12 +1498,17 @@ export function WorkoutLogger({
 
                           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
                             <span>Set #{set.position + 1}</span>
+                            <StateChip
+                              state={toSetState(draft.set_type, draft.is_completed)}
+                              label={draft.is_completed ? "Completed set" : draft.set_type === "warmup" ? "Warmup set" : "Planned set"}
+                              className="text-[10px]"
+                            />
                             {estimated ? (
                               <span>
                                 Est. 1RM {estimated.estimatedOneRepMax.toLocaleString()} {displayUnit}
                               </span>
                             ) : null}
-                            {showPr ? <span className="text-accent">Potential estimated PR</span> : null}
+                            {showPr ? <StateChip state="pr" label="Potential estimated PR" className="text-[10px]" /> : null}
                           </div>
 
                           {!isCompletedWorkout ? (

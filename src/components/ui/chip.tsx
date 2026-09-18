@@ -4,13 +4,15 @@ import { cn } from "@/components/ui/cn";
 
 interface ChipProps {
   children: ReactNode;
-  tone?: "default" | "accent" | "danger" | "success";
+  tone?: "default" | "accent" | "danger" | "success" | "warning" | "info";
   className?: string;
 }
 
 const toneClass = {
   default: "border-white/12 bg-black/20 text-zinc-300",
   accent: "border-[#87a3ff]/35 bg-[#87a3ff]/14 text-[#d0dcff]",
+  info: "border-sky-400/35 bg-sky-500/10 text-sky-200",
+  warning: "border-amber-400/35 bg-amber-500/10 text-amber-100",
   danger: "border-rose-400/30 bg-rose-500/10 text-rose-200",
   success: "border-emerald-400/35 bg-emerald-500/10 text-emerald-200",
 } as const;

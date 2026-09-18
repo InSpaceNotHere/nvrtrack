@@ -28,6 +28,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Select } from "@/components/ui/select";
+import { StateChip } from "@/components/ui/state-chip";
 import { Toast } from "@/components/ui/toast";
 import type { FoodCatalogRow, FoodEntryRow, FoodRow } from "@/lib/data/auth-context";
 import {
@@ -814,6 +815,9 @@ export function NutritionLogView({
 
       {dataErrorMessage ? (
         <Card>
+          <div className="mb-2">
+            <StateChip state="error" label="Nutrition sync issue" />
+          </div>
           <p className="text-sm text-rose-200">Nutrition data is temporarily unavailable.</p>
           <p className="mt-1 text-xs text-zinc-500">{dataErrorMessage}</p>
         </Card>
@@ -1186,6 +1190,9 @@ export function NutritionLogView({
                         ) : null}
                         {usdaDetail.warnings.length ? (
                           <div className="rounded-lg border border-amber-400/35 bg-amber-500/10 p-2 text-xs text-amber-100">
+                            <div className="mb-1">
+                              <StateChip state="warning" label="USDA warning" />
+                            </div>
                             {usdaDetail.warnings.map((warning) => (
                               <p key={warning}>{warning}</p>
                             ))}
@@ -1494,6 +1501,9 @@ export function NutritionLogView({
 
         {!entries.length ? (
           <div className="rounded-xl border border-dashed border-white/15 bg-black/20 p-4">
+            <div className="mb-2">
+              <StateChip state="missing" label="No entries logged" />
+            </div>
             <p className="text-sm font-medium text-zinc-200">No food entries logged for this date.</p>
             <p className="mt-1 text-sm text-zinc-500">Use Add Food to log your first meal on this day.</p>
             <Button type="button" onClick={() => openComposer("breakfast")} variant="primary" size="sm" className="mt-3 h-9 rounded-lg px-3 text-xs">

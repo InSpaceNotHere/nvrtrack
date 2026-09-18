@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { deleteWorkoutAction } from "@/app/(protected)/actions/training-actions";
+import { StateChip } from "@/components/ui/state-chip";
+import { Toast } from "@/components/ui/toast";
 import { formatCalendarDate } from "@/lib/timezone";
 
 export interface WorkoutHistoryItem {
@@ -89,10 +91,12 @@ export function TrainingHistoryView({ items, displayUnit, loadErrorMessage }: Tr
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-white">{item.name}</p>
                 <p className="mt-0.5 text-xs text-zinc-500">{formatDate(item.workoutDate)}</p>
-                <p className="mt-1 text-xs text-zinc-400">
-                  {item.isCompleted ? "Completed" : "In progress"} • {item.exerciseCount} exercises •{" "}
-                  {item.completedSetCount}/{item.totalSetCount} sets completed
-                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+                  <StateChip state={item.isCompleted ? "completed" : "active"} label={item.isCompleted ? "Completed" : "In progress"} />
+                  <span>
+                    {item.exerciseCount} exercises • {item.completedSetCount}/{item.totalSetCount} sets completed
+                  </span>
+                </div>
                 <p className="mt-0.5 text-xs text-zinc-500">
                   Volume {formatVolume(item.totalVolume, displayUnit)}
                   {item.durationMinutes !== null ? ` • ${item.durationMinutes} min` : ""}
@@ -140,17 +144,9 @@ export function TrainingHistoryView({ items, displayUnit, loadErrorMessage }: Tr
       </ul>
 
       {message ? (
-        <p
-          role={tone === "error" ? "alert" : "status"}
-          aria-live="polite"
-          className={`rounded-lg px-3 py-2 text-sm ${
-            tone === "error"
-              ? "border border-rose-400/35 bg-rose-500/10 text-rose-200"
-              : "border border-accent/40 bg-accent/10 text-zinc-100"
-          }`}
-        >
+        <Toast tone={tone === "error" ? "error" : "success"} role={tone === "error" ? "alert" : "status"}>
           {message}
-        </p>
+        </Toast>
       ) : null}
     </div>
   );
