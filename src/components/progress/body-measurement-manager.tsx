@@ -12,6 +12,7 @@ import {
   normalizeMeasurementValues,
   type MeasurementTrendPoint,
 } from "@/lib/progress/measurements";
+import { formatCalendarDate } from "@/lib/timezone";
 
 interface BodyMeasurementManagerProps {
   entries: BodyMeasurementEntryRow[];
@@ -25,9 +26,7 @@ interface CustomMeasurementInput {
 }
 
 function formatDate(date: string): string {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(
-    new Date(`${date}T00:00:00.000Z`),
-  );
+  return formatCalendarDate(date);
 }
 
 function formatFieldLabel(fieldId: string): string {

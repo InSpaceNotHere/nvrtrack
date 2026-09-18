@@ -13,13 +13,13 @@ import { getTodayDateString } from "@/lib/nutrition/date";
 import type { WeightEntryMetricPoint } from "@/lib/weight/metrics";
 import { formatWeight } from "@/lib/weight/metrics";
 import { roundWeight, type WeightUnit } from "@/lib/weight/conversions";
+import { formatCalendarDate } from "@/lib/timezone";
 
 interface WeightLogManagerProps {
   entries: WeightEntryMetricPoint[];
   displayUnit: WeightUnit;
   showHistory?: boolean;
   initialEntryDate?: string;
-  timeZone?: string;
 }
 
 interface FormState {
@@ -33,10 +33,8 @@ function toFormState(unit: WeightUnit, entryDate: string): FormState {
   return { weight: "", unit, entryDate, note: "" };
 }
 
-function formatEntryDate(date: string, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone }).format(
-    new Date(`${date}T00:00:00.000Z`),
-  );
+function formatEntryDate(date: string): string {
+  return formatCalendarDate(date);
 }
 
 function formatRowDelta(delta: number | null, unit: WeightUnit): string {
@@ -57,7 +55,6 @@ export function WeightLogManager({
   displayUnit,
   showHistory = true,
   initialEntryDate,
-  timeZone = "UTC",
 }: WeightLogManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -335,7 +332,7 @@ export function WeightLogManager({
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="text-base font-semibold text-white">{formatWeight(entry.weight, displayUnit)}</p>
-                    <p className="text-xs text-zinc-400">{formatEntryDate(entry.entryDate, timeZone)}</p>
+                    <p className="text-xs text-zinc-400">{formatEntryDate(entry.entryDate)}</p>
                     {entry.note ? <p className="mt-1 text-xs text-zinc-500">{entry.note.slice(0, 100)}</p> : null}
                   </div>
                   <div className="text-right">
@@ -354,7 +351,7 @@ export function WeightLogManager({
                     type="button"
                     onClick={() => startEdit(entry)}
                     className="rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                    aria-label={`Edit weight entry from ${formatEntryDate(entry.entryDate, timeZone)}`}
+                    aria-label={`Edit weight entry from ${formatEntryDate(entry.entryDate)}`}
                   >
                     Edit
                   </button>
@@ -365,7 +362,7 @@ export function WeightLogManager({
                         onClick={() => handleDelete(entry.id)}
                         disabled={isPending}
                         className="rounded-md border border-rose-400/45 px-2.5 py-1 text-xs font-medium text-rose-200 transition-colors hover:bg-rose-500/15"
-                        aria-label={`Confirm delete weight entry from ${formatEntryDate(entry.entryDate, timeZone)}`}
+                        aria-label={`Confirm delete weight entry from ${formatEntryDate(entry.entryDate)}`}
                       >
                         {isPending ? "Deleting..." : "Confirm Delete"}
                       </button>
@@ -382,7 +379,7 @@ export function WeightLogManager({
                       type="button"
                       onClick={() => setConfirmDeleteId(entry.id)}
                       className="rounded-md border border-rose-400/35 px-2.5 py-1 text-xs font-medium text-rose-200 transition-colors hover:bg-rose-500/15"
-                      aria-label={`Delete weight entry from ${formatEntryDate(entry.entryDate, timeZone)}`}
+                      aria-label={`Delete weight entry from ${formatEntryDate(entry.entryDate)}`}
                     >
                       Delete
                     </button>

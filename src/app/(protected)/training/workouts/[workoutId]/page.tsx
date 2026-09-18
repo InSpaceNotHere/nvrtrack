@@ -15,6 +15,7 @@ import {
 import { coerceMuscleIdArray, mapLegacyMuscleGroupToPrimaryMuscles } from "@/lib/training/muscles";
 import { toCanonicalLift } from "@/lib/training/canonical-lifts";
 import { buildPreviousPerformanceMap, buildWorkoutSummaryStats, groupSetsByWorkoutExerciseId } from "@/lib/training/session";
+import { normalizeTimeZone } from "@/lib/timezone";
 import type { TrainingWeightUnit } from "@/lib/training/types";
 
 interface WorkoutDetailPageProps {
@@ -54,6 +55,7 @@ export default async function WorkoutDetailPage({ params, searchParams }: Workou
   const currentExerciseIds = currentExercises.map((exercise) => exercise.id);
   const currentSetsResult = await getWorkoutSetsForWorkoutExerciseIds(currentExerciseIds);
   const currentSetsByExerciseId = groupSetsByWorkoutExerciseId(currentSetsResult.data ?? []);
+  const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
 
   const historicalWorkouts = (allWorkoutsResult.data ?? []).filter(
     (entry) => entry.id !== workoutId && entry.completed_at !== null,
@@ -168,6 +170,7 @@ export default async function WorkoutDetailPage({ params, searchParams }: Workou
         recentCatalogExerciseIds={recentCatalogIdsResult.data ?? []}
         customExercises={customExercisesResult.data ?? []}
         summary={summary}
+        profileTimeZone={profileTimeZone}
       />
     </div>
   );

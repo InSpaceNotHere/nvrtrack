@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { deleteWeeklyJournalAction, upsertWeeklyJournalAction } from "@/app/(protected)/actions/progress-actions";
 import type { WeeklyJournalEntryRow } from "@/lib/data/weekly-journal";
+import { formatCalendarDate } from "@/lib/timezone";
 
 interface WeeklyJournalManagerProps {
   entries: WeeklyJournalEntryRow[];
@@ -12,9 +13,7 @@ interface WeeklyJournalManagerProps {
 }
 
 function formatDate(date: string): string {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(
-    new Date(`${date}T00:00:00.000Z`),
-  );
+  return formatCalendarDate(date);
 }
 
 export function WeeklyJournalManager({ entries, initialWeekStart }: WeeklyJournalManagerProps) {

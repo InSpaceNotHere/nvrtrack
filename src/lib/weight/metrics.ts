@@ -181,7 +181,7 @@ export function formatWeight(value: number, unit: WeightUnit): string {
 }
 
 export function shortDateLabel(entryDate: string): string {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(
     new Date(`${entryDate}T00:00:00.000Z`),
   );
 }

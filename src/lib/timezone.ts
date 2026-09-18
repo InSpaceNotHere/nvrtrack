@@ -39,6 +39,29 @@ export function getDateStringInTimeZone(timeZone: string, reference = new Date()
   return `${year}-${month}-${day}`;
 }
 
+export function formatCalendarDate(
+  date: string,
+  options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" },
+  locale = "en-US",
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    ...options,
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00.000Z`));
+}
+
+export function formatTimestampInTimeZone(
+  timestamp: string,
+  timeZone: string,
+  options: Intl.DateTimeFormatOptions,
+  locale = "en-US",
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    ...options,
+    timeZone: normalizeTimeZone(timeZone),
+  }).format(new Date(timestamp));
+}
+
 export function getCurrentWeekStartMondayInTimeZone(timeZone: string, reference = new Date()): string {
   const today = getDateStringInTimeZone(timeZone, reference);
   const parsed = new Date(`${today}T00:00:00.000Z`);

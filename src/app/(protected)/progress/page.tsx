@@ -30,7 +30,6 @@ function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightU
 interface ProgressOverviewProps {
   displayUnit: WeightUnit;
   todayDate: string;
-  profileTimeZone: string;
   latestWeight: number | null;
   latestChangeLabel: string;
   sevenDayAverage: number | null;
@@ -43,7 +42,6 @@ interface ProgressOverviewProps {
 function ProgressOverview({
   displayUnit,
   todayDate,
-  profileTimeZone,
   latestWeight,
   latestChangeLabel,
   sevenDayAverage,
@@ -95,7 +93,6 @@ function ProgressOverview({
           displayUnit={displayUnit}
           showHistory
           initialEntryDate={todayDate}
-          timeZone={profileTimeZone}
         />
       </Card>
 
@@ -238,7 +235,6 @@ export default async function ProgressPage() {
           <ProgressOverview
             displayUnit={displayUnit}
             todayDate={todayDate}
-            profileTimeZone={profileTimeZone}
             latestWeight={latestWeight}
             latestChangeLabel={latestChangeLabel}
             sevenDayAverage={sevenDayAverage}

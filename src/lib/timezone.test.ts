@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_TIMEZONE,
+  formatCalendarDate,
+  formatTimestampInTimeZone,
   getCurrentWeekStartMondayInTimeZone,
   getDateStringInTimeZone,
   isValidIanaTimeZone,
@@ -36,5 +38,31 @@ describe("timezone helpers", () => {
 
     const weekStart = getCurrentWeekStartMondayInTimeZone("America/Los_Angeles", new Date("2026-11-01T09:30:00.000Z"));
     expect(weekStart).toBe("2026-10-26");
+  });
+
+  it("formats calendar dates without timezone day shifting", () => {
+    expect(formatCalendarDate("2026-09-17")).toBe("Sep 17, 2026");
+    expect(formatCalendarDate("2026-01-01")).toBe("Jan 1, 2026");
+  });
+
+  it("formats absolute timestamps using the configured timezone", () => {
+    const timestamp = "2026-09-17T00:30:00.000Z";
+    expect(
+      formatTimestampInTimeZone(timestamp, "UTC", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+    ).toBe("Sep 17, 12:30 AM");
+
+    expect(
+      formatTimestampInTimeZone(timestamp, "America/Los_Angeles", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+    ).toBe("Sep 16, 5:30 PM");
   });
 });

@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { deleteWorkoutAction } from "@/app/(protected)/actions/training-actions";
+import { formatCalendarDate } from "@/lib/timezone";
 
 export interface WorkoutHistoryItem {
   id: string;
@@ -25,11 +26,7 @@ interface TrainingHistoryViewProps {
 }
 
 function formatDate(date: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${date}T00:00:00.000Z`));
+  return formatCalendarDate(date);
 }
 
 function formatVolume(value: number | null, displayUnit: "lb" | "kg"): string {

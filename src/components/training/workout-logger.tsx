@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -41,6 +41,8 @@ import {
   mapLegacyMuscleGroupToPrimaryMuscles,
 } from "@/lib/training/muscles";
 import { CANONICAL_LIFTS, toCanonicalLift, type CanonicalLift } from "@/lib/training/canonical-lifts";
+import { formatElapsedWorkoutDuration, getElapsedWorkoutMinutes } from "@/lib/training/time";
+import { formatCalendarDate, formatTimestampInTimeZone } from "@/lib/timezone";
 import type { TrainingWeightUnit, WorkoutSetLike, WorkoutSetRow } from "@/lib/training/types";
 
 type ComposerMode = "catalog" | "custom";
@@ -103,40 +105,24 @@ interface WorkoutLoggerProps {
   recentCatalogExerciseIds: string[];
   customExercises: ExerciseRow[];
   summary: WorkoutLoggerSummary;
+  profileTimeZone: string;
 }
 
 function formatDate(date: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${date}T00:00:00.000Z`));
+  return formatCalendarDate(date);
 }
 
-function formatDateTime(timestamp: string | null): string {
+function formatDateTime(timestamp: string | null, timeZone: string): string {
   if (!timestamp) {
     return "Not started";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return formatTimestampInTimeZone(timestamp, timeZone, {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(timestamp));
-}
-
-function formatDurationMinutes(startedAt: string | null): string {
-  if (!startedAt) {
-    return "--";
-  }
-
-  const startedMs = Date.parse(startedAt);
-  if (Number.isNaN(startedMs)) {
-    return "--";
-  }
-  const minutes = Math.max(1, Math.floor((Date.now() - startedMs) / 60000));
-  return `${minutes} min elapsed`;
+  });
 }
 
 function toSetDraft(set: WorkoutSetRow): SetDraft {
@@ -176,6 +162,7 @@ export function WorkoutLogger({
   recentCatalogExerciseIds,
   customExercises,
   summary,
+  profileTimeZone,
 }: WorkoutLoggerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -197,6 +184,17 @@ export function WorkoutLogger({
   const [deleteExerciseConfirmId, setDeleteExerciseConfirmId] = useState<string | null>(null);
   const [deleteWorkoutConfirm, setDeleteWorkoutConfirm] = useState(false);
   const [needsCompleteConfirm, setNeedsCompleteConfirm] = useState(false);
+  const [elapsedReferenceMs, setElapsedReferenceMs] = useState<number | null>(() => {
+    if (!workout.startedAt) {
+      return null;
+    }
+    const parsedStart = Date.parse(workout.startedAt);
+    if (Number.isNaN(parsedStart)) {
+      return null;
+    }
+    // Deterministic initial render baseline; real-time ticking begins after hydration.
+    return parsedStart + 60_000;
+  });
 
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerMode, setComposerMode] = useState<ComposerMode>("catalog");
@@ -216,6 +214,30 @@ export function WorkoutLogger({
   const [customCanonicalLift, setCustomCanonicalLift] = useState<CanonicalLift | "">("");
 
   const isCompletedWorkout = Boolean(workout.completedAt);
+  useEffect(() => {
+    if (isCompletedWorkout || !workout.startedAt) {
+      return;
+    }
+
+    const parsedStart = Date.parse(workout.startedAt);
+    if (Number.isNaN(parsedStart)) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setElapsedReferenceMs(Date.now());
+    }, 30_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isCompletedWorkout, workout.startedAt]);
+
+  const liveDurationLabel =
+    elapsedReferenceMs === null ? "--" : formatElapsedWorkoutDuration(workout.startedAt, elapsedReferenceMs);
+  const liveDurationMinutes =
+    elapsedReferenceMs === null ? null : getElapsedWorkoutMinutes(workout.startedAt, elapsedReferenceMs);
+
   const facets = useMemo(() => buildCatalogFacets(catalogExercises), [catalogExercises]);
   const filteredCatalogExercises = useMemo(
     () =>
@@ -775,9 +797,9 @@ export function WorkoutLogger({
             </p>
             <h1 className="mt-1 text-lg font-semibold text-white">{workout.name}</h1>
             <p className="mt-0.5 text-xs text-zinc-500">
-              {formatDate(workout.workoutDate)} • Started {formatDateTime(workout.startedAt)}
+              {formatDate(workout.workoutDate)} • Started {formatDateTime(workout.startedAt, profileTimeZone)}
             </p>
-            {!isCompletedWorkout ? <p className="mt-0.5 text-xs text-zinc-500">{formatDurationMinutes(workout.startedAt)}</p> : null}
+            {!isCompletedWorkout ? <p className="mt-0.5 text-xs text-zinc-500">{liveDurationLabel}</p> : null}
           </div>
           <div className="rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-right">
             <p className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">Volume</p>
@@ -810,7 +832,7 @@ export function WorkoutLogger({
           <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
             <p className="uppercase tracking-[0.08em] text-zinc-500">Potential PRs</p>
             <p className="mt-1 text-sm font-semibold text-zinc-100">{summary.potentialPrCount}</p>
-            {summary.durationMinutes !== null ? <p className="mt-0.5 text-[10px] text-zinc-500">{summary.durationMinutes} min</p> : null}
+            {liveDurationMinutes !== null ? <p className="mt-0.5 text-[10px] text-zinc-500">{liveDurationMinutes} min</p> : null}
           </div>
         </div>
 

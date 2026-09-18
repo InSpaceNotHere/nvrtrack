@@ -338,7 +338,6 @@ export default async function HomePage() {
           displayUnit={displayUnit}
           showHistory={false}
           initialEntryDate={todayDate}
-          timeZone={profileTimeZone}
         />
       </Card>
 

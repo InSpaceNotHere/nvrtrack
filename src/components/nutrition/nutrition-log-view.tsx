@@ -35,6 +35,7 @@ import { calculateCatalogEntrySnapshot } from "@/lib/nutrition/catalog-entry";
 import { addDaysToDateString } from "@/lib/nutrition/date";
 import type { MealType } from "@/lib/nutrition/types";
 import { calculateNutritionForAmount, type SupportedAmountUnit } from "@/lib/nutrition/serving";
+import { formatCalendarDate } from "@/lib/timezone";
 
 interface NutritionLogViewProps {
   selectedDate: string;
@@ -141,11 +142,7 @@ function defaultCustomEntryState(): CustomEntryFormState {
 }
 
 function formatDateForDisplay(date: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${date}T00:00:00.000Z`));
+  return formatCalendarDate(date);
 }
 
 function nutritionLine(entry: FoodEntryRow): string {

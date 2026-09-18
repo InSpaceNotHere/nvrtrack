@@ -11,6 +11,7 @@ import {
   loadProgressPhotoPageAction,
 } from "@/app/(protected)/actions/progress-actions";
 import type { ProgressPhotoSignedRow } from "@/lib/data/progress-photos";
+import { formatCalendarDate } from "@/lib/timezone";
 
 interface ProgressPhotoManagerProps {
   initialRows: ProgressPhotoSignedRow[];
@@ -22,9 +23,7 @@ interface ProgressPhotoManagerProps {
 type PhotoView = "front" | "side" | "back";
 
 function formatDate(date: string): string {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(
-    new Date(`${date}T00:00:00.000Z`),
-  );
+  return formatCalendarDate(date);
 }
 
 function groupPhotosByDate(photos: ProgressPhotoSignedRow[]) {

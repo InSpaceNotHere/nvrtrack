@@ -23,7 +23,7 @@ import {
 import { sortWorkoutsForHistory } from "@/lib/training/calculations";
 import { aggregateWorkoutMuscles, buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
 import { buildWeekDates, buildPlannerWeek, findPlannerDayForDate } from "@/lib/training/planner";
-import { getDateStringInTimeZone, normalizeTimeZone } from "@/lib/timezone";
+import { formatCalendarDate, getDateStringInTimeZone, normalizeTimeZone } from "@/lib/timezone";
 import {
   buildWorkoutSummaryStats,
   groupSetsByWorkoutExerciseId,
@@ -35,11 +35,7 @@ function getDisplayUnit(preferredWeightUnit: string | null | undefined): "lb" | 
 }
 
 function formatDate(date: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${date}T00:00:00.000Z`));
+  return formatCalendarDate(date);
 }
 
 function titleCase(value: string): string {
