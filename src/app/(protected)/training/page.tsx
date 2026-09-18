@@ -61,27 +61,12 @@ export default async function TrainingPage() {
 
   const setsByExerciseId = groupSetsByWorkoutExerciseId(workoutSetsResult.data ?? []);
   const exercisesByWorkoutId = new Map<string, WorkoutExerciseRow[]>();
-  const recentExerciseSnapshots: Array<{
-    name: string;
-    source: string;
-  }> = [];
-  const seenRecentExerciseName = new Set<string>();
   for (const exercise of workoutExercisesResult.data ?? []) {
     const list = exercisesByWorkoutId.get(exercise.workout_id);
     if (list) {
       list.push(exercise);
     } else {
       exercisesByWorkoutId.set(exercise.workout_id, [exercise]);
-    }
-
-    const normalizedName = exercise.exercise_name.trim().toLowerCase();
-    if (!seenRecentExerciseName.has(normalizedName) && recentExerciseSnapshots.length < 8) {
-      seenRecentExerciseName.add(normalizedName);
-      const catalogSource = (exercise as WorkoutExerciseRow & { catalog_exercise_id?: string | null }).catalog_exercise_id;
-      recentExerciseSnapshots.push({
-        name: exercise.exercise_name,
-        source: catalogSource ? "Catalog" : exercise.exercise_id ? "Custom library" : "Custom snapshot",
-      });
     }
   }
 
@@ -169,7 +154,7 @@ export default async function TrainingPage() {
         completedThisWeek={completedThisWeek}
       />
 
-      <Card title="History" subtitle="Recent sessions and exercise context" variant="tertiary">
+      <Card title="History" subtitle="Recent sessions" variant="tertiary">
         <details className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
           <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">Recent Workouts</summary>
           <ul className="mt-2 space-y-1.5">
@@ -206,28 +191,20 @@ export default async function TrainingPage() {
               );
             })}
           </ul>
-        </details>
-
-        <details className="mt-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">Recent Exercises</summary>
-          {recentExerciseSnapshots.length ? (
-            <ul className="mt-2 space-y-1.5">
-              {recentExerciseSnapshots.map((exercise) => (
-                <li key={`${exercise.name}-${exercise.source}`} className="rounded-lg border border-white/10 bg-black/25 px-2.5 py-2">
-                  <p className="text-sm font-medium text-zinc-100">{exercise.name}</p>
-                  <p className="mt-0.5 text-[11px] text-zinc-500">{exercise.source}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-zinc-500">No recent exercises yet.</p>
-          )}
-          <Link
-            href="/training/exercises"
-            className="mt-3 inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-          >
-            Browse Exercise Catalog
-          </Link>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href="/training/history"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Full Workout History
+            </Link>
+            <Link
+              href="/training/exercises"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Browse Exercise Catalog
+            </Link>
+          </div>
         </details>
       </Card>
     </div>

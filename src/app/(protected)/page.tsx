@@ -1,22 +1,14 @@
+import Link from "next/link";
+
 import { MacroSummary } from "@/components/dashboard/macro-summary";
-import { TodaysWorkoutPlannerCard } from "@/components/dashboard/todays-workout-planner-card";
-import { WeightSummary } from "@/components/dashboard/weight-summary";
 import { WorkoutCard } from "@/components/dashboard/workout-card";
 import { Card } from "@/components/ui/card";
-import { CalorieRing } from "@/components/ui/calorie-ring";
-import { Chip } from "@/components/ui/chip";
 import { MetricValue } from "@/components/ui/metric-value";
-import { ProgressBar } from "@/components/ui/progress-bar";
 import { StateChip } from "@/components/ui/state-chip";
+import { TrendSparkline } from "@/components/ui/trend-sparkline";
 import { WeightLogManager } from "@/components/weight/weight-log-manager";
-import { getMyFoodEntriesForDate, getMyRecentFoodEntries } from "@/lib/data/nutrition";
+import { getMyFoodEntriesForDate } from "@/lib/data/nutrition";
 import { getMyProfile } from "@/lib/data/profile";
-import {
-  getMyScheduleOverridesForRange,
-  getMyWeekdaySchedule,
-  getMyWorkoutTemplateExercises,
-  getMyWorkoutTemplates,
-} from "@/lib/data/workout-planner";
 import {
   getMyActiveWorkout,
   getMyCompletedWorkouts,
@@ -28,9 +20,8 @@ import { getWeightEntries } from "@/lib/data/weight";
 import { calculateDailyTotals } from "@/lib/nutrition/calculations";
 import { getTodayDateString } from "@/lib/nutrition/date";
 import { normalizeTimeZone } from "@/lib/timezone";
-import { buildPlannerWeek, buildWeekDates, findPlannerDayForDate } from "@/lib/training/planner";
 import { buildWorkoutSummaryStats, groupSetsByWorkoutExerciseId } from "@/lib/training/session";
-import { computeWorkoutDayStreak, computeWorkoutWeeklyStreak } from "@/lib/training/streaks";
+import { computeWorkoutDayStreak } from "@/lib/training/streaks";
 import { buildStrengthDashboardSummaryFromHistoryRows } from "@/lib/training/strength";
 import type { TrainingWeightUnit } from "@/lib/training/types";
 import { MIN_ENTRIES_FOR_PERIOD_COMPARISON, formatDeltaLabel, computeWeightMetrics, shortDateLabel } from "@/lib/weight/metrics";
@@ -47,10 +38,9 @@ export default async function HomePage() {
   const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
   const todayDate = getTodayDateString(profileTimeZone);
   const referenceDate = new Date(`${todayDate}T12:00:00.000Z`);
-  const [weightEntriesResult, nutritionEntriesResult, recentFoodEntriesResult, completedWorkoutsResult, activeWorkoutResult, strengthRowsResult] = await Promise.all([
+  const [weightEntriesResult, nutritionEntriesResult, completedWorkoutsResult, activeWorkoutResult, strengthRowsResult] = await Promise.all([
     getWeightEntries(),
     getMyFoodEntriesForDate(todayDate),
-    getMyRecentFoodEntries(6),
     getMyCompletedWorkouts(),
     getMyActiveWorkout(),
     getMyStrengthHistorySetRows(),
@@ -59,7 +49,6 @@ export default async function HomePage() {
   const weightLoadError = weightEntriesResult.error?.message ?? null;
   const nutritionLoadError = nutritionEntriesResult.error?.message ?? null;
   const workoutLoadError = completedWorkoutsResult.error?.message ?? activeWorkoutResult.error?.message ?? strengthRowsResult.error?.message ?? null;
-  const recentFoodError = recentFoodEntriesResult.error?.message ?? null;
 
   const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
   const weightEntries = weightEntriesResult.data ?? [];
@@ -91,37 +80,12 @@ export default async function HomePage() {
     weightMetrics.canCompareSevenDayPeriods && weightMetrics.sevenDayComparisonDelta !== null
       ? formatDeltaLabel(weightMetrics.sevenDayComparisonDelta, displayUnit)
       : `Comparison unavailable (need ${MIN_ENTRIES_FOR_PERIOD_COMPARISON} entries in each seven-day period)`;
-  const trend = weightMetrics.trendChronological.slice(-7).map((entry) => ({
-    label: shortDateLabel(entry.entryDate),
-    value: entry.weight,
-  }));
-
   const completedWorkouts = completedWorkoutsResult.data ?? [];
   const strengthSummary = buildStrengthDashboardSummaryFromHistoryRows({
     rows: strengthRowsResult.data ?? [],
     displayUnit: displayUnit as TrainingWeightUnit,
     referenceDate,
   });
-
-  const weekDates = buildWeekDates(referenceDate);
-  const [templatesResult, templateExercisesResult, weekdayScheduleResult, scheduleOverridesResult] = await Promise.all([
-    getMyWorkoutTemplates(),
-    getMyWorkoutTemplateExercises(),
-    getMyWeekdaySchedule(),
-    getMyScheduleOverridesForRange(weekDates[0], weekDates[6]),
-  ]);
-  const plannerWeek = buildPlannerWeek({
-    templates: templatesResult.data ?? [],
-    templateExercises: templateExercisesResult.data ?? [],
-    weekdayScheduleRows: weekdayScheduleResult.data ?? [],
-    scheduleOverrideRows: scheduleOverridesResult.data ?? [],
-    completedWorkouts: completedWorkouts.map((workout) => ({
-      id: workout.id,
-      workout_date: workout.workout_date,
-      name: workout.name,
-    })),
-  });
-  const todayPlan = findPlannerDayForDate(plannerWeek, todayDate);
 
   const activeWorkout = activeWorkoutResult.data ?? null;
   const todaysCompletedWorkout = [...completedWorkouts]
@@ -172,33 +136,11 @@ export default async function HomePage() {
     timeZone: profileTimeZone,
     reference: new Date(),
   });
-  const weeklyStreak = computeWorkoutWeeklyStreak(completedWorkouts, {
-    timeZone: profileTimeZone,
-    reference: new Date(),
-  });
-
-  const recentActivities = [
-    ...(completedWorkouts
-      .filter((workout) => workout.completed_at !== null)
-      .slice(0, 2)
-      .map((workout) => ({
-        id: `workout-${workout.id}`,
-        label: `Completed workout: ${workout.name}`,
-        date: workout.workout_date,
-      }))),
-    ...(weightMetrics.historyNewestFirst.slice(0, 2).map((entry) => ({
-      id: `weight-${entry.id}`,
-      label: `Logged weight: ${entry.weight.toFixed(1)} ${displayUnit}`,
-      date: entry.entryDate,
-    }))),
-    ...((recentFoodEntriesResult.data ?? []).slice(0, 2).map((entry) => ({
-      id: `food-${entry.id}`,
-      label: `Logged meal: ${entry.food_name} (${Math.round((entry.calories_per_serving ?? 0) * (entry.servings ?? 1))} kcal)`,
-      date: entry.entry_date,
-    }))),
-  ]
-    .sort((left, right) => (left.date < right.date ? 1 : -1))
-    .slice(0, 6);
+  const latestPr = strengthSummary.latest_pr;
+  const progressTrendPoints = weightMetrics.trendChronological.slice(-7).map((entry) => ({
+    label: shortDateLabel(entry.entryDate),
+    value: entry.weight,
+  }));
 
   return (
     <div className="space-y-4">
@@ -233,14 +175,7 @@ export default async function HomePage() {
           <p className="mt-1 text-xs text-zinc-500">{workoutLoadError}</p>
         </Card>
       ) : null}
-      {recentFoodError ? (
-        <Card variant="tertiary">
-          <p className="text-sm text-rose-200">Recent meals are temporarily unavailable.</p>
-          <p className="mt-1 text-xs text-zinc-500">{recentFoodError}</p>
-        </Card>
-      ) : null}
-
-      <section className="grid gap-3 lg:grid-cols-[1.25fr_1fr]">
+      <section className="grid gap-3 lg:grid-cols-[1.2fr_1fr]">
         <WorkoutCard
           workoutName={workoutCardName}
           statusText={workoutCardStatus}
@@ -250,156 +185,129 @@ export default async function HomePage() {
           actionLabel={workoutCardActionLabel}
           actionHref={workoutCardActionHref}
         />
-        <Card title="Dashboard Signals" subtitle="Today&apos;s status" variant="secondary">
+        <Card title="Daily Targets" subtitle="What matters today" variant="secondary">
           <ul className="space-y-2 text-sm">
             <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <span className="text-zinc-400">Calories remaining</span>
-              <MetricValue value={calorieRemaining !== null ? calorieRemaining.toFixed(0) : "--"} unit="kcal" tone="secondary" className="text-lg" />
+              <span className="text-zinc-400">Calories</span>
+              <MetricValue
+                value={calorieGoal !== null ? `${nutritionTotals.calories.toFixed(0)} / ${calorieGoal.toFixed(0)}` : nutritionTotals.calories.toFixed(0)}
+                unit="kcal"
+                tone="secondary"
+                className="text-lg"
+              />
             </li>
             <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <span className="text-zinc-400">Protein remaining</span>
-              <MetricValue value={proteinRemaining !== null ? proteinRemaining.toFixed(0) : "--"} unit="g" tone="secondary" className="text-lg" />
+              <span className="text-zinc-400">Protein</span>
+              <MetricValue
+                value={
+                  profileResult.data?.protein_goal !== null && profileResult.data?.protein_goal !== undefined
+                    ? `${nutritionTotals.protein_g.toFixed(0)} / ${profileResult.data.protein_goal.toFixed(0)}`
+                    : nutritionTotals.protein_g.toFixed(0)
+                }
+                unit="g"
+                tone="secondary"
+                className="text-lg"
+              />
             </li>
             <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <span className="text-zinc-400">Workout streak:</span>
+              <span className="text-zinc-400">Current body weight</span>
+              <MetricValue value={currentWeight !== null ? currentWeight.toFixed(1) : "--"} unit={displayUnit} tone="secondary" className="text-lg" />
+            </li>
+            <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <span className="text-zinc-400">Workout streak</span>
               <MetricValue value={String(workoutStreak)} unit={`day${workoutStreak === 1 ? "" : "s"}`} tone="secondary" className="text-lg" />
             </li>
-            <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <span className="text-zinc-400">Weekly streak:</span>
-              <MetricValue value={String(weeklyStreak)} unit={`week${weeklyStreak === 1 ? "" : "s"}`} tone="secondary" className="text-lg" />
-            </li>
           </ul>
-        </Card>
-      </section>
-
-      <section className="grid gap-3 md:grid-cols-2">
-        <TodaysWorkoutPlannerCard todayPlan={todayPlan} templateExercises={templateExercisesResult.data ?? []} />
-        <Card title="Calories" subtitle="Today" variant="secondary">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <MetricValue value={nutritionTotals.calories.toLocaleString()} unit="kcal" />
-              <p className="mt-1 text-sm text-zinc-400">
-                Goal: {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"} kcal
-              </p>
-              <p className="mt-2 text-xs uppercase tracking-[0.08em] text-zinc-500">
-                Daily intake from nutrition log entries
-              </p>
-              {calorieGoal === null ? (
-                <p className="mt-1 text-xs text-zinc-500">Set a calorie goal in Profile to activate progress.</p>
-              ) : null}
-            </div>
-            {calorieGoal !== null ? (
-              <CalorieRing consumed={nutritionTotals.calories} goal={calorieGoal} size={108} />
-            ) : (
-              <div className="flex h-[108px] w-[108px] items-center justify-center rounded-full border border-white/10 text-[11px] uppercase tracking-[0.08em] text-zinc-500">
-                Goal not set
-              </div>
-            )}
-          </div>
-          <div className="mt-3">
-            {calorieGoal !== null ? (
-              <ProgressBar value={nutritionTotals.calories} max={calorieGoal} />
-            ) : (
-              <div className="h-2 w-full rounded-full bg-white/8" aria-hidden="true" />
-            )}
-          </div>
-          <div className="mt-3 border-t border-white/8 pt-3">
-            <MacroSummary macros={macroStats} />
-          </div>
-        </Card>
-      </section>
-
-      <section className="grid gap-3 md:grid-cols-2">
-        <WeightSummary
-          currentWeight={currentWeight}
-          currentChange={currentChange}
-          sevenDayAverage={sevenDayAverage}
-          averageChange={sevenDayAverageChange}
-          trend={trend}
-          unit={displayUnit}
-        />
-        <Card title="Strength Dashboard" variant="secondary">
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            <StateChip state="estimated" label="Estimated lift tiles" />
-            <StateChip state="tested" label="Canonical lifts only" />
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Bench (Est. 1RM)</p>
-              <MetricValue value={strengthSummary.bench.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Squat (Est. 1RM)</p>
-              <MetricValue value={strengthSummary.squat.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Deadlift (Est. 1RM)</p>
-              <MetricValue value={strengthSummary.deadlift.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Tested Total</p>
-              <MetricValue value={strengthSummary.total_tested?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
-              {strengthSummary.thousand_club_progress_percent === null ? (
-                <p className="text-[11px] text-zinc-500">Need tested bench, squat, and deadlift 1RM</p>
-              ) : null}
-              <div className="mt-1">
-                {strengthSummary.thousand_club_progress_percent !== null ? (
-                  <Chip tone="success">{`1000 LB Club ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`}</Chip>
-                ) : (
-                  <StateChip state="missing" label="1000 LB Club requirements missing" />
-                )}
-              </div>
-            </div>
-          </div>
-          {strengthSummary.latest_pr ? (
-            <p className="mt-2 text-xs text-zinc-400">
-              Latest PR: {strengthSummary.latest_pr.exercise_name} • {strengthSummary.latest_pr.workout_date}
+          {calorieRemaining !== null || proteinRemaining !== null ? (
+            <p className="mt-2 text-xs text-zinc-500">
+              Remaining: {calorieRemaining !== null ? `${calorieRemaining.toFixed(0)} kcal` : "--"} •{" "}
+              {proteinRemaining !== null ? `${proteinRemaining.toFixed(0)} g protein` : "--"}
             </p>
           ) : null}
         </Card>
       </section>
 
-      <Card title="Quick Weight Entry" subtitle="Live body-weight logging" variant="tertiary">
-        <WeightLogManager
-          entries={weightMetrics.historyNewestFirst}
-          displayUnit={displayUnit}
-          showHistory={false}
-          initialEntryDate={todayDate}
-        />
-      </Card>
-
-      <section className="grid gap-3 md:grid-cols-2">
-        <Card title="Recent Meals" variant="tertiary">
-          {(recentFoodEntriesResult.data ?? []).length ? (
-            <ul className="space-y-2">
-              {(recentFoodEntriesResult.data ?? []).slice(0, 5).map((entry) => (
-                <li key={entry.id} className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-                  <p className="text-sm font-medium text-zinc-100">{entry.food_name}</p>
-                  <p className="text-xs text-zinc-500">
-                    {entry.meal_type} • {Math.round((entry.calories_per_serving ?? 0) * (entry.servings ?? 1))} kcal • {entry.entry_date}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-zinc-500">No recent meals logged.</p>
-          )}
+      <section className="grid gap-3 md:grid-cols-[1.2fr_1fr]">
+        <Card title="Progress Snapshot" subtitle="Am I improving?" variant="secondary">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Current weight</p>
+              <MetricValue value={currentWeight !== null ? currentWeight.toFixed(1) : "--"} unit={displayUnit} tone="secondary" className="mt-1 text-base" />
+              <p className="mt-1 text-xs text-zinc-500">{currentChange}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Seven-day average</p>
+              <MetricValue value={sevenDayAverage !== null ? sevenDayAverage.toFixed(1) : "--"} unit={displayUnit} tone="secondary" className="mt-1 text-base" />
+              <p className="mt-1 text-xs text-zinc-500">{sevenDayAverageChange}</p>
+            </div>
+          </div>
+          {progressTrendPoints.length ? (
+            <div className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Weight trend</p>
+              <TrendSparkline points={progressTrendPoints} unit={displayUnit} />
+            </div>
+          ) : null}
+          <div className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+            <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Latest PR</p>
+            {latestPr ? (
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <StateChip state="pr" label="Recent PR" />
+                <p className="text-xs text-zinc-300">
+                  {latestPr.exercise_name} • {latestPr.workout_date}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-zinc-500">No PR recorded yet.</p>
+            )}
+          </div>
+          <Link
+            href="/progress"
+            className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+          >
+            View Strength & Progress Details
+          </Link>
         </Card>
-        <Card title="Recent Activity" variant="tertiary">
-          {recentActivities.length ? (
-            <ul className="space-y-2">
-              {recentActivities.map((activity) => (
-                <li key={activity.id} className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-                  <p className="text-sm text-zinc-100">{activity.label}</p>
-                  <p className="text-xs text-zinc-500">{activity.date}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-zinc-500">No recent activity yet.</p>
-          )}
+
+        <Card title="Quick Actions" subtitle="Fast daily actions" variant="tertiary">
+          <div className="flex flex-col gap-2">
+            <Link
+              href="/nutrition"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+            >
+              Add Food
+            </Link>
+            <details className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
+                Log Weight
+              </summary>
+              <div className="mt-2">
+                <WeightLogManager
+                  entries={weightMetrics.historyNewestFirst}
+                  displayUnit={displayUnit}
+                  showHistory={false}
+                  initialEntryDate={todayDate}
+                  defaultEditorOpen
+                />
+              </div>
+            </details>
+          </div>
         </Card>
       </section>
+
+      <details className="rounded-xl border border-white/10 bg-black/15 p-3">
+        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
+          More Nutrition Detail
+        </summary>
+        <div className="mt-2 rounded-lg border border-white/10 bg-black/20 p-3">
+          <MacroSummary macros={macroStats} />
+          <Link
+            href="/nutrition"
+            className="mt-3 inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+          >
+            Open Nutrition
+          </Link>
+        </div>
+      </details>
     </div>
   );
 }

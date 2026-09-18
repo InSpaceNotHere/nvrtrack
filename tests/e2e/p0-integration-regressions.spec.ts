@@ -51,8 +51,8 @@ async function startWorkoutWithDate(page: Page, name: string, date: string): Pro
 }
 
 async function readWorkoutStreakDays(page: Page): Promise<number> {
-  const text = (await page.locator("li").filter({ hasText: /^Workout streak:/ }).first().innerText()).replace(/\s+/g, " ");
-  const match = text.match(/Workout streak:\s*(\d+)\s*day/);
+  const text = (await page.locator("li").filter({ hasText: /Workout streak/i }).first().innerText()).replace(/\s+/g, " ");
+  const match = text.match(/Workout streak\s*(\d+)\s*day/i);
   if (!match) {
     throw new Error(`Unable to parse workout streak from: ${text}`);
   }
@@ -64,6 +64,11 @@ async function findScheduledWeeklyRow(page: Page): Promise<Locator> {
   const count = await rows.count();
   for (let index = 0; index < count; index += 1) {
     const row = rows.nth(index);
+    const manageToggle = row.getByText("Manage").first();
+    if (await manageToggle.count()) {
+      await manageToggle.click();
+      await page.waitForTimeout(50);
+    }
     if (await row.getByRole("button", { name: "Skip" }).count()) {
       return row;
     }
@@ -134,12 +139,13 @@ test("P0 strength and streak dashboard signals remain strict for missing tested 
   page,
 }) => {
   await signUpFreshUser(page, "streak");
-  await expect(page.getByRole("heading", { name: "Strength Dashboard" })).toBeVisible();
-  await expect(page.getByText("Bench (Est. 1RM)")).toBeVisible();
-  await expect(page.getByText("Squat (Est. 1RM)")).toBeVisible();
-  await expect(page.getByText("Deadlift (Est. 1RM)")).toBeVisible();
-  await expect(page.getByText("Tested Total")).toBeVisible();
-  await expect(page.getByText("Need tested bench, squat, and deadlift 1RM")).toBeVisible();
+  await page.goto("/progress");
+  await expect(page.getByRole("heading", { name: "Live Strength System" })).toBeVisible();
+  await expect(page.getByText("Bench • Estimated 1RM")).toBeVisible();
+  await expect(page.getByText("Squat • Estimated 1RM")).toBeVisible();
+  await expect(page.getByText("Deadlift • Estimated 1RM")).toBeVisible();
+  await expect(page.getByText("Strength Total • Tested 1RM Only")).toBeVisible();
+  await expect(page.getByText("Need tested bench, squat, and deadlift")).toBeVisible();
 
   const todayDate = new Date().toISOString().slice(0, 10);
 
@@ -147,9 +153,10 @@ test("P0 strength and streak dashboard signals remain strict for missing tested 
   await completeCurrentWorkout(page);
 
   await page.goto("/");
-  await expect(page.getByText("Workout streak:")).toBeVisible();
+  await expect(page.getByText("Workout streak")).toBeVisible();
   const firstStreak = await readWorkoutStreakDays(page);
-  await expect(page.getByText("Need tested bench, squat, and deadlift 1RM")).toBeVisible();
+  await page.goto("/progress");
+  await expect(page.getByText("Need tested bench, squat, and deadlift")).toBeVisible();
 
   await startWorkoutWithDate(page, `P0 streak workout two ${Date.now()}`, todayDate);
   await completeCurrentWorkout(page);
@@ -157,5 +164,6 @@ test("P0 strength and streak dashboard signals remain strict for missing tested 
   await page.goto("/");
   const secondStreak = await readWorkoutStreakDays(page);
   expect(secondStreak).toBe(firstStreak);
-  await expect(page.getByText("Need tested bench, squat, and deadlift 1RM")).toBeVisible();
+  await page.goto("/progress");
+  await expect(page.getByText("Need tested bench, squat, and deadlift")).toBeVisible();
 });

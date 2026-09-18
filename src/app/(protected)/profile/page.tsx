@@ -28,7 +28,15 @@ export default async function ProfilePage() {
       ) : null}
       <ProfileSettingsForm initialValues={formValues} />
       {preferencesResult.data ? (
-        <NotificationCenter preferences={preferencesResult.data} notifications={notificationsResult.data ?? []} />
+        <details className="rounded-xl border border-white/10 bg-black/15 p-3">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
+            App Notifications
+          </summary>
+          <p className="mt-1 text-xs text-zinc-500">Optional reminder settings and inbox.</p>
+          <div className="mt-2">
+            <NotificationCenter preferences={preferencesResult.data} notifications={notificationsResult.data ?? []} />
+          </div>
+        </details>
       ) : null}
     </div>
   );

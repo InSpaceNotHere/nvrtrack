@@ -25,7 +25,7 @@ const NOTIFICATION_TYPES: Array<{ type: NotificationType; label: string }> = [
   { type: "protein_reminder", label: "Protein reminder" },
   { type: "weight_reminder", label: "Weight reminder" },
   { type: "photo_reminder", label: "Photo reminder" },
-  { type: "new_pr", label: "New PR" },
+  { type: "new_pr", label: "Personal record updates" },
   { type: "workout_streak", label: "Workout streak" },
 ];
 

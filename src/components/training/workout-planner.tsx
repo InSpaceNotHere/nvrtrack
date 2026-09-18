@@ -384,28 +384,35 @@ export function WorkoutPlanner({
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {plan.status === "scheduled" ? (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Button type="button" onClick={() => handleSkip(plan.date)} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[10px]">
-                        Skip
-                      </Button>
-                      <DatePicker
-                        value={moveTargets[plan.date] ?? ""}
-                        onChange={(event) => setMoveTargets((state) => ({ ...state, [plan.date]: event.target.value }))}
-                        className="h-7 px-2 text-[10px]"
-                      />
-                      <Button type="button" onClick={() => handleMove(plan.date, plan.template_id, moveTargets[plan.date] ?? "")} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[10px]">
-                        Move
-                      </Button>
+                {plan.status === "scheduled" || plan.status === "skipped" || plan.status === "moved" ? (
+                  <details className="rounded-md border border-white/10 bg-black/25 px-2 py-1">
+                    <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+                      Manage
+                    </summary>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {plan.status === "scheduled" ? (
+                        <>
+                          <Button type="button" onClick={() => handleSkip(plan.date)} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[10px]">
+                            Skip
+                          </Button>
+                          <DatePicker
+                            value={moveTargets[plan.date] ?? ""}
+                            onChange={(event) => setMoveTargets((state) => ({ ...state, [plan.date]: event.target.value }))}
+                            className="h-7 px-2 text-[10px]"
+                          />
+                          <Button type="button" onClick={() => handleMove(plan.date, plan.template_id, moveTargets[plan.date] ?? "")} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[10px]">
+                            Move
+                          </Button>
+                        </>
+                      ) : null}
+                      {(plan.status === "skipped" || plan.status === "moved") ? (
+                        <Button type="button" onClick={() => handleClearOverride(plan.date)} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[10px]">
+                          Reset
+                        </Button>
+                      ) : null}
                     </div>
-                  ) : null}
-                  {(plan.status === "skipped" || plan.status === "moved") ? (
-                    <Button type="button" onClick={() => handleClearOverride(plan.date)} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[10px]">
-                      Reset
-                    </Button>
-                  ) : null}
-                </div>
+                  </details>
+                ) : null}
               </div>
             </li>
           ))}
