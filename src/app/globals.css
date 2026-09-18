@@ -98,14 +98,32 @@ body {
     background-color var(--ds-motion-fast) var(--ds-motion-ease);
 }
 
+.ds-textarea {
+  width: 100%;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid color-mix(in oklab, var(--ds-color-border-subtle), white 10%);
+  background: color-mix(in oklab, var(--ds-color-bg-muted), black 12%);
+  padding: 0.5rem 0.75rem;
+  color: var(--ds-color-text-primary);
+  font-size: var(--ds-font-size-body);
+  line-height: 1.25rem;
+  outline: none;
+  transition:
+    border-color var(--ds-motion-fast) var(--ds-motion-ease),
+    box-shadow var(--ds-motion-fast) var(--ds-motion-ease),
+    background-color var(--ds-motion-fast) var(--ds-motion-ease);
+}
+
 .ds-input:focus,
-.app-input:focus {
+.app-input:focus,
+.ds-textarea:focus {
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: 0 0 0 2px rgba(135, 163, 255, 0.35);
 }
 
 .ds-input::placeholder,
-.app-input::placeholder {
+.app-input::placeholder,
+.ds-textarea::placeholder {
   color: var(--ds-color-text-muted);
 }
 

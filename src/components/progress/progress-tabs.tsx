@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
+import { Tabs } from "@/components/ui/tabs";
 
 type ProgressTab = "Overview" | "Photos" | "Measurements";
 type ExtendedProgressTab = ProgressTab | "Journal";
@@ -15,6 +16,7 @@ interface ProgressTabsProps {
 }
 
 const TAB_OPTIONS: ExtendedProgressTab[] = ["Overview", "Photos", "Measurements", "Journal"];
+const TAB_CONTROL_OPTIONS = TAB_OPTIONS.map((option) => ({ value: option, label: option }));
 
 export function ProgressTabs({ overview, photos, measurements, journal }: ProgressTabsProps) {
   const [tab, setTab] = useState<ExtendedProgressTab>("Overview");
@@ -46,22 +48,7 @@ export function ProgressTabs({ overview, photos, measurements, journal }: Progre
         <span className="text-zinc-300">Measurements</span> for body stats, and{" "}
         <span className="text-zinc-300">Journal</span> for weekly notes.
       </p>
-      <div role="tablist" aria-label="Progress views" className="inline-flex rounded-xl border border-white/10 bg-[#0f1114] p-1">
-        {TAB_OPTIONS.map((option) => (
-          <button
-            key={option}
-            type="button"
-            role="tab"
-            aria-selected={tab === option}
-            onClick={() => setTab(option)}
-            className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
-              tab === option ? "bg-white/12 font-medium text-white" : "text-zinc-400 hover:text-zinc-200"
-            }`}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
+      <Tabs value={tab} options={TAB_CONTROL_OPTIONS} onChange={setTab} ariaLabel="Progress views" />
       <div>{content}</div>
     </section>
   );

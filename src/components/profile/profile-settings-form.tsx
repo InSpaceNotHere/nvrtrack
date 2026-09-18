@@ -4,7 +4,11 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { saveProfileAction } from "@/app/(protected)/actions/profile-actions";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Toast } from "@/components/ui/toast";
 import {
   formatHeightFeetInches,
   normalizeProfileInput,
@@ -114,7 +118,7 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
         <div className="space-y-3">
           <label className="space-y-1.5 text-sm text-zinc-300">
             <span>Display name</span>
-            <input
+            <Input
               type="text"
               name="displayName"
               value={values.displayName}
@@ -137,7 +141,7 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1.5 text-sm text-zinc-300">
             <span>Height (total inches)</span>
-            <input
+            <Input
               type="number"
               name="heightInches"
               value={values.heightInches}
@@ -155,7 +159,7 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
 
           <label className="space-y-1.5 text-sm text-zinc-300">
             <span>Preferred weight unit</span>
-            <select
+            <Select
               name="preferredWeightUnit"
               value={values.preferredWeightUnit}
               onChange={(event) => updateField("preferredWeightUnit", event.target.value)}
@@ -163,7 +167,7 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
             >
               <option value="lb">lb</option>
               <option value="kg">kg</option>
-            </select>
+            </Select>
             {fieldErrors.preferredWeightUnit ? (
               <p className="text-xs text-rose-300">{fieldErrors.preferredWeightUnit}</p>
             ) : null}
@@ -171,7 +175,7 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
           <label className="space-y-1.5 text-sm text-zinc-300 sm:col-span-2">
             <span>Timezone</span>
             <div className="flex gap-2">
-              <input
+              <Input
                 type="text"
                 name="timezone"
                 value={values.timezone}
@@ -180,13 +184,14 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
                 autoComplete="off"
                 placeholder="UTC"
               />
-              <button
+              <Button
                 type="button"
                 onClick={() => updateField("timezone", Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC")}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+                variant="secondary"
+                className="h-10 rounded-xl px-3 text-xs"
               >
                 Use Browser Timezone
-              </button>
+              </Button>
             </div>
             {fieldErrors.timezone ? <p className="text-xs text-rose-300">{fieldErrors.timezone}</p> : null}
           </label>
@@ -197,7 +202,7 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1.5 text-sm text-zinc-300">
             <span>Calorie goal</span>
-            <input
+            <Input
               type="number"
               name="calorieGoal"
               value={values.calorieGoal}
@@ -213,7 +218,7 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
           </label>
           <label className="space-y-1.5 text-sm text-zinc-300">
             <span>Protein goal (g)</span>
-            <input
+            <Input
               type="number"
               name="proteinGoal"
               value={values.proteinGoal}
@@ -229,7 +234,7 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
           </label>
           <label className="space-y-1.5 text-sm text-zinc-300">
             <span>Carbohydrate goal (g)</span>
-            <input
+            <Input
               type="number"
               name="carbohydrateGoal"
               value={values.carbohydrateGoal}
@@ -247,7 +252,7 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
           </label>
           <label className="space-y-1.5 text-sm text-zinc-300">
             <span>Fat goal (g)</span>
-            <input
+            <Input
               type="number"
               name="fatGoal"
               value={values.fatGoal}
@@ -266,27 +271,16 @@ export function ProfileSettingsForm({ initialValues }: ProfileSettingsFormProps)
 
       {hasUnsavedChanges ? <p className="text-xs text-zinc-500">You have unsaved changes.</p> : null}
 
-      {message ? (
-        <p
-          role={messageTone === "error" ? "alert" : "status"}
-          aria-live="polite"
-          className={`rounded-lg px-3 py-2 text-sm ${
-            messageTone === "error"
-              ? "border border-rose-400/35 bg-rose-500/10 text-rose-200"
-              : "border border-accent/40 bg-accent/10 text-zinc-100"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
+      {message ? <Toast tone={messageTone === "error" ? "error" : "success"} role={messageTone === "error" ? "alert" : "status"}>{message}</Toast> : null}
 
-      <button
+      <Button
         type="submit"
         disabled={isPending}
-        className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-300"
+        variant="primary"
+        className="h-10 w-full rounded-xl px-4 text-sm"
       >
         {isPending ? "Saving..." : "Save Changes"}
-      </button>
+      </Button>
     </form>
   );
 }

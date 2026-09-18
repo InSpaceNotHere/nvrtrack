@@ -21,6 +21,12 @@ import {
   updateWorkoutSetAction,
 } from "@/app/(protected)/actions/training-actions";
 import { MuscleMap } from "@/components/training/muscle-map";
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Toast } from "@/components/ui/toast";
+import { Textarea } from "@/components/ui/textarea";
 import type { ExerciseRow } from "@/lib/data/auth-context";
 import type { ExerciseCatalogRow } from "@/lib/data/exercise-catalog";
 import { filterCatalogExercises, buildCatalogFacets } from "@/lib/training/catalog";
@@ -878,7 +884,7 @@ export function WorkoutLogger({
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <label className="space-y-1 text-xs text-zinc-300">
             <span>Workout name</span>
-            <input
+            <Input
               value={workoutName}
               onChange={(event) => setWorkoutName(event.target.value)}
               className="app-input"
@@ -887,21 +893,15 @@ export function WorkoutLogger({
           </label>
           <label className="space-y-1 text-xs text-zinc-300">
             <span>Workout date</span>
-            <input
-              type="date"
-              value={workoutDate}
-              onChange={(event) => setWorkoutDate(event.target.value)}
-              className="app-input"
-              disabled={isPending || isCompletedWorkout}
-            />
+            <DatePicker value={workoutDate} onChange={(event) => setWorkoutDate(event.target.value)} className="app-input" disabled={isPending || isCompletedWorkout} />
           </label>
           <label className="space-y-1 text-xs text-zinc-300 sm:col-span-2">
             <span>Notes</span>
-            <textarea
+            <Textarea
               value={workoutNotes}
               onChange={(event) => setWorkoutNotes(event.target.value)}
               rows={3}
-              className="w-full rounded-xl border border-white/12 bg-black/25 px-3 py-2 text-sm text-white outline-none transition focus:border-white/20 focus:ring-2 focus:ring-accent/35"
+              className="text-sm"
               disabled={isPending || isCompletedWorkout}
             />
           </label>
@@ -909,59 +909,31 @@ export function WorkoutLogger({
 
         {!isCompletedWorkout ? (
           <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={saveWorkoutMetadata}
-              disabled={isPending}
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-100 hover:bg-white/10 disabled:opacity-70"
-            >
+            <Button type="button" onClick={saveWorkoutMetadata} disabled={isPending} variant="secondary" size="sm" className="h-9 rounded-lg px-3 text-xs">
               {isPending ? "Saving..." : "Save Details"}
-            </button>
+            </Button>
             {!needsCompleteConfirm ? (
-              <button
-                type="button"
-                onClick={() => completeWorkout(false)}
-                disabled={isPending}
-                className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200 disabled:opacity-70"
-              >
+              <Button type="button" onClick={() => completeWorkout(false)} disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
                 {isPending ? "Completing..." : "Complete Workout"}
-              </button>
+              </Button>
             ) : (
-              <button
-                type="button"
-                onClick={() => completeWorkout(true)}
-                disabled={isPending}
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-300/40 px-3 text-xs font-semibold text-amber-100 hover:bg-amber-500/15"
-              >
+              <Button type="button" onClick={() => completeWorkout(true)} disabled={isPending} variant="secondary" size="sm" className="h-9 rounded-lg border-amber-300/40 px-3 text-xs text-amber-100 hover:bg-amber-500/15">
                 Confirm Complete Without Sets
-              </button>
+              </Button>
             )}
             {deleteWorkoutConfirm ? (
               <>
-                <button
-                  type="button"
-                  onClick={deleteWorkout}
-                  disabled={isPending}
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-400/40 px-3 text-xs font-medium text-rose-200 hover:bg-rose-500/15"
-                >
+                <Button type="button" onClick={deleteWorkout} disabled={isPending} variant="danger" size="sm" className="h-9 rounded-lg px-3 text-xs">
                   {isPending ? "Deleting..." : "Confirm Delete Workout"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteWorkoutConfirm(false)}
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-100 hover:bg-white/10"
-                >
+                </Button>
+                <Button type="button" onClick={() => setDeleteWorkoutConfirm(false)} variant="secondary" size="sm" className="h-9 rounded-lg px-3 text-xs">
                   Cancel
-                </button>
+                </Button>
               </>
             ) : (
-              <button
-                type="button"
-                onClick={() => setDeleteWorkoutConfirm(true)}
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-400/40 px-3 text-xs font-medium text-rose-200 hover:bg-rose-500/15"
-              >
+              <Button type="button" onClick={() => setDeleteWorkoutConfirm(true)} variant="danger" size="sm" className="h-9 rounded-lg px-3 text-xs">
                 Delete Workout
-              </button>
+              </Button>
             )}
           </div>
         ) : (
@@ -975,7 +947,7 @@ export function WorkoutLogger({
         <section data-testid="add-exercise-panel" className="rounded-[1.1rem] border border-white/10 bg-[#101215] p-3.5 sm:p-4">
           <div className="mb-2 flex items-center justify-between gap-2">
             <h2 className="text-sm font-medium uppercase tracking-[0.09em] text-zinc-300">Add Exercise</h2>
-            <button
+            <Button
               type="button"
               onClick={() => {
                 if (composerOpen) {
@@ -984,33 +956,35 @@ export function WorkoutLogger({
                 }
                 setComposerOpen(true);
               }}
-              className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 hover:bg-white/10"
+              variant="secondary"
+              size="sm"
+              className="h-8 rounded-md px-2.5 text-xs"
             >
               {composerOpen ? "Close" : "Open"}
-            </button>
+            </Button>
           </div>
 
           {composerOpen ? (
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2">
-                <button
+                <Button
                   type="button"
                   onClick={() => setComposerMode("catalog")}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                    composerMode === "catalog" ? "bg-white text-black" : "border border-white/15 text-zinc-200 hover:bg-white/10"
-                  }`}
+                  variant={composerMode === "catalog" ? "primary" : "secondary"}
+                  size="sm"
+                  className="h-8 rounded-lg px-3 text-xs"
                 >
                   Exercise Catalog
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => setComposerMode("custom")}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                    composerMode === "custom" ? "bg-white text-black" : "border border-white/15 text-zinc-200 hover:bg-white/10"
-                  }`}
+                  variant={composerMode === "custom" ? "primary" : "secondary"}
+                  size="sm"
+                  className="h-8 rounded-lg px-3 text-xs"
                 >
                   Custom Fallback
-                </button>
+                </Button>
               </div>
 
               {composerMode === "catalog" ? (
@@ -1018,7 +992,7 @@ export function WorkoutLogger({
                   <p className="text-xs text-zinc-500">Primary flow: search catalog, filter, and select a curated exercise.</p>
                   <label className="space-y-1 text-xs text-zinc-300">
                     <span>Search catalog</span>
-                    <input
+                    <Input
                       value={catalogSearch}
                       onChange={(event) => setCatalogSearch(event.target.value)}
                       className="app-input"
@@ -1028,29 +1002,29 @@ export function WorkoutLogger({
                   <div className="grid gap-2 sm:grid-cols-3">
                     <label className="space-y-1 text-xs text-zinc-300">
                       <span>Muscle</span>
-                      <select value={muscleFilter} onChange={(event) => setMuscleFilter(event.target.value)} className="app-input">
+                      <Select value={muscleFilter} onChange={(event) => setMuscleFilter(event.target.value)} className="app-input">
                         <option value="">All muscles</option>
                         {facets.muscles.map((muscle) => (
                           <option key={muscle} value={muscle}>
                             {titleCase(muscle)}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </label>
                     <label className="space-y-1 text-xs text-zinc-300">
                       <span>Body region</span>
-                      <select value={bodyRegionFilter} onChange={(event) => setBodyRegionFilter(event.target.value)} className="app-input">
+                      <Select value={bodyRegionFilter} onChange={(event) => setBodyRegionFilter(event.target.value)} className="app-input">
                         <option value="">All body regions</option>
                         {facets.body_regions.map((bodyRegion) => (
                           <option key={bodyRegion} value={bodyRegion}>
                             {titleCase(bodyRegion)}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </label>
                     <label className="space-y-1 text-xs text-zinc-300">
                       <span>Movement</span>
-                      <select
+                      <Select
                         value={movementPatternFilter}
                         onChange={(event) => setMovementPatternFilter(event.target.value)}
                         className="app-input"
@@ -1061,7 +1035,7 @@ export function WorkoutLogger({
                             {titleCase(movementPattern)}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </label>
                   </div>
                   {recentCatalogExercises.length ? (
@@ -1119,20 +1093,15 @@ export function WorkoutLogger({
                   </p>
                   <label className="space-y-1 text-xs text-zinc-300">
                     <span>Exercise notes (optional)</span>
-                    <input
+                    <Input
                       value={exerciseNotesDraft}
                       onChange={(event) => setExerciseNotesDraft(event.target.value)}
                       className="app-input"
                     />
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleAddCatalogExercise}
-                    disabled={isPending || !selectedCatalogExerciseId}
-                    className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black hover:bg-zinc-200 disabled:opacity-70"
-                  >
+                  <Button type="button" onClick={handleAddCatalogExercise} disabled={isPending || !selectedCatalogExerciseId} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
                     {isPending ? "Adding..." : "Add Catalog Exercise"}
-                  </button>
+                  </Button>
                 </div>
               ) : null}
 
@@ -1142,7 +1111,7 @@ export function WorkoutLogger({
                   {customExercises.length ? (
                     <label className="space-y-1 text-xs text-zinc-300">
                       <span>Use existing custom exercise (optional)</span>
-                      <select
+                      <Select
                         value={selectedCustomExerciseId ?? ""}
                         onChange={(event) => setSelectedCustomExerciseId(event.target.value || null)}
                         className="app-input"
@@ -1153,7 +1122,7 @@ export function WorkoutLogger({
                             {exercise.name}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </label>
                   ) : null}
                   {selectedCustomExerciseId ? (
@@ -1174,7 +1143,7 @@ export function WorkoutLogger({
                   ) : null}
                   <label className="space-y-1 text-xs text-zinc-300">
                     <span>Custom exercise name</span>
-                    <input
+                    <Input
                       value={customExerciseName}
                       onChange={(event) => {
                         setSelectedCustomExerciseId(null);
@@ -1201,18 +1170,18 @@ export function WorkoutLogger({
                           <div className="mt-2 grid gap-2 sm:grid-cols-2">
                             <label className="space-y-1 text-xs text-zinc-300">
                               <span>Body region</span>
-                              <select value={customBodyRegion} onChange={(event) => setCustomBodyRegion(event.target.value)} className="app-input">
+                              <Select value={customBodyRegion} onChange={(event) => setCustomBodyRegion(event.target.value)} className="app-input">
                                 <option value="">Unspecified</option>
                                 {BODY_REGIONS.map((bodyRegion) => (
                                   <option key={bodyRegion} value={bodyRegion}>
                                     {getBodyRegionLabel(bodyRegion)}
                                   </option>
                                 ))}
-                              </select>
+                              </Select>
                             </label>
                             <label className="space-y-1 text-xs text-zinc-300">
                               <span>Movement pattern</span>
-                              <select
+                              <Select
                                 value={customMovementPattern}
                                 onChange={(event) => setCustomMovementPattern(event.target.value)}
                                 className="app-input"
@@ -1223,11 +1192,11 @@ export function WorkoutLogger({
                                     {getMovementPatternLabel(movementPattern)}
                                   </option>
                                 ))}
-                              </select>
+                              </Select>
                             </label>
                             <label className="space-y-1 text-xs text-zinc-300">
                               <span>Canonical lift</span>
-                              <select
+                              <Select
                                 value={customCanonicalLift}
                                 onChange={(event) => setCustomCanonicalLift(event.target.value as CanonicalLift | "")}
                                 className="app-input"
@@ -1238,7 +1207,7 @@ export function WorkoutLogger({
                                     {lift.replace("_", " ")}
                                   </option>
                                 ))}
-                              </select>
+                              </Select>
                             </label>
                           </div>
                           <div className="mt-2 grid gap-1 sm:grid-cols-2">
@@ -1273,20 +1242,15 @@ export function WorkoutLogger({
                   ) : null}
                   <label className="space-y-1 text-xs text-zinc-300">
                     <span>Exercise notes (optional)</span>
-                    <input
+                    <Input
                       value={exerciseNotesDraft}
                       onChange={(event) => setExerciseNotesDraft(event.target.value)}
                       className="app-input"
                     />
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleAddCustomExercise}
-                    disabled={isPending}
-                    className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black hover:bg-zinc-200 disabled:opacity-70"
-                  >
+                  <Button type="button" onClick={handleAddCustomExercise} disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
                     {isPending ? "Adding..." : "Add Custom Exercise"}
-                  </button>
+                  </Button>
                 </div>
               ) : null}
             </div>
@@ -1324,48 +1288,25 @@ export function WorkoutLogger({
                   </div>
                   {!isCompletedWorkout ? (
                     <div className="flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => moveExercise(exercise.id, "up")}
-                        disabled={isPending || exerciseIndex === 0}
-                        className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 hover:bg-white/10 disabled:opacity-50"
-                      >
+                      <Button type="button" onClick={() => moveExercise(exercise.id, "up")} disabled={isPending || exerciseIndex === 0} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
                         Move Up
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveExercise(exercise.id, "down")}
-                        disabled={isPending || exerciseIndex === displayExercises.length - 1}
-                        className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 hover:bg-white/10 disabled:opacity-50"
-                      >
+                      </Button>
+                      <Button type="button" onClick={() => moveExercise(exercise.id, "down")} disabled={isPending || exerciseIndex === displayExercises.length - 1} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
                         Move Down
-                      </button>
+                      </Button>
                       {deleteExerciseConfirmId === exercise.id ? (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => removeExercise(exercise.id)}
-                            disabled={isPending}
-                            className="inline-flex h-8 items-center justify-center rounded-md border border-rose-400/40 px-2 text-xs font-medium text-rose-200 hover:bg-rose-500/15"
-                          >
+                          <Button type="button" onClick={() => removeExercise(exercise.id)} disabled={isPending} variant="danger" size="sm" className="h-8 rounded-md px-2 text-xs">
                             {isPending ? "Removing..." : "Confirm Remove"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteExerciseConfirmId(null)}
-                            className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 hover:bg-white/10"
-                          >
+                          </Button>
+                          <Button type="button" onClick={() => setDeleteExerciseConfirmId(null)} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
                             Cancel
-                          </button>
+                          </Button>
                         </>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => setDeleteExerciseConfirmId(exercise.id)}
-                          className="inline-flex h-8 items-center justify-center rounded-md border border-rose-400/40 px-2 text-xs font-medium text-rose-200 hover:bg-rose-500/15"
-                        >
+                        <Button type="button" onClick={() => setDeleteExerciseConfirmId(exercise.id)} variant="danger" size="sm" className="h-8 rounded-md px-2 text-xs">
                           Remove Exercise
-                        </button>
+                        </Button>
                       )}
                     </div>
                   ) : null}
@@ -1400,14 +1341,9 @@ export function WorkoutLogger({
                 </div>
 
                 {!isCompletedWorkout ? (
-                  <button
-                    type="button"
-                    onClick={() => addSet(exercise.id)}
-                    disabled={isPending}
-                    className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black hover:bg-zinc-200 disabled:opacity-70"
-                  >
+                  <Button type="button" onClick={() => addSet(exercise.id)} disabled={isPending} variant="primary" size="sm" className="mt-3 h-9 rounded-lg px-3 text-xs">
                     {isPending ? "Adding..." : "Add Set"}
-                  </button>
+                  </Button>
                 ) : null}
 
                 <ul className="mt-3 space-y-2">
@@ -1554,64 +1490,31 @@ export function WorkoutLogger({
 
                           {!isCompletedWorkout ? (
                             <div className="mt-2 flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                onClick={() => saveSet(set.id)}
-                                disabled={isPending}
-                                className="inline-flex h-8 items-center justify-center rounded-md bg-white px-2.5 text-xs font-semibold text-black hover:bg-zinc-200 disabled:opacity-70"
-                              >
+                              <Button type="button" onClick={() => saveSet(set.id)} disabled={isPending} variant="primary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
                                 {isPending ? "Saving..." : "Save Set"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => duplicateSet(exercise.id, set.id)}
-                                disabled={isPending}
-                                className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 hover:bg-white/10 disabled:opacity-70"
-                              >
+                              </Button>
+                              <Button type="button" onClick={() => duplicateSet(exercise.id, set.id)} disabled={isPending} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
                                 Duplicate
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => moveSet(exercise.id, set.id, "up")}
-                                disabled={isPending || setIndex === 0}
-                                className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 hover:bg-white/10 disabled:opacity-50"
-                              >
+                              </Button>
+                              <Button type="button" onClick={() => moveSet(exercise.id, set.id, "up")} disabled={isPending || setIndex === 0} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
                                 Up
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => moveSet(exercise.id, set.id, "down")}
-                                disabled={isPending || setIndex === exercise.sets.length - 1}
-                                className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 hover:bg-white/10 disabled:opacity-50"
-                              >
+                              </Button>
+                              <Button type="button" onClick={() => moveSet(exercise.id, set.id, "down")} disabled={isPending || setIndex === exercise.sets.length - 1} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
                                 Down
-                              </button>
+                              </Button>
                               {deleteSetConfirmId === set.id ? (
                                 <>
-                                  <button
-                                    type="button"
-                                    onClick={() => deleteSet(exercise.id, set.id)}
-                                    disabled={isPending}
-                                    className="inline-flex h-8 items-center justify-center rounded-md border border-rose-400/40 px-2.5 text-xs font-medium text-rose-200 hover:bg-rose-500/15"
-                                  >
+                                  <Button type="button" onClick={() => deleteSet(exercise.id, set.id)} disabled={isPending} variant="danger" size="sm" className="h-8 rounded-md px-2.5 text-xs">
                                     {isPending ? "Deleting..." : "Confirm Delete"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeleteSetConfirmId(null)}
-                                    className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 hover:bg-white/10"
-                                  >
+                                  </Button>
+                                  <Button type="button" onClick={() => setDeleteSetConfirmId(null)} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
                                     Cancel
-                                  </button>
+                                  </Button>
                                 </>
                               ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => setDeleteSetConfirmId(set.id)}
-                                  className="inline-flex h-8 items-center justify-center rounded-md border border-rose-400/40 px-2.5 text-xs font-medium text-rose-200 hover:bg-rose-500/15"
-                                >
+                                <Button type="button" onClick={() => setDeleteSetConfirmId(set.id)} variant="danger" size="sm" className="h-8 rounded-md px-2.5 text-xs">
                                   Delete
-                                </button>
+                                </Button>
                               )}
                             </div>
                           ) : null}
@@ -1635,19 +1538,7 @@ export function WorkoutLogger({
         )}
       </section>
 
-      {message ? (
-        <p
-          role={tone === "error" ? "alert" : "status"}
-          aria-live="polite"
-          className={`rounded-lg px-3 py-2 text-sm ${
-            tone === "error"
-              ? "border border-rose-400/35 bg-rose-500/10 text-rose-200"
-              : "border border-accent/40 bg-accent/10 text-zinc-100"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
+      {message ? <Toast tone={tone === "error" ? "error" : "success"} role={tone === "error" ? "alert" : "status"}>{message}</Toast> : null}
     </div>
   );
 }

@@ -14,7 +14,12 @@ import {
   skipScheduledWorkoutAction,
 } from "@/app/(protected)/actions/planner-actions";
 import { MuscleMap } from "@/components/training/muscle-map";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Toast } from "@/components/ui/toast";
 import type { PlannerDayPlan, PlannerTemplate, PlannerTemplateExercise } from "@/lib/training/planner";
 
 interface ExerciseOption {
@@ -263,27 +268,17 @@ export function WorkoutPlanner({
             {todayPlan.template_id ? (
               <>
                 <MuscleMap aggregation={todayPlan.muscle_targeting} testId="today-workout-muscle-map" />
-                <button
-                  type="button"
-                  onClick={handleQuickStart}
-                  disabled={isPending}
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200 disabled:bg-zinc-300"
-                >
+                <Button type="button" onClick={handleQuickStart} disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
                   Quick Start
-                </button>
+                </Button>
               </>
             ) : (
               <div className="space-y-2">
                 <p className="text-xs text-zinc-500">No workout template assigned for today.</p>
                 {isPlannerUninitialized ? (
-                  <button
-                    type="button"
-                    onClick={handleInitializePlanner}
-                    disabled={isPending}
-                    className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10 disabled:opacity-60"
-                  >
+                  <Button type="button" onClick={handleInitializePlanner} disabled={isPending} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
                     {isPending ? "Setting up..." : "Create Starter Schedule"}
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             )}
@@ -298,7 +293,7 @@ export function WorkoutPlanner({
             return (
               <label key={weekday.value} className="space-y-1.5 text-xs text-zinc-400">
                 <span>{weekday.label}</span>
-                <select
+                <Select
                   value={dayPlan?.status === "rest" ? "__rest__" : dayPlan?.template_id ?? ""}
                   onChange={(event) => handleWeekdayAssignment(weekday.value, event.target.value)}
                   className="app-input h-9 text-sm"
@@ -310,7 +305,7 @@ export function WorkoutPlanner({
                       {template.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
             );
           })}
@@ -333,36 +328,23 @@ export function WorkoutPlanner({
                 <div className="flex flex-wrap gap-1.5">
                   {plan.status === "scheduled" ? (
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleSkip(plan.date)}
-                        className="rounded-md border border-white/15 px-2 py-1 text-[11px] text-zinc-100 transition-colors hover:bg-white/10"
-                      >
+                      <Button type="button" onClick={() => handleSkip(plan.date)} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[11px]">
                         Skip
-                      </button>
-                      <input
-                        type="date"
+                      </Button>
+                      <DatePicker
                         value={moveTargets[plan.date] ?? ""}
                         onChange={(event) => setMoveTargets((state) => ({ ...state, [plan.date]: event.target.value }))}
-                        className="h-7 rounded-md border border-white/12 bg-black/25 px-2 text-[11px] text-zinc-100"
+                        className="h-7 px-2 text-[11px]"
                       />
-                      <button
-                        type="button"
-                        onClick={() => handleMove(plan.date, plan.template_id, moveTargets[plan.date] ?? "")}
-                        className="rounded-md border border-white/15 px-2 py-1 text-[11px] text-zinc-100 transition-colors hover:bg-white/10"
-                      >
+                      <Button type="button" onClick={() => handleMove(plan.date, plan.template_id, moveTargets[plan.date] ?? "")} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[11px]">
                         Move
-                      </button>
+                      </Button>
                     </div>
                   ) : null}
                   {(plan.status === "skipped" || plan.status === "moved") ? (
-                    <button
-                      type="button"
-                      onClick={() => handleClearOverride(plan.date)}
-                      className="rounded-md border border-white/15 px-2 py-1 text-[11px] text-zinc-100 transition-colors hover:bg-white/10"
-                    >
+                    <Button type="button" onClick={() => handleClearOverride(plan.date)} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[11px]">
                       Reset
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
               </div>
@@ -385,13 +367,9 @@ export function WorkoutPlanner({
                       {template.estimated_duration_minutes ?? Math.max(15, count * 8)} min
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleTemplateDuplicate(template.id)}
-                    className="rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                  >
+                  <Button type="button" onClick={() => handleTemplateDuplicate(template.id)} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
                     Duplicate
-                  </button>
+                  </Button>
                 </div>
               </li>
             );
@@ -404,11 +382,11 @@ export function WorkoutPlanner({
           <div className="grid gap-2 sm:grid-cols-3">
             <label className="space-y-1 text-xs text-zinc-400">
               <span>Name</span>
-              <input value={name} onChange={(event) => setName(event.target.value)} className="app-input h-9 text-sm" required />
+              <Input value={name} onChange={(event) => setName(event.target.value)} className="app-input h-9 text-sm" required />
             </label>
             <label className="space-y-1 text-xs text-zinc-400">
               <span>Type</span>
-              <select
+              <Select
                 value={templateType}
                 onChange={(event) => setTemplateType(event.target.value as PlannerTemplate["template_type"])}
                 className="app-input h-9 text-sm"
@@ -419,11 +397,11 @@ export function WorkoutPlanner({
                 <option value="upper">Upper</option>
                 <option value="lower">Lower</option>
                 <option value="custom">Custom</option>
-              </select>
+              </Select>
             </label>
             <label className="space-y-1 text-xs text-zinc-400">
               <span>Duration (min)</span>
-              <input
+              <Input
                 value={duration}
                 onChange={(event) => setDuration(event.target.value)}
                 type="number"
@@ -436,7 +414,7 @@ export function WorkoutPlanner({
 
           <label className="space-y-1 text-xs text-zinc-400">
             <span>Exercises ({selectedExerciseIds.length} selected)</span>
-            <input
+            <Input
               value={exerciseSearch}
               onChange={(event) => setExerciseSearch(event.target.value)}
               className="app-input h-9 text-sm"
@@ -473,14 +451,16 @@ export function WorkoutPlanner({
             {selectedExerciseOptions.length ? (
               <div className="flex flex-wrap gap-1.5">
                 {selectedExerciseOptions.map((exercise) => (
-                  <button
+                  <Button
                     key={`selected-${exercise.id}`}
                     type="button"
                     onClick={() => toggleTemplateExercise(exercise.id)}
-                    className="inline-flex items-center rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[11px] text-zinc-100 hover:bg-white/15"
+                    variant="secondary"
+                    size="sm"
+                    className="h-6 rounded-md border-white/15 bg-white/10 px-2 py-1 text-[11px] normal-case tracking-normal hover:bg-white/15"
                   >
                     {exercise.name} <span className="ml-1 text-zinc-400">×</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             ) : (
@@ -488,26 +468,13 @@ export function WorkoutPlanner({
             )}
           </label>
 
-          <button
-            type="submit"
-            disabled={isPending}
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200 disabled:bg-zinc-300"
-          >
+          <Button type="submit" disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
             {isPending ? "Saving..." : "Save Template"}
-          </button>
+          </Button>
         </form>
       </Card>
 
-      {message ? (
-        <p
-          role={isError ? "alert" : "status"}
-          className={`rounded-lg px-3 py-2 text-sm ${
-            isError ? "border border-rose-400/35 bg-rose-500/10 text-rose-200" : "border border-accent/40 bg-accent/10 text-zinc-100"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
+      {message ? <Toast tone={isError ? "error" : "success"} role={isError ? "alert" : "status"}>{message}</Toast> : null}
     </div>
   );
 }

@@ -9,6 +9,12 @@ import {
   updateWeightEntryAction,
   type WeightActionInput,
 } from "@/app/(protected)/actions/weight-actions";
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Toast } from "@/components/ui/toast";
+import { Textarea } from "@/components/ui/textarea";
 import { getTodayDateString } from "@/lib/nutrition/date";
 import type { WeightEntryMetricPoint } from "@/lib/weight/metrics";
 import { formatWeight } from "@/lib/weight/metrics";
@@ -195,7 +201,7 @@ export function WeightLogManager({
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-medium uppercase tracking-[0.08em] text-zinc-300">Weight Log</h3>
-        <button
+        <Button
           type="button"
           onClick={() =>
             setIsEditorOpen((value) => {
@@ -207,10 +213,12 @@ export function WeightLogManager({
               return next;
             })
           }
-          className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
+          variant="primary"
+          size="sm"
+          className="h-9 rounded-lg px-3 text-xs"
         >
           {isEditorOpen ? "Close" : "Log Weight"}
-        </button>
+        </Button>
       </div>
 
       {isEditorOpen ? (
@@ -218,7 +226,7 @@ export function WeightLogManager({
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1.5 text-sm text-zinc-300">
               <span>Weight</span>
-              <input
+              <Input
                 type="number"
                 min={45}
                 max={1400}
@@ -232,7 +240,7 @@ export function WeightLogManager({
 
             <label className="space-y-1.5 text-sm text-zinc-300">
               <span>Unit</span>
-              <select
+              <Select
                 value={form.unit}
                 onChange={(event) =>
                   setForm((state) => ({ ...state, unit: event.target.value === "kg" ? "kg" : "lb" }))
@@ -241,50 +249,41 @@ export function WeightLogManager({
               >
                 <option value="lb">lb</option>
                 <option value="kg">kg</option>
-              </select>
+              </Select>
             </label>
           </div>
 
           <label className="space-y-1.5 text-sm text-zinc-300">
             <span>Entry date</span>
-            <input
-              type="date"
-              value={form.entryDate}
-              onChange={(event) => setForm((state) => ({ ...state, entryDate: event.target.value }))}
-              className="app-input"
-              required
-            />
+            <DatePicker value={form.entryDate} onChange={(event) => setForm((state) => ({ ...state, entryDate: event.target.value }))} className="app-input" required />
           </label>
 
           <label className="space-y-1.5 text-sm text-zinc-300">
             <span>Note (optional)</span>
-            <textarea
+            <Textarea
               value={form.note}
               onChange={(event) => setForm((state) => ({ ...state, note: event.target.value }))}
               maxLength={280}
               rows={2}
-              className="w-full rounded-xl border border-white/12 bg-black/30 px-3 py-2 text-sm text-white outline-none transition focus:border-white/25 focus:ring-2 focus:ring-accent/40"
+              className="text-sm"
             />
           </label>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-300"
-            >
+            <Button type="submit" disabled={isPending} variant="primary" className="h-10 rounded-xl px-4 text-sm">
               {isPending ? "Saving..." : editingId ? "Save Changes" : "Save Entry"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={() => {
                 setIsEditorOpen(false);
                 resetForm();
               }}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-4 text-sm font-medium text-zinc-200 transition-colors hover:bg-white/10"
+              variant="secondary"
+              className="h-10 rounded-xl px-4 text-sm"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       ) : null}
@@ -293,36 +292,17 @@ export function WeightLogManager({
         <div className="rounded-xl border border-white/20 bg-white/5 p-3 text-sm text-zinc-200">
           <p>An entry already exists on {duplicatePrompt.entryDate}. Replace it with this new value?</p>
           <div className="mt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={handleDuplicateReplace}
-              disabled={isPending}
-              className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
-            >
+            <Button type="button" onClick={handleDuplicateReplace} disabled={isPending} variant="primary" size="sm" className="h-8 rounded-lg px-3 text-xs">
               {isPending ? "Updating..." : "Update Existing Entry"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setDuplicatePrompt(null)}
-              className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-            >
+            </Button>
+            <Button type="button" onClick={() => setDuplicatePrompt(null)} variant="secondary" size="sm" className="h-8 rounded-lg px-3 text-xs">
               Keep Current Entry
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
 
-      {message ? (
-        <p
-          role={isError ? "alert" : "status"}
-          aria-live="polite"
-          className={`rounded-lg px-3 py-2 text-sm ${
-            isError ? "border border-rose-400/35 bg-rose-500/10 text-rose-200" : "border border-accent/40 bg-accent/10 text-zinc-100"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
+      {message ? <Toast tone={isError ? "error" : "success"} role={isError ? "alert" : "status"}>{message}</Toast> : null}
 
       {showHistory ? (
         entries.length ? (
@@ -347,42 +327,22 @@ export function WeightLogManager({
                   </div>
                 </div>
                 <div className="mt-2.5 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(entry)}
-                    className="rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                    aria-label={`Edit weight entry from ${formatEntryDate(entry.entryDate)}`}
-                  >
+                  <Button type="button" onClick={() => startEdit(entry)} variant="secondary" size="sm" className="h-7 rounded-md px-2.5 py-1 text-xs" aria-label={`Edit weight entry from ${formatEntryDate(entry.entryDate)}`}>
                     Edit
-                  </button>
+                  </Button>
                   {confirmDeleteId === entry.id ? (
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(entry.id)}
-                        disabled={isPending}
-                        className="rounded-md border border-rose-400/45 px-2.5 py-1 text-xs font-medium text-rose-200 transition-colors hover:bg-rose-500/15"
-                        aria-label={`Confirm delete weight entry from ${formatEntryDate(entry.entryDate)}`}
-                      >
+                      <Button type="button" onClick={() => handleDelete(entry.id)} disabled={isPending} variant="danger" size="sm" className="h-7 rounded-md px-2.5 py-1 text-xs" aria-label={`Confirm delete weight entry from ${formatEntryDate(entry.entryDate)}`}>
                         {isPending ? "Deleting..." : "Confirm Delete"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDeleteId(null)}
-                        className="rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                      >
+                      </Button>
+                      <Button type="button" onClick={() => setConfirmDeleteId(null)} variant="secondary" size="sm" className="h-7 rounded-md px-2.5 py-1 text-xs">
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDeleteId(entry.id)}
-                      className="rounded-md border border-rose-400/35 px-2.5 py-1 text-xs font-medium text-rose-200 transition-colors hover:bg-rose-500/15"
-                      aria-label={`Delete weight entry from ${formatEntryDate(entry.entryDate)}`}
-                    >
+                    <Button type="button" onClick={() => setConfirmDeleteId(entry.id)} variant="danger" size="sm" className="h-7 rounded-md px-2.5 py-1 text-xs" aria-label={`Delete weight entry from ${formatEntryDate(entry.entryDate)}`}>
                       Delete
-                    </button>
+                    </Button>
                   )}
                 </div>
               </li>

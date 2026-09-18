@@ -8,6 +8,11 @@ import {
   markNotificationReadAction,
   updateNotificationPreferencesAction,
 } from "@/app/(protected)/actions/notification-actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Toast } from "@/components/ui/toast";
+import { Textarea } from "@/components/ui/textarea";
 import type { NotificationPreferencesRow, NotificationRow, NotificationType } from "@/lib/data/notifications";
 
 interface NotificationCenterProps {
@@ -130,14 +135,9 @@ export function NotificationCenter({ preferences, notifications }: NotificationC
             );
           })}
         </div>
-        <button
-          type="button"
-          onClick={savePreferences}
-          disabled={isPending}
-          className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200 disabled:bg-zinc-300"
-        >
+        <Button type="button" onClick={savePreferences} disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
           {isPending ? "Saving..." : "Save Preferences"}
-        </button>
+        </Button>
       </section>
 
       <section className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
@@ -146,17 +146,17 @@ export function NotificationCenter({ preferences, notifications }: NotificationC
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="space-y-1 text-xs text-zinc-400">
             <span>Type</span>
-            <select value={selectedType} onChange={(event) => setSelectedType(event.target.value as NotificationType)} className="app-input h-9 text-sm">
+            <Select value={selectedType} onChange={(event) => setSelectedType(event.target.value as NotificationType)} className="app-input h-9 text-sm">
               {NOTIFICATION_TYPES.map((type) => (
                 <option key={type.type} value={type.type}>
                   {type.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="space-y-1 text-xs text-zinc-400">
             <span>Scheduled for</span>
-            <input
+            <Input
               type="datetime-local"
               value={scheduledFor}
               onChange={(event) => setScheduledFor(event.target.value)}
@@ -166,26 +166,21 @@ export function NotificationCenter({ preferences, notifications }: NotificationC
         </div>
         <label className="space-y-1 text-xs text-zinc-400">
           <span>Title</span>
-          <input value={title} onChange={(event) => setTitle(event.target.value)} className="app-input h-9 text-sm" maxLength={160} />
+          <Input value={title} onChange={(event) => setTitle(event.target.value)} className="app-input h-9 text-sm" maxLength={160} />
         </label>
         <label className="space-y-1 text-xs text-zinc-400">
           <span>Body</span>
-          <textarea
+          <Textarea
             value={body}
             onChange={(event) => setBody(event.target.value)}
             rows={2}
-            className="w-full rounded-xl border border-white/12 bg-black/25 px-3 py-2 text-sm text-white outline-none transition focus:border-white/20 focus:ring-2 focus:ring-accent/35"
+            className="text-sm"
             maxLength={4000}
           />
         </label>
-        <button
-          type="button"
-          onClick={createReminder}
-          disabled={isPending}
-          className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-semibold text-zinc-100 transition-colors hover:bg-white/10"
-        >
+        <Button type="button" onClick={createReminder} disabled={isPending} variant="secondary" size="sm" className="h-9 rounded-lg px-3 text-xs">
           {isPending ? "Saving..." : "Save Reminder"}
-        </button>
+        </Button>
       </section>
 
       <section className="space-y-2">
@@ -203,13 +198,9 @@ export function NotificationCenter({ preferences, notifications }: NotificationC
                     <p className="mt-1 text-xs text-zinc-300">{notification.body}</p>
                   </div>
                   {!notification.is_read ? (
-                    <button
-                      type="button"
-                      onClick={() => markRead(notification.id)}
-                      className="rounded-md border border-white/15 px-2 py-1 text-[11px] text-zinc-100 transition-colors hover:bg-white/10"
-                    >
+                    <Button type="button" onClick={() => markRead(notification.id)} variant="secondary" size="sm" className="h-7 rounded-md px-2 py-1 text-[11px]">
                       Mark Read
-                    </button>
+                    </Button>
                   ) : (
                     <span className="text-[11px] text-zinc-500">Read</span>
                   )}
@@ -222,16 +213,7 @@ export function NotificationCenter({ preferences, notifications }: NotificationC
         )}
       </section>
 
-      {message ? (
-        <p
-          role={isError ? "alert" : "status"}
-          className={`rounded-lg px-3 py-2 text-sm ${
-            isError ? "border border-rose-400/35 bg-rose-500/10 text-rose-200" : "border border-accent/40 bg-accent/10 text-zinc-100"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
+      {message ? <Toast tone={isError ? "error" : "success"} role={isError ? "alert" : "status"}>{message}</Toast> : null}
     </div>
   );
 }

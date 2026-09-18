@@ -10,6 +10,12 @@ import {
   loadProgressPhotoComparisonAction,
   loadProgressPhotoPageAction,
 } from "@/app/(protected)/actions/progress-actions";
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Toast } from "@/components/ui/toast";
+import { Textarea } from "@/components/ui/textarea";
 import type { ProgressPhotoSignedRow } from "@/lib/data/progress-photos";
 import { formatCalendarDate } from "@/lib/timezone";
 
@@ -148,26 +154,26 @@ export function ProgressPhotoManager({ initialRows, initialNextOffset, available
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="space-y-1 text-xs text-zinc-400">
             <span>Date</span>
-            <input type="date" value={photoDate} onChange={(event) => setPhotoDate(event.target.value)} className="app-input h-9 text-sm" />
+            <DatePicker value={photoDate} onChange={(event) => setPhotoDate(event.target.value)} className="app-input h-9 text-sm" />
           </label>
           <label className="space-y-1 text-xs text-zinc-400">
             <span>View</span>
-            <select value={view} onChange={(event) => setView(event.target.value as PhotoView)} className="app-input h-9 text-sm">
+            <Select value={view} onChange={(event) => setView(event.target.value as PhotoView)} className="app-input h-9 text-sm">
               <option value="front">Front</option>
               <option value="side">Side</option>
               <option value="back">Back</option>
-            </select>
+            </Select>
           </label>
         </div>
         <label className="space-y-1 text-xs text-zinc-400">
           <span>Photo</span>
-          <input name="photo" type="file" accept="image/png,image/jpeg,image/webp" className="app-input h-9 text-sm file:mr-2 file:text-xs" />
+          <Input name="photo" type="file" accept="image/png,image/jpeg,image/webp" className="app-input h-9 text-sm file:mr-2 file:text-xs" />
           <p className="text-[11px] text-zinc-500">JPEG, PNG, or WebP up to 4MB.</p>
         </label>
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="space-y-1 text-xs text-zinc-400">
             <span>Weight (optional)</span>
-            <input
+            <Input
               type="number"
               value={weight}
               onChange={(event) => setWeight(event.target.value)}
@@ -178,29 +184,25 @@ export function ProgressPhotoManager({ initialRows, initialNextOffset, available
           </label>
           <label className="space-y-1 text-xs text-zinc-400">
             <span>Unit</span>
-            <select value={weightUnit} onChange={(event) => setWeightUnit(event.target.value === "kg" ? "kg" : "lb")} className="app-input h-9 text-sm">
+            <Select value={weightUnit} onChange={(event) => setWeightUnit(event.target.value === "kg" ? "kg" : "lb")} className="app-input h-9 text-sm">
               <option value="lb">lb</option>
               <option value="kg">kg</option>
-            </select>
+            </Select>
           </label>
         </div>
         <label className="space-y-1 text-xs text-zinc-400">
           <span>Notes (optional)</span>
-          <textarea
+          <Textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            className="w-full rounded-xl border border-white/12 bg-black/25 px-3 py-2 text-sm text-white outline-none transition focus:border-white/20 focus:ring-2 focus:ring-accent/35"
+            className="text-sm"
             rows={2}
             maxLength={1000}
           />
         </label>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200 disabled:bg-zinc-300"
-        >
+        <Button type="submit" disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
           {isPending ? "Saving..." : "Save Photo"}
-        </button>
+        </Button>
       </form>
 
       <div className="space-y-2">
@@ -228,13 +230,9 @@ export function ProgressPhotoManager({ initialRows, initialNextOffset, available
                         {photo.weight ? `${photo.weight} ${photo.weight_unit ?? ""}` : "Weight not logged"}
                       </p>
                       {photo.notes ? <p className="text-[11px] text-zinc-400">{photo.notes}</p> : null}
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(photo.id)}
-                        className="rounded-md border border-rose-400/35 px-2 py-1 text-[11px] text-rose-200 transition-colors hover:bg-rose-500/15"
-                      >
+                      <Button type="button" onClick={() => handleDelete(photo.id)} variant="danger" size="sm" className="h-7 rounded-md px-2 py-1 text-[11px]">
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -245,14 +243,9 @@ export function ProgressPhotoManager({ initialRows, initialNextOffset, available
           <p className="text-sm text-zinc-500">No photos saved yet.</p>
         )}
         {nextOffset !== null ? (
-          <button
-            type="button"
-            onClick={handleLoadMore}
-            disabled={isPending}
-            className="rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10 disabled:opacity-60"
-          >
+          <Button type="button" onClick={handleLoadMore} disabled={isPending} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
             {isPending ? "Loading..." : "Load more"}
-          </button>
+          </Button>
         ) : null}
       </div>
 
@@ -263,23 +256,23 @@ export function ProgressPhotoManager({ initialRows, initialNextOffset, available
             <div className="grid gap-2 sm:grid-cols-2">
               <label className="space-y-1 text-xs text-zinc-400">
                 <span>Left date</span>
-                <select value={leftDate} onChange={(event) => setLeftDate(event.target.value)} className="app-input h-9 text-sm">
+                <Select value={leftDate} onChange={(event) => setLeftDate(event.target.value)} className="app-input h-9 text-sm">
                   {comparisonDates.map((date) => (
                     <option key={date} value={date}>
                       {formatDate(date)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <label className="space-y-1 text-xs text-zinc-400">
                 <span>Right date</span>
-                <select value={rightDate} onChange={(event) => setRightDate(event.target.value)} className="app-input h-9 text-sm">
+                <Select value={rightDate} onChange={(event) => setRightDate(event.target.value)} className="app-input h-9 text-sm">
                   {comparisonDates.map((date) => (
                     <option key={date} value={date}>
                       {formatDate(date)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -319,33 +312,26 @@ export function ProgressPhotoManager({ initialRows, initialNextOffset, available
                 </div>
               </div>
             </div>
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
+              className="h-8 rounded-md px-2.5 text-xs"
               onClick={() => {
                 startTransition(async () => {
                   await ensureComparisonRows();
                 });
               }}
-              className="rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
             >
               Load Selected Dates
-            </button>
+            </Button>
           </>
         ) : (
           <p className="text-xs text-zinc-500">Save at least one check-in date to compare.</p>
         )}
       </div>
 
-      {message ? (
-        <p
-          role={isError ? "alert" : "status"}
-          className={`rounded-lg px-3 py-2 text-sm ${
-            isError ? "border border-rose-400/35 bg-rose-500/10 text-rose-200" : "border border-accent/40 bg-accent/10 text-zinc-100"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
+      {message ? <Toast tone={isError ? "error" : "success"} role={isError ? "alert" : "status"}>{message}</Toast> : null}
     </div>
   );
 }

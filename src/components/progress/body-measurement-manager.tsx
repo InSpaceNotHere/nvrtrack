@@ -4,6 +4,12 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { deleteBodyMeasurementAction, upsertBodyMeasurementAction } from "@/app/(protected)/actions/progress-actions";
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Toast } from "@/components/ui/toast";
+import { Textarea } from "@/components/ui/textarea";
 import type { BodyMeasurementEntryRow } from "@/lib/data/body-measurements";
 import {
   STANDARD_MEASUREMENT_FIELDS,
@@ -124,13 +130,13 @@ export function BodyMeasurementManager({ entries, todayDate }: BodyMeasurementMa
       <form onSubmit={handleSubmit} className="space-y-2.5 rounded-xl border border-white/10 bg-black/20 p-3">
         <label className="space-y-1 text-xs text-zinc-400">
           <span>Entry date</span>
-          <input type="date" value={entryDate} onChange={(event) => setEntryDate(event.target.value)} className="app-input h-9 text-sm" />
+          <DatePicker value={entryDate} onChange={(event) => setEntryDate(event.target.value)} className="app-input h-9 text-sm" />
         </label>
         <div className="grid gap-2 sm:grid-cols-2">
           {STANDARD_MEASUREMENT_FIELDS.map((field) => (
             <label key={field.id} className="space-y-1 text-xs text-zinc-400">
               <span>{field.label} (in)</span>
-              <input
+              <Input
                 type="number"
                 min={0}
                 step="0.1"
@@ -146,7 +152,7 @@ export function BodyMeasurementManager({ entries, todayDate }: BodyMeasurementMa
           <p className="text-xs uppercase tracking-[0.08em] text-zinc-400">Custom Measurements</p>
           {custom.map((item) => (
             <div key={item.id} className="grid gap-2 sm:grid-cols-[1fr_120px_auto]">
-              <input
+              <Input
                 value={item.name}
                 onChange={(event) =>
                   setCustom((rows) => rows.map((row) => (row.id === item.id ? { ...row, name: event.target.value } : row)))
@@ -154,7 +160,7 @@ export function BodyMeasurementManager({ entries, todayDate }: BodyMeasurementMa
                 placeholder="Name"
                 className="app-input h-9 text-sm"
               />
-              <input
+              <Input
                 value={item.value}
                 onChange={(event) =>
                   setCustom((rows) => rows.map((row) => (row.id === item.id ? { ...row, value: event.target.value } : row)))
@@ -165,50 +171,36 @@ export function BodyMeasurementManager({ entries, todayDate }: BodyMeasurementMa
                 placeholder="Value"
                 className="app-input h-9 text-sm"
               />
-              <button
-                type="button"
-                onClick={() => setCustom((rows) => rows.filter((row) => row.id !== item.id))}
-                className="rounded-md border border-white/15 px-2 text-xs text-zinc-100 transition-colors hover:bg-white/10"
-              >
+              <Button type="button" onClick={() => setCustom((rows) => rows.filter((row) => row.id !== item.id))} variant="secondary" size="sm" className="h-9 rounded-md px-2 text-xs">
                 Remove
-              </button>
+              </Button>
             </div>
           ))}
-          <button
-            type="button"
-            onClick={() =>
-              setCustom((rows) => [...rows, { id: crypto.randomUUID(), name: "", value: "" }])
-            }
-            className="rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-          >
+          <Button type="button" onClick={() => setCustom((rows) => [...rows, { id: crypto.randomUUID(), name: "", value: "" }])} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
             Add Custom
-          </button>
+          </Button>
         </div>
 
         <label className="space-y-1 text-xs text-zinc-400">
           <span>Notes (optional)</span>
-          <textarea
+          <Textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            className="w-full rounded-xl border border-white/12 bg-black/25 px-3 py-2 text-sm text-white outline-none transition focus:border-white/20 focus:ring-2 focus:ring-accent/35"
+            className="text-sm"
             rows={2}
             maxLength={1000}
           />
         </label>
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200 disabled:bg-zinc-300"
-        >
+        <Button type="submit" disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
           {isPending ? "Saving..." : "Save Measurements"}
-        </button>
+        </Button>
       </form>
 
       <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-medium text-zinc-100">Measurement Trend</h3>
-          <select
+          <Select
             value={selectedTrendField}
             onChange={(event) => setSelectedTrendField(event.target.value)}
             className="app-input h-8 text-xs"
@@ -218,7 +210,7 @@ export function BodyMeasurementManager({ entries, todayDate }: BodyMeasurementMa
                 {field.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         {trendPoints.length ? (
           <>
@@ -257,13 +249,9 @@ export function BodyMeasurementManager({ entries, todayDate }: BodyMeasurementMa
                     </p>
                     {entry.notes ? <p className="mt-1 text-xs text-zinc-400">{entry.notes}</p> : null}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(entry.id)}
-                    className="rounded-md border border-rose-400/35 px-2 py-1 text-[11px] text-rose-200 transition-colors hover:bg-rose-500/15"
-                  >
+                  <Button type="button" onClick={() => handleDelete(entry.id)} variant="danger" size="sm" className="h-7 rounded-md px-2 py-1 text-[11px]">
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
@@ -273,16 +261,7 @@ export function BodyMeasurementManager({ entries, todayDate }: BodyMeasurementMa
         )}
       </div>
 
-      {message ? (
-        <p
-          role={isError ? "alert" : "status"}
-          className={`rounded-lg px-3 py-2 text-sm ${
-            isError ? "border border-rose-400/35 bg-rose-500/10 text-rose-200" : "border border-accent/40 bg-accent/10 text-zinc-100"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
+      {message ? <Toast tone={isError ? "error" : "success"} role={isError ? "alert" : "status"}>{message}</Toast> : null}
     </div>
   );
 }

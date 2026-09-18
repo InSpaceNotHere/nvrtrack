@@ -4,6 +4,11 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { deleteWeeklyJournalAction, upsertWeeklyJournalAction } from "@/app/(protected)/actions/progress-actions";
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
+import { Toast } from "@/components/ui/toast";
+import { Textarea } from "@/components/ui/textarea";
 import type { WeeklyJournalEntryRow } from "@/lib/data/weekly-journal";
 import { formatCalendarDate } from "@/lib/timezone";
 
@@ -71,16 +76,16 @@ export function WeeklyJournalManager({ entries, initialWeekStart }: WeeklyJourna
       <form onSubmit={handleSave} className="space-y-2.5 rounded-xl border border-white/10 bg-black/20 p-3">
         <label className="space-y-1 text-xs text-zinc-400">
           <span>Week start (Monday)</span>
-          <input value={weekStart} onChange={(event) => setWeekStart(event.target.value)} type="date" className="app-input h-9 text-sm" />
+          <DatePicker value={weekStart} onChange={(event) => setWeekStart(event.target.value)} className="app-input h-9 text-sm" />
         </label>
         <div className="grid gap-2 sm:grid-cols-3">
           <label className="space-y-1 text-xs text-zinc-400">
             <span>Mood</span>
-            <input value={mood} onChange={(event) => setMood(event.target.value)} className="app-input h-9 text-sm" maxLength={80} />
+            <Input value={mood} onChange={(event) => setMood(event.target.value)} className="app-input h-9 text-sm" maxLength={80} />
           </label>
           <label className="space-y-1 text-xs text-zinc-400">
             <span>Recovery (1-10)</span>
-            <input
+            <Input
               value={recovery}
               onChange={(event) => setRecovery(event.target.value)}
               type="number"
@@ -91,30 +96,26 @@ export function WeeklyJournalManager({ entries, initialWeekStart }: WeeklyJourna
           </label>
           <label className="space-y-1 text-xs text-zinc-400">
             <span>Energy (1-10)</span>
-            <input value={energy} onChange={(event) => setEnergy(event.target.value)} type="number" min={1} max={10} className="app-input h-9 text-sm" />
+            <Input value={energy} onChange={(event) => setEnergy(event.target.value)} type="number" min={1} max={10} className="app-input h-9 text-sm" />
           </label>
         </div>
         <label className="space-y-1 text-xs text-zinc-400">
           <span>Sleep hours</span>
-          <input value={sleepHours} onChange={(event) => setSleepHours(event.target.value)} type="number" min={0} max={24} step="0.1" className="app-input h-9 text-sm" />
+          <Input value={sleepHours} onChange={(event) => setSleepHours(event.target.value)} type="number" min={0} max={24} step="0.1" className="app-input h-9 text-sm" />
         </label>
         <label className="space-y-1 text-xs text-zinc-400">
           <span>Notes</span>
-          <textarea
+          <Textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-white/12 bg-black/25 px-3 py-2 text-sm text-white outline-none transition focus:border-white/20 focus:ring-2 focus:ring-accent/35"
+            className="text-sm"
             maxLength={4000}
           />
         </label>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200 disabled:bg-zinc-300"
-        >
+        <Button type="submit" disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
           {isPending ? "Saving..." : "Save Weekly Journal"}
-        </button>
+        </Button>
       </form>
 
       <div className="space-y-2">
@@ -132,13 +133,9 @@ export function WeeklyJournalManager({ entries, initialWeekStart }: WeeklyJourna
                     </p>
                     {entry.notes ? <p className="mt-1.5 text-xs text-zinc-300">{entry.notes}</p> : null}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(entry.id)}
-                    className="rounded-md border border-rose-400/35 px-2 py-1 text-[11px] text-rose-200 transition-colors hover:bg-rose-500/15"
-                  >
+                  <Button type="button" onClick={() => handleDelete(entry.id)} variant="danger" size="sm" className="h-7 rounded-md px-2 py-1 text-[11px]">
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
@@ -148,16 +145,7 @@ export function WeeklyJournalManager({ entries, initialWeekStart }: WeeklyJourna
         )}
       </div>
 
-      {message ? (
-        <p
-          role={isError ? "alert" : "status"}
-          className={`rounded-lg px-3 py-2 text-sm ${
-            isError ? "border border-rose-400/35 bg-rose-500/10 text-rose-200" : "border border-accent/40 bg-accent/10 text-zinc-100"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
+      {message ? <Toast tone={isError ? "error" : "success"} role={isError ? "alert" : "status"}>{message}</Toast> : null}
     </div>
   );
 }

@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { quickStartWorkoutFromTemplateAction } from "@/app/(protected)/actions/planner-actions";
 import { MuscleMap } from "@/components/training/muscle-map";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Toast } from "@/components/ui/toast";
 import type { PlannerDayPlan, PlannerTemplateExercise } from "@/lib/training/planner";
 
 interface TodaysWorkoutPlannerCardProps {
@@ -65,24 +67,14 @@ export function TodaysWorkoutPlannerCard({ todayPlan, templateExercises }: Today
           {todayPlan.exercise_count} exercises • {todayPlan.estimated_duration_minutes ?? 0} min • {todayPlan.status}
         </p>
         <MuscleMap aggregation={todayPlan.muscle_targeting} testId="dashboard-today-muscle-map" />
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={quickStart}
-          className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200 disabled:bg-zinc-300"
-        >
+        <Button type="button" disabled={isPending} onClick={quickStart} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
           {isPending ? "Starting..." : "Quick Start"}
-        </button>
+        </Button>
       </div>
       {message ? (
-        <p
-          role={isError ? "alert" : "status"}
-          className={`mt-2 rounded-md px-2.5 py-1.5 text-xs ${
-            isError ? "border border-rose-400/35 bg-rose-500/10 text-rose-200" : "border border-accent/35 bg-accent/10 text-zinc-100"
-          }`}
-        >
+        <Toast tone={isError ? "error" : "success"} role={isError ? "alert" : "status"} className="mt-2 text-xs">
           {message}
-        </p>
+        </Toast>
       ) : null}
     </Card>
   );

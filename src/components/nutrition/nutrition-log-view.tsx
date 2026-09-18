@@ -21,9 +21,14 @@ import {
   type LiveUsdaEntryFormErrors,
   updateFoodEntryAction,
 } from "@/app/(protected)/actions/nutrition-actions";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CalorieRing } from "@/components/ui/calorie-ring";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { Select } from "@/components/ui/select";
+import { Toast } from "@/components/ui/toast";
 import type { FoodCatalogRow, FoodEntryRow, FoodRow } from "@/lib/data/auth-context";
 import {
   calculateDailyTotals,
@@ -865,49 +870,41 @@ export function NutritionLogView({
       <Card title="Food Log" subtitle="Grouped by meal">
         <div className="mb-3 flex items-center justify-between gap-2">
           <p className="text-xs text-zinc-500">Daily totals are calculated from logged entries and servings.</p>
-          <button
-            type="button"
-            onClick={() => openComposer("breakfast")}
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
-          >
+          <Button type="button" onClick={() => openComposer("breakfast")} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
             Add Food
-          </button>
+          </Button>
         </div>
 
         {composerOpen ? (
           <div className="mb-4 space-y-3 rounded-xl border border-white/10 bg-black/20 p-3.5">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {([
                 ["common", "Common"],
                 ["usda", "Search USDA"],
                 ["saved", "My Foods"],
                 ["custom", "Manual Label"],
               ] as const).map(([value, label]) => (
-                <button
+                <Button
                   key={value}
                   type="button"
                   onClick={() => setComposerMode(value)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                    composerMode === value ? "bg-white text-black" : "border border-white/15 text-zinc-200 hover:bg-white/10"
-                  }`}
+                  variant={composerMode === value ? "primary" : "secondary"}
+                  size="sm"
+                  className="h-8 rounded-lg px-3 text-xs"
                 >
                   {label}
-                </button>
+                </Button>
               ))}
-              <button
-                type="button"
-                onClick={() => setComposerOpen(false)}
-                className="ml-auto rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-white/10"
-              >
+              <Button type="button" onClick={() => setComposerOpen(false)} variant="secondary" size="sm" className="ml-auto h-8 rounded-lg px-3 text-xs">
                 Close
-              </button>
+              </Button>
             </div>
 
             {composerMode === "common" ? (
               <div className="space-y-3">
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Search Common foods</span>
-                  <input
+                  <Input
                     value={catalogSearch}
                     onChange={(event) => setCatalogSearch(event.target.value)}
                     className="app-input"
@@ -957,7 +954,7 @@ export function NutritionLogView({
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label className="space-y-1 text-sm text-zinc-300">
                         <span>Amount</span>
-                        <input
+                        <Input
                           value={catalogAmountValue}
                           onChange={(event) => setCatalogAmountValue(event.target.value)}
                           className="app-input"
@@ -966,7 +963,7 @@ export function NutritionLogView({
                       </label>
                       <label className="space-y-1 text-sm text-zinc-300">
                         <span>Unit</span>
-                        <select
+                        <Select
                           value={catalogAmountUnit}
                           onChange={(event) => setCatalogAmountUnit(event.target.value as SupportedAmountUnit)}
                           className="app-input"
@@ -979,7 +976,7 @@ export function NutritionLogView({
                               {roundNutritionValue(selectedCatalogSourceServing.weightGrams, 1)} g)
                             </option>
                           ) : null}
-                        </select>
+                        </Select>
                         {catalogErrors.amount_unit ? <p className="text-xs text-rose-300">{catalogErrors.amount_unit}</p> : null}
                       </label>
                     </div>
@@ -1009,7 +1006,7 @@ export function NutritionLogView({
                 <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
                   <label className="space-y-1 text-sm text-zinc-300">
                     <span>Search USDA foods</span>
-                    <input
+                    <Input
                       value={usdaSearchQuery}
                       onChange={(event) => {
                         const value = event.target.value;
@@ -1030,24 +1027,19 @@ export function NutritionLogView({
                   </label>
                   <label className="space-y-1 text-sm text-zinc-300">
                     <span>Group</span>
-                    <select
+                    <Select
                       value={usdaSearchGroup}
                       onChange={(event) => setUsdaSearchGroup(event.target.value as UsdaSearchGroup)}
                       className="app-input"
                     >
                       <option value="generic">Generic</option>
                       <option value="branded">Branded</option>
-                    </select>
+                    </Select>
                   </label>
                   <div className="flex items-end">
-                    <button
-                      type="button"
-                      onClick={() => void runUsdaSearch()}
-                      disabled={usdaSearchBusy}
-                      className="inline-flex h-10 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-100 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
+                    <Button type="button" onClick={() => void runUsdaSearch()} disabled={usdaSearchBusy} variant="secondary" className="h-10 rounded-lg px-3 text-xs">
                       {usdaSearchBusy ? "Searching..." : "Search"}
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <p className="text-xs text-zinc-500">
@@ -1152,7 +1144,7 @@ export function NutritionLogView({
                         <div className="grid gap-3 sm:grid-cols-2">
                           <label className="space-y-1 text-sm text-zinc-300">
                             <span>Amount</span>
-                            <input
+                            <Input
                               value={usdaAmountValue}
                               onChange={(event) => setUsdaAmountValue(event.target.value)}
                               className="app-input"
@@ -1161,7 +1153,7 @@ export function NutritionLogView({
                           </label>
                           <label className="space-y-1 text-sm text-zinc-300">
                             <span>Unit</span>
-                            <select
+                            <Select
                               value={usdaAmountUnit}
                               onChange={(event) => setUsdaAmountUnit(event.target.value as SupportedAmountUnit)}
                               className="app-input"
@@ -1169,14 +1161,14 @@ export function NutritionLogView({
                               <option value="g">grams (g)</option>
                               <option value="oz">ounces (oz)</option>
                               {usdaDetail.portionOptions.length ? <option value="source_serving">USDA portion</option> : null}
-                            </select>
+                            </Select>
                             {usdaErrors.amount_unit ? <p className="text-xs text-rose-300">{usdaErrors.amount_unit}</p> : null}
                           </label>
                         </div>
                         {usdaAmountUnit === "source_serving" ? (
                           <label className="space-y-1 text-sm text-zinc-300">
                             <span>USDA portion</span>
-                            <select
+                            <Select
                               value={usdaSourcePortionId ?? usdaDetail.defaultPortionId ?? ""}
                               onChange={(event) => setUsdaSourcePortionId(event.target.value || null)}
                               className="app-input"
@@ -1186,7 +1178,7 @@ export function NutritionLogView({
                                   {portion.label}
                                 </option>
                               ))}
-                            </select>
+                            </Select>
                             {usdaErrors.source_portion_id ? (
                               <p className="text-xs text-rose-300">{usdaErrors.source_portion_id}</p>
                             ) : null}
@@ -1237,7 +1229,7 @@ export function NutritionLogView({
               <div className="space-y-3">
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Search My Foods</span>
-                  <input
+                  <Input
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     className="app-input"
@@ -1331,7 +1323,7 @@ export function NutritionLogView({
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="space-y-1 text-sm text-zinc-300 sm:col-span-2">
                   <span>Food name</span>
-                  <input
+                  <Input
                     value={customEntry.food_name}
                     onChange={(event) => setCustomEntry((state) => ({ ...state, food_name: event.target.value }))}
                     className="app-input"
@@ -1340,7 +1332,7 @@ export function NutritionLogView({
                 </label>
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Brand (optional)</span>
-                  <input
+                  <Input
                     value={customEntry.brand_name}
                     onChange={(event) => setCustomEntry((state) => ({ ...state, brand_name: event.target.value }))}
                     className="app-input"
@@ -1348,7 +1340,7 @@ export function NutritionLogView({
                 </label>
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Serving size</span>
-                  <input
+                  <Input
                     value={customEntry.serving_size}
                     onChange={(event) => setCustomEntry((state) => ({ ...state, serving_size: event.target.value }))}
                     className="app-input"
@@ -1357,7 +1349,7 @@ export function NutritionLogView({
                 </label>
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Serving unit</span>
-                  <input
+                  <Input
                     value={customEntry.serving_unit}
                     onChange={(event) => setCustomEntry((state) => ({ ...state, serving_unit: event.target.value }))}
                     className="app-input"
@@ -1366,7 +1358,7 @@ export function NutritionLogView({
                 </label>
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Calories/serving</span>
-                  <input
+                  <Input
                     value={customEntry.calories_per_serving}
                     onChange={(event) =>
                       setCustomEntry((state) => ({ ...state, calories_per_serving: event.target.value }))
@@ -1379,7 +1371,7 @@ export function NutritionLogView({
                 </label>
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Protein g</span>
-                  <input
+                  <Input
                     value={customEntry.protein_per_serving_g}
                     onChange={(event) =>
                       setCustomEntry((state) => ({ ...state, protein_per_serving_g: event.target.value }))
@@ -1389,7 +1381,7 @@ export function NutritionLogView({
                 </label>
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Carbohydrates g</span>
-                  <input
+                  <Input
                     value={customEntry.carbohydrate_per_serving_g}
                     onChange={(event) =>
                       setCustomEntry((state) => ({ ...state, carbohydrate_per_serving_g: event.target.value }))
@@ -1399,7 +1391,7 @@ export function NutritionLogView({
                 </label>
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Fat g</span>
-                  <input
+                  <Input
                     value={customEntry.fat_per_serving_g}
                     onChange={(event) => setCustomEntry((state) => ({ ...state, fat_per_serving_g: event.target.value }))}
                     className="app-input"
@@ -1407,7 +1399,7 @@ export function NutritionLogView({
                 </label>
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Fiber g (optional)</span>
-                  <input
+                  <Input
                     value={customEntry.fiber_per_serving_g}
                     onChange={(event) =>
                       setCustomEntry((state) => ({ ...state, fiber_per_serving_g: event.target.value }))
@@ -1422,14 +1414,14 @@ export function NutritionLogView({
               {composerMode === "saved" || composerMode === "custom" ? (
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Servings</span>
-                  <input value={servings} onChange={(event) => setServings(event.target.value)} className="app-input" />
+                  <Input value={servings} onChange={(event) => setServings(event.target.value)} className="app-input" />
                   {entryErrors.servings ? <p className="text-xs text-rose-300">{entryErrors.servings}</p> : null}
                 </label>
               ) : null}
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Meal type</span>
-                  <select
+                  <Select
                     value={mealType}
                     onChange={(event) => setMealType(event.target.value as MealType)}
                     className="app-input"
@@ -1439,16 +1431,11 @@ export function NutritionLogView({
                         {MEAL_LABELS[meal]}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
                 <label className="space-y-1 text-sm text-zinc-300">
                   <span>Date</span>
-                  <input
-                    type="date"
-                    value={entryDate}
-                    onChange={(event) => setEntryDate(event.target.value)}
-                    className="app-input"
-                  />
+                  <DatePicker value={entryDate} onChange={(event) => setEntryDate(event.target.value)} className="app-input" />
                   {composerMode === "common" ? (
                     catalogErrors.entry_date ? <p className="text-xs text-rose-300">{catalogErrors.entry_date}</p> : null
                   ) : composerMode === "usda" ? (
@@ -1460,7 +1447,7 @@ export function NutritionLogView({
               </div>
               <label className="space-y-1 text-sm text-zinc-300">
                 <span>Note (optional)</span>
-                <input
+                <Input
                   value={entryNote}
                   onChange={(event) => setEntryNote(event.target.value)}
                   className="app-input"
@@ -1470,17 +1457,12 @@ export function NutritionLogView({
 
             <div className="flex flex-wrap gap-2">
               {composerMode === "common" ? (
-                <button
-                  type="button"
-                  onClick={handleCreateCatalogEntry}
-                  disabled={isPending || !selectedCatalogFood}
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-300"
-                >
+                <Button type="button" onClick={handleCreateCatalogEntry} disabled={isPending || !selectedCatalogFood} variant="primary" className="h-10 rounded-xl px-4 text-sm">
                   {isPending ? "Saving..." : "Log Common Food"}
-                </button>
+                </Button>
               ) : null}
               {composerMode === "usda" ? (
-                <button
+                <Button
                   type="button"
                   onClick={handleCreateLiveUsdaEntry}
                   disabled={
@@ -1490,30 +1472,21 @@ export function NutritionLogView({
                     usdaDetailBusy ||
                     !usdaDetail.hasRequiredCoreNutrients
                   }
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                  variant="primary"
+                  className="h-10 rounded-xl px-4 text-sm"
                 >
                   {isPending ? "Saving..." : "Log USDA Food"}
-                </button>
+                </Button>
               ) : null}
               {composerMode === "saved" ? (
-                <button
-                  type="button"
-                  onClick={() => handleCreateEntry("saved")}
-                  disabled={isPending}
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-300"
-                >
+                <Button type="button" onClick={() => handleCreateEntry("saved")} disabled={isPending} variant="primary" className="h-10 rounded-xl px-4 text-sm">
                   {isPending ? "Saving..." : "Log Saved Food"}
-                </button>
+                </Button>
               ) : null}
               {composerMode === "custom" ? (
-                <button
-                  type="button"
-                  onClick={() => handleCreateEntry("custom")}
-                  disabled={isPending}
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-300"
-                >
+                <Button type="button" onClick={() => handleCreateEntry("custom")} disabled={isPending} variant="primary" className="h-10 rounded-xl px-4 text-sm">
                   {isPending ? "Saving..." : "Log Custom Entry"}
-                </button>
+                </Button>
               ) : null}
             </div>
           </div>
@@ -1523,13 +1496,9 @@ export function NutritionLogView({
           <div className="rounded-xl border border-dashed border-white/15 bg-black/20 p-4">
             <p className="text-sm font-medium text-zinc-200">No food entries logged for this date.</p>
             <p className="mt-1 text-sm text-zinc-500">Use Add Food to log your first meal on this day.</p>
-            <button
-              type="button"
-              onClick={() => openComposer("breakfast")}
-              className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black hover:bg-zinc-200"
-            >
+            <Button type="button" onClick={() => openComposer("breakfast")} variant="primary" size="sm" className="mt-3 h-9 rounded-lg px-3 text-xs">
               Add Food
-            </button>
+            </Button>
           </div>
         ) : null}
 
@@ -1767,19 +1736,7 @@ export function NutritionLogView({
         </Link>
       </div>
 
-      {message ? (
-        <p
-          role={messageTone === "error" ? "alert" : "status"}
-          aria-live="polite"
-          className={`rounded-lg px-3 py-2 text-sm ${
-            messageTone === "error"
-              ? "border border-rose-400/35 bg-rose-500/10 text-rose-200"
-              : "border border-accent/40 bg-accent/10 text-zinc-100"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
+      {message ? <Toast tone={messageTone === "error" ? "error" : "success"} role={messageTone === "error" ? "alert" : "status"}>{message}</Toast> : null}
     </div>
   );
 }
