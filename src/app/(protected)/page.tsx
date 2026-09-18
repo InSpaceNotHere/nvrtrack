@@ -166,8 +166,14 @@ export default async function HomePage() {
   const proteinRemaining = (profileResult.data?.protein_goal ?? null) !== null
     ? (profileResult.data?.protein_goal ?? 0) - nutritionTotals.protein_g
     : null;
-  const workoutStreak = computeWorkoutDayStreak(workouts, todayDate);
-  const weeklyStreak = computeWorkoutWeeklyStreak(workouts, todayDate);
+  const workoutStreak = computeWorkoutDayStreak(workouts, {
+    timeZone: profileTimeZone,
+    reference: new Date(),
+  });
+  const weeklyStreak = computeWorkoutWeeklyStreak(workouts, {
+    timeZone: profileTimeZone,
+    reference: new Date(),
+  });
 
   const recentActivities = [
     ...(workouts

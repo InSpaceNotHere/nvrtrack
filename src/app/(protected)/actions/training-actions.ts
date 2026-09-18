@@ -26,6 +26,7 @@ import {
   updateMyExercise,
 } from "@/lib/data/exercises";
 import { createMyNotification } from "@/lib/data/notifications";
+import { getMyProfile } from "@/lib/data/profile";
 import { setScheduleOverride } from "@/lib/data/workout-planner";
 import { buildDuplicateSetInput, countMeaningfulCompletedSets, groupSetsByWorkoutExerciseId } from "@/lib/training/session";
 import { computeWorkoutDayStreak } from "@/lib/training/streaks";
@@ -33,6 +34,7 @@ import { buildStrengthDashboardSummary } from "@/lib/training/strength";
 import { normalizeWorkoutInput } from "@/lib/training/validation";
 import type { CanonicalLift } from "@/lib/training/canonical-lifts";
 import type { ExerciseRow, WorkoutExerciseRow, WorkoutRow, WorkoutSetRow } from "@/lib/data/auth-context";
+import { normalizeTimeZone } from "@/lib/timezone";
 
 type BaseActionResult = {
   status: "success" | "error";
@@ -269,7 +271,12 @@ export async function completeWorkoutAction(
   const allWorkoutsResult = await getMyWorkouts();
   if (!allWorkoutsResult.error) {
     const allWorkouts = allWorkoutsResult.data;
-    const completedStreak = computeWorkoutDayStreak(allWorkouts, workoutResult.data.workout_date);
+    const profileResult = await getMyProfile();
+    const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
+    const completedStreak = computeWorkoutDayStreak(allWorkouts, {
+      timeZone: profileTimeZone,
+      reference: updateResult.data?.completed_at ? new Date(updateResult.data.completed_at) : new Date(),
+    });
     if (completedStreak >= 2) {
       await createMyNotification({
         type: "workout_streak",
