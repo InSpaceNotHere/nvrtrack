@@ -106,6 +106,7 @@ export function NotificationCenter({ preferences, notifications }: NotificationC
     <div className="space-y-3.5">
       <section className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
         <h3 className="text-sm font-medium text-zinc-100">Notification Preferences</h3>
+        <p className="text-xs text-zinc-500">Choose which in-app reminders and streak notifications you want to track.</p>
         <div className="grid gap-1.5 sm:grid-cols-2">
           {NOTIFICATION_TYPES.map((type) => {
             const keyMap: Record<NotificationType, keyof typeof toggles> = {
@@ -140,7 +141,8 @@ export function NotificationCenter({ preferences, notifications }: NotificationC
       </section>
 
       <section className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
-        <h3 className="text-sm font-medium text-zinc-100">Create Reminder (Framework)</h3>
+        <h3 className="text-sm font-medium text-zinc-100">Create In-App Reminder</h3>
+        <p className="text-xs text-zinc-500">Reminders are stored in your in-app notification inbox for now.</p>
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="space-y-1 text-xs text-zinc-400">
             <span>Type</span>
@@ -187,7 +189,7 @@ export function NotificationCenter({ preferences, notifications }: NotificationC
       </section>
 
       <section className="space-y-2">
-        <h3 className="text-sm font-medium uppercase tracking-[0.08em] text-zinc-300">Notification Inbox</h3>
+        <h3 className="text-sm font-medium uppercase tracking-[0.08em] text-zinc-300">Stored Notifications</h3>
         {notifications.length ? (
           <ul className="space-y-2">
             {notifications.map((notification) => (

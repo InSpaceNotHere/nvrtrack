@@ -41,6 +41,11 @@ export function ProgressTabs({ overview, photos, measurements, journal }: Progre
 
   return (
     <section className="space-y-4">
+      <p className="text-xs text-zinc-500">
+        New here? Use <span className="text-zinc-300">Photos</span> for visual check-ins,{" "}
+        <span className="text-zinc-300">Measurements</span> for body stats, and{" "}
+        <span className="text-zinc-300">Journal</span> for weekly notes.
+      </p>
       <div role="tablist" aria-label="Progress views" className="inline-flex rounded-xl border border-white/10 bg-[#0f1114] p-1">
         {TAB_OPTIONS.map((option) => (
           <button

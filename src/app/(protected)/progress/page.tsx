@@ -223,7 +223,7 @@ export default async function ProgressPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Progress" />
+      <PageHeader title="Progress" subtitle="Track trends in Overview, then use Photos, Measurements, and Journal for weekly check-ins." />
       {weightLoadError ? (
         <Card>
           <p className="text-sm text-rose-200">Weight data is temporarily unavailable.</p>

@@ -88,6 +88,12 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
     if (!assignedOption) {
       const templateName = `E2E Planner Template ${runId}`;
       await page.getByLabel("Name").fill(templateName);
+      await expect(page.getByText("Hold Ctrl/Cmd to select multiple exercises.")).toHaveCount(0);
+      const plannerExerciseOption = page.locator('[data-testid^="planner-exercise-option-"]').first();
+      if (await plannerExerciseOption.count()) {
+        await plannerExerciseOption.click();
+        await expect(page.getByText("Exercises (1 selected)")).toBeVisible();
+      }
       await page.getByRole("button", { name: "Save Template" }).click();
       await expect(page.getByRole("status").filter({ hasText: "Workout template created." })).toBeVisible();
       await page.reload();

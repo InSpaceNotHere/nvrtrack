@@ -73,6 +73,7 @@ export function WorkoutPlanner({
   const [templateType, setTemplateType] = useState<PlannerTemplate["template_type"]>("custom");
   const [duration, setDuration] = useState("");
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<string[]>([]);
+  const [exerciseSearch, setExerciseSearch] = useState("");
   const [moveTargets, setMoveTargets] = useState<Record<string, string>>({});
 
   const exerciseOptionsById = useMemo(
@@ -93,6 +94,18 @@ export function WorkoutPlanner({
   }, [templateExercises]);
   const scheduledByWeekday = useMemo(() => new Map(weekPlans.map((plan) => [plan.weekday, plan])), [weekPlans]);
   const isPlannerUninitialized = templates.length === 0 && weekPlans.every((plan) => plan.status === "none");
+  const filteredExerciseOptions = useMemo(() => {
+    const query = exerciseSearch.trim().toLowerCase();
+    if (!query) {
+      return exerciseOptions;
+    }
+
+    return exerciseOptions.filter((exercise) => exercise.name.toLowerCase().includes(query));
+  }, [exerciseOptions, exerciseSearch]);
+  const selectedExerciseOptions = useMemo(
+    () => selectedExerciseIds.map((id) => exerciseOptionsById.get(id)).filter((value): value is ExerciseOption => Boolean(value)),
+    [exerciseOptionsById, selectedExerciseIds],
+  );
 
   function setFeedback(nextMessage: string, tone: "success" | "error" = "success") {
     setMessage(nextMessage);
@@ -130,6 +143,12 @@ export function WorkoutPlanner({
       }
       setFeedback(result.message, "error");
     });
+  }
+
+  function toggleTemplateExercise(exerciseId: string) {
+    setSelectedExerciseIds((current) =>
+      current.includes(exerciseId) ? current.filter((id) => id !== exerciseId) : [...current, exerciseId],
+    );
   }
 
   function handleTemplateDuplicate(templateId: string) {
@@ -416,23 +435,57 @@ export function WorkoutPlanner({
           </div>
 
           <label className="space-y-1 text-xs text-zinc-400">
-            <span>Exercises</span>
-            <select
-              multiple
-              value={selectedExerciseIds}
-              onChange={(event) => {
-                const values = Array.from(event.target.selectedOptions).map((option) => option.value);
-                setSelectedExerciseIds(values);
-              }}
-              className="min-h-28 w-full rounded-xl border border-white/12 bg-black/25 px-3 py-2 text-sm text-white outline-none transition focus:border-white/20 focus:ring-2 focus:ring-accent/35"
-            >
-              {exerciseOptions.map((exercise) => (
-                <option key={exercise.id} value={exercise.id}>
-                  {exercise.name}
-                </option>
-              ))}
-            </select>
-            <p className="text-[11px] text-zinc-500">Hold Ctrl/Cmd to select multiple exercises.</p>
+            <span>Exercises ({selectedExerciseIds.length} selected)</span>
+            <input
+              value={exerciseSearch}
+              onChange={(event) => setExerciseSearch(event.target.value)}
+              className="app-input h-9 text-sm"
+              placeholder="Search exercises..."
+            />
+            <div className="max-h-40 overflow-y-auto rounded-xl border border-white/12 bg-black/25 p-2">
+              {filteredExerciseOptions.length ? (
+                <ul className="space-y-1">
+                  {filteredExerciseOptions.map((exercise) => {
+                    const selected = selectedExerciseIds.includes(exercise.id);
+                    return (
+                      <li key={exercise.id}>
+                        <button
+                          type="button"
+                          data-testid={`planner-exercise-option-${exercise.id}`}
+                          aria-pressed={selected}
+                          onClick={() => toggleTemplateExercise(exercise.id)}
+                          className={`w-full rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors ${
+                            selected
+                              ? "border-white bg-white text-black"
+                              : "border-white/10 text-zinc-200 hover:bg-white/10"
+                          }`}
+                        >
+                          {exercise.name}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="px-1 py-1 text-xs text-zinc-500">No exercises matched your search.</p>
+              )}
+            </div>
+            {selectedExerciseOptions.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {selectedExerciseOptions.map((exercise) => (
+                  <button
+                    key={`selected-${exercise.id}`}
+                    type="button"
+                    onClick={() => toggleTemplateExercise(exercise.id)}
+                    className="inline-flex items-center rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[11px] text-zinc-100 hover:bg-white/15"
+                  >
+                    {exercise.name} <span className="ml-1 text-zinc-400">×</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-zinc-500">Tap exercises above to include them in this template.</p>
+            )}
           </label>
 
           <button
