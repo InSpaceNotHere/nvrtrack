@@ -321,7 +321,7 @@ export default async function HomePage() {
         <Card title="Strength Dashboard" variant="secondary">
           <div className="mb-2 flex flex-wrap gap-1.5">
             <StateChip state="estimated" label="Estimated lift tiles" />
-            <StateChip state="tested" label="Canonical tested total only" />
+            <StateChip state="tested" label="Canonical lifts only" />
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
