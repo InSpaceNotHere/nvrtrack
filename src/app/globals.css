@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+:root {
+  --background: #050608;
+  --foreground: #f7f8fb;
+  --surface: #101215;
+  --surface-muted: #0b0d0f;
+  --border: #22262b;
+  --muted: #8f96a0;
+  --accent: #87a3ff;
+  --danger: #f06c7c;
+
+  --ds-color-bg-base: #050608;
+  --ds-color-bg-surface: #111419;
+  --ds-color-bg-muted: #0b0d10;
+  --ds-color-bg-elevated: #171b20;
+  --ds-color-border-subtle: #232830;
+  --ds-color-border-strong: #303845;
+  --ds-color-text-primary: #f7f8fb;
+  --ds-color-text-secondary: #c5ceda;
+  --ds-color-text-muted: #8f96a0;
+  --ds-color-accent: #87a3ff;
+  --ds-color-danger: #f06c7c;
+  --ds-color-success: #59d4a9;
+
+  --ds-font-size-metric-xl: clamp(2.2rem, 5vw, 2.8rem);
+  --ds-font-size-metric-lg: clamp(1.7rem, 4vw, 2.1rem);
+  --ds-font-size-heading-lg: clamp(1.35rem, 3vw, 1.65rem);
+  --ds-font-size-heading-md: 1rem;
+  --ds-font-size-body: 0.9375rem;
+  --ds-font-size-body-sm: 0.8125rem;
+  --ds-font-size-caption: 0.72rem;
+
+  --ds-space-1: 0.25rem;
+  --ds-space-2: 0.5rem;
+  --ds-space-3: 0.75rem;
+  --ds-space-4: 1rem;
+  --ds-space-5: 1.25rem;
+  --ds-space-6: 1.5rem;
+
+  --ds-radius-sm: 0.5rem;
+  --ds-radius-md: 0.72rem;
+  --ds-radius-lg: 0.95rem;
+  --ds-radius-xl: 1.1rem;
+
+  --ds-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.02), 0 8px 16px rgba(0, 0, 0, 0.28);
+  --ds-shadow-md: 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 28px rgba(0, 0, 0, 0.38);
+  --ds-shadow-lg: 0 3px 32px rgba(0, 0, 0, 0.58);
+
+  --ds-motion-fast: 140ms;
+  --ds-motion-medium: 220ms;
+  --ds-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border-subtle: var(--border);
+  --color-text-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  background: var(--ds-color-bg-base);
+  color: var(--ds-color-text-primary);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  border-color: var(--ds-color-border-subtle);
+}
+
+::selection {
+  background: rgba(135, 163, 255, 0.35);
+}
+
+.ds-input,
+.app-input {
+  width: 100%;
+  height: 2.75rem;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid color-mix(in oklab, var(--ds-color-border-subtle), white 10%);
+  background: color-mix(in oklab, var(--ds-color-bg-muted), black 12%);
+  padding: 0 0.75rem;
+  color: var(--ds-color-text-primary);
+  font-size: var(--ds-font-size-body);
+  line-height: 1.25rem;
+  outline: none;
+  transition:
+    border-color var(--ds-motion-fast) var(--ds-motion-ease),
+    box-shadow var(--ds-motion-fast) var(--ds-motion-ease),
+    background-color var(--ds-motion-fast) var(--ds-motion-ease);
+}
+
+.ds-input:focus,
+.app-input:focus {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 2px rgba(135, 163, 255, 0.35);
+}
+
+.ds-input::placeholder,
+.app-input::placeholder {
+  color: var(--ds-color-text-muted);
+}
+
+.ds-card {
+  border-radius: var(--ds-radius-xl);
+  border: 1px solid color-mix(in oklab, var(--ds-color-border-subtle), white 8%);
+  background: var(--ds-color-bg-surface);
+  box-shadow: var(--ds-shadow-sm);
+}
+
+.ds-metric {
+  font-size: var(--ds-font-size-metric-lg);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: 650;
+}
