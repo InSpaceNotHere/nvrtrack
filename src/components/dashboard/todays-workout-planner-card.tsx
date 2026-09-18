@@ -52,7 +52,7 @@ export function TodaysWorkoutPlannerCard({ todayPlan, templateExercises }: Today
 
   if (!todayPlan || !todayPlan.template_id) {
     return (
-      <Card title="Today&apos;s Workout Plan">
+      <Card title="Today&apos;s Workout Plan" variant="secondary">
         <p className="text-sm text-zinc-300">No template assigned for today.</p>
         <p className="mt-1 text-xs text-zinc-500">Set your weekly schedule in Training → Workout Planner.</p>
       </Card>
@@ -60,7 +60,7 @@ export function TodaysWorkoutPlannerCard({ todayPlan, templateExercises }: Today
   }
 
   return (
-    <Card title="Today&apos;s Workout Plan">
+    <Card title="Today&apos;s Workout Plan" variant="secondary">
       <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
         <p className="text-base font-semibold text-white">{todayPlan.template_name}</p>
         <p className="text-xs text-zinc-500">

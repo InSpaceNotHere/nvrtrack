@@ -256,7 +256,7 @@ export function WorkoutPlanner({
 
   return (
     <div className="space-y-3.5">
-      <Card title="Workout Planner">
+      <Card title="Workout Planner" variant="primary">
         {todayPlan ? (
           <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
             <p className="text-sm font-semibold text-zinc-100">Today&apos;s Workout</p>
@@ -312,7 +312,7 @@ export function WorkoutPlanner({
         </div>
       </Card>
 
-      <Card title="Weekly Schedule">
+      <Card title="Weekly Schedule" variant="secondary">
         <ul className="space-y-2">
           {weekPlans.map((plan) => (
             <li key={plan.date} className="rounded-xl border border-white/10 bg-black/20 p-2.5">
@@ -353,7 +353,7 @@ export function WorkoutPlanner({
         </ul>
       </Card>
 
-      <Card title="Template Library">
+      <Card title="Template Library" variant="tertiary">
         <ul className="space-y-2">
           {templates.map((template) => {
             const count = (exercisesByTemplateId.get(template.id) ?? []).length;
@@ -377,7 +377,7 @@ export function WorkoutPlanner({
         </ul>
       </Card>
 
-      <Card title="Create Template">
+      <Card title="Create Template" variant="secondary">
         <form onSubmit={handleCreateTemplate} className="space-y-2.5">
           <div className="grid gap-2 sm:grid-cols-3">
             <label className="space-y-1 text-xs text-zinc-400">

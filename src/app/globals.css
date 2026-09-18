@@ -134,6 +134,23 @@ body {
   box-shadow: var(--ds-shadow-sm);
 }
 
+.ds-card-primary {
+  border-color: color-mix(in oklab, var(--ds-color-accent), var(--ds-color-border-strong) 75%);
+  background: color-mix(in oklab, var(--ds-color-bg-surface), var(--ds-color-accent) 6%);
+  box-shadow: var(--ds-shadow-md);
+}
+
+.ds-card-secondary {
+  border-color: color-mix(in oklab, var(--ds-color-border-subtle), white 8%);
+  background: var(--ds-color-bg-surface);
+}
+
+.ds-card-tertiary {
+  border-color: color-mix(in oklab, var(--ds-color-border-subtle), black 15%);
+  background: color-mix(in oklab, var(--ds-color-bg-muted), var(--ds-color-bg-surface) 38%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.015), 0 5px 12px rgba(0, 0, 0, 0.2);
+}
+
 .ds-metric {
   font-size: var(--ds-font-size-metric-lg);
   line-height: 1;

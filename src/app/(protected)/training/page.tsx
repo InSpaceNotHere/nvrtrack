@@ -171,7 +171,7 @@ export default async function TrainingPage() {
       <PageHeader title="Training" subtitle="Live workout tracking and history." />
 
       {dataErrorMessage ? (
-        <Card>
+        <Card variant="tertiary">
           <p className="text-sm text-rose-200">Training data is temporarily unavailable.</p>
           <p className="mt-1 text-xs text-zinc-500">{dataErrorMessage}</p>
         </Card>
@@ -186,7 +186,7 @@ export default async function TrainingPage() {
       />
 
       {!hasWorkouts ? (
-        <Card title="Start Your First Workout">
+        <Card title="Start Your First Workout" variant="primary">
           <p className="text-sm text-zinc-300">No workouts logged yet. Create a workout and begin adding exercises and sets.</p>
           <Link
             href="/training/start"
@@ -230,7 +230,7 @@ export default async function TrainingPage() {
           </Card>
 
           {activeWorkout ? (
-            <Card title="Continue Active Workout">
+            <Card title="Continue Active Workout" variant="primary">
               <div className="rounded-xl border border-white/10 bg-black/20 p-3">
                 <p className="text-base font-semibold text-white">{activeWorkout.name}</p>
                 <p className="mt-1 text-xs text-zinc-500">{formatDate(activeWorkout.workout_date)}</p>
@@ -245,7 +245,7 @@ export default async function TrainingPage() {
           ) : null}
 
           {previewWorkout ? (
-            <Card title="Workout Targeting Preview">
+            <Card title="Workout Targeting Preview" variant="secondary">
               <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
                 <p className="text-sm font-semibold text-zinc-100">{previewWorkout.name}</p>
                 <p className="text-xs text-zinc-500">
@@ -266,7 +266,7 @@ export default async function TrainingPage() {
             </Card>
           ) : null}
 
-          <Card title="Recent Workouts">
+          <Card title="Recent Workouts" variant="tertiary">
             <ul className="space-y-2">
               {recentWorkouts.map((workout) => {
                 const workoutExercises = exercisesByWorkoutId.get(workout.id) ?? [];
@@ -304,7 +304,7 @@ export default async function TrainingPage() {
         </>
       )}
 
-      <Card title="Recent Exercises">
+      <Card title="Recent Exercises" variant="tertiary">
         {recentExerciseSnapshots.length ? (
           <ul className="space-y-2">
             {recentExerciseSnapshots.map((exercise) => (

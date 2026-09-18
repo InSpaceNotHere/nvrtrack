@@ -21,7 +21,7 @@ export function WorkoutCard({
   actionHref,
 }: WorkoutCardProps) {
   return (
-    <Card title="Today&apos;s Workout">
+    <Card title="Today&apos;s Workout" variant="primary">
       <div className="flex items-start gap-2.5">
         <div className="rounded-lg border border-white/10 bg-black/35 p-2">
           <Dumbbell className="h-4 w-4 text-[#87a3ff]" aria-hidden="true" />

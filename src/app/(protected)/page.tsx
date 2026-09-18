@@ -204,72 +204,104 @@ export default async function HomePage() {
       </header>
 
       {profileLoadError ? (
-        <Card>
+        <Card variant="tertiary">
           <p className="text-sm text-rose-200">Profile data is temporarily unavailable.</p>
           <p className="mt-1 text-xs text-zinc-500">{profileLoadError}</p>
         </Card>
       ) : null}
       {weightLoadError ? (
-        <Card>
+        <Card variant="tertiary">
           <p className="text-sm text-rose-200">Weight data is temporarily unavailable.</p>
           <p className="mt-1 text-xs text-zinc-500">{weightLoadError}</p>
         </Card>
       ) : null}
       {nutritionLoadError ? (
-        <Card>
+        <Card variant="tertiary">
           <p className="text-sm text-rose-200">Nutrition totals are temporarily unavailable.</p>
           <p className="mt-1 text-xs text-zinc-500">{nutritionLoadError}</p>
         </Card>
       ) : null}
       {workoutLoadError ? (
-        <Card>
+        <Card variant="tertiary">
           <p className="text-sm text-rose-200">Workout data is temporarily unavailable.</p>
           <p className="mt-1 text-xs text-zinc-500">{workoutLoadError}</p>
         </Card>
       ) : null}
       {recentFoodError ? (
-        <Card>
+        <Card variant="tertiary">
           <p className="text-sm text-rose-200">Recent meals are temporarily unavailable.</p>
           <p className="mt-1 text-xs text-zinc-500">{recentFoodError}</p>
         </Card>
       ) : null}
 
-      <Card title="Calories" subtitle="Today">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.2rem]">
-              {nutritionTotals.calories.toLocaleString()}
-              <span className="text-xl text-zinc-400">
-                {" / "}
-                {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"}
-              </span>
-            </p>
-            <p className="mt-2 text-xs uppercase tracking-[0.08em] text-zinc-500">
-              Daily intake from nutrition log entries
-            </p>
-            {calorieGoal === null ? (
-              <p className="mt-1 text-xs text-zinc-500">Set a calorie goal in Profile to activate progress.</p>
-            ) : null}
-          </div>
-          {calorieGoal !== null ? (
-            <CalorieRing consumed={nutritionTotals.calories} goal={calorieGoal} size={108} />
-          ) : (
-            <div className="flex h-[108px] w-[108px] items-center justify-center rounded-full border border-white/10 text-[11px] uppercase tracking-[0.08em] text-zinc-500">
-              Goal not set
+      <section className="grid gap-3 lg:grid-cols-[1.25fr_1fr]">
+        <WorkoutCard
+          workoutName={workoutCardName}
+          statusText={workoutCardStatus}
+          exercises={workoutCardExercises}
+          totalSets={workoutCardSets}
+          actionLabel={workoutCardActionLabel}
+          actionHref={workoutCardActionHref}
+        />
+        <Card title="Dashboard Signals" subtitle="Today&apos;s status" variant="secondary">
+          <ul className="space-y-2 text-sm">
+            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              Calories remaining:{" "}
+              <span className="font-semibold text-white">{calorieRemaining !== null ? calorieRemaining.toFixed(0) : "--"}</span>
+            </li>
+            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              Protein remaining:{" "}
+              <span className="font-semibold text-white">{proteinRemaining !== null ? proteinRemaining.toFixed(0) : "--"} g</span>
+            </li>
+            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              Workout streak: <span className="font-semibold text-white">{workoutStreak} day{workoutStreak === 1 ? "" : "s"}</span>
+            </li>
+            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              Weekly streak: <span className="font-semibold text-white">{weeklyStreak} week{weeklyStreak === 1 ? "" : "s"}</span>
+            </li>
+          </ul>
+        </Card>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2">
+        <TodaysWorkoutPlannerCard todayPlan={todayPlan} templateExercises={templateExercisesResult.data ?? []} />
+        <Card title="Calories" subtitle="Today" variant="secondary">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.2rem]">
+                {nutritionTotals.calories.toLocaleString()}
+                <span className="text-xl text-zinc-400">
+                  {" / "}
+                  {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"}
+                </span>
+              </p>
+              <p className="mt-2 text-xs uppercase tracking-[0.08em] text-zinc-500">
+                Daily intake from nutrition log entries
+              </p>
+              {calorieGoal === null ? (
+                <p className="mt-1 text-xs text-zinc-500">Set a calorie goal in Profile to activate progress.</p>
+              ) : null}
             </div>
-          )}
-        </div>
-        <div className="mt-3">
-          {calorieGoal !== null ? (
-            <ProgressBar value={nutritionTotals.calories} max={calorieGoal} />
-          ) : (
-            <div className="h-2 w-full rounded-full bg-white/8" aria-hidden="true" />
-          )}
-        </div>
-        <div className="mt-3 border-t border-white/8 pt-3">
-          <MacroSummary macros={macroStats} />
-        </div>
-      </Card>
+            {calorieGoal !== null ? (
+              <CalorieRing consumed={nutritionTotals.calories} goal={calorieGoal} size={108} />
+            ) : (
+              <div className="flex h-[108px] w-[108px] items-center justify-center rounded-full border border-white/10 text-[11px] uppercase tracking-[0.08em] text-zinc-500">
+                Goal not set
+              </div>
+            )}
+          </div>
+          <div className="mt-3">
+            {calorieGoal !== null ? (
+              <ProgressBar value={nutritionTotals.calories} max={calorieGoal} />
+            ) : (
+              <div className="h-2 w-full rounded-full bg-white/8" aria-hidden="true" />
+            )}
+          </div>
+          <div className="mt-3 border-t border-white/8 pt-3">
+            <MacroSummary macros={macroStats} />
+          </div>
+        </Card>
+      </section>
 
       <section className="grid gap-3 md:grid-cols-2">
         <WeightSummary
@@ -280,17 +312,6 @@ export default async function HomePage() {
           trend={trend}
           unit={displayUnit}
         />
-        <WorkoutCard
-          workoutName={workoutCardName}
-          statusText={workoutCardStatus}
-          exercises={workoutCardExercises}
-          totalSets={workoutCardSets}
-          actionLabel={workoutCardActionLabel}
-          actionHref={workoutCardActionHref}
-        />
-      </section>
-
-      <section className="grid gap-3 md:grid-cols-2">
         <Card title="Strength Dashboard">
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
@@ -329,10 +350,9 @@ export default async function HomePage() {
             </p>
           ) : null}
         </Card>
-        <TodaysWorkoutPlannerCard todayPlan={todayPlan} templateExercises={templateExercisesResult.data ?? []} />
       </section>
 
-      <Card title="Quick Weight Entry" subtitle="Live body-weight logging">
+      <Card title="Quick Weight Entry" subtitle="Live body-weight logging" variant="tertiary">
         <WeightLogManager
           entries={weightMetrics.historyNewestFirst}
           displayUnit={displayUnit}
@@ -342,25 +362,7 @@ export default async function HomePage() {
       </Card>
 
       <section className="grid gap-3 md:grid-cols-2">
-        <Card title="Dashboard Signals">
-          <ul className="space-y-2 text-sm">
-            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              Calories remaining:{" "}
-              <span className="font-semibold text-white">{calorieRemaining !== null ? calorieRemaining.toFixed(0) : "--"}</span>
-            </li>
-            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              Protein remaining:{" "}
-              <span className="font-semibold text-white">{proteinRemaining !== null ? proteinRemaining.toFixed(0) : "--"} g</span>
-            </li>
-            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              Workout streak: <span className="font-semibold text-white">{workoutStreak} day{workoutStreak === 1 ? "" : "s"}</span>
-            </li>
-            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              Weekly streak: <span className="font-semibold text-white">{weeklyStreak} week{weeklyStreak === 1 ? "" : "s"}</span>
-            </li>
-          </ul>
-        </Card>
-        <Card title="Recent Meals">
+        <Card title="Recent Meals" variant="tertiary">
           {(recentFoodEntriesResult.data ?? []).length ? (
             <ul className="space-y-2">
               {(recentFoodEntriesResult.data ?? []).slice(0, 5).map((entry) => (
@@ -376,22 +378,21 @@ export default async function HomePage() {
             <p className="text-sm text-zinc-500">No recent meals logged.</p>
           )}
         </Card>
+        <Card title="Recent Activity" variant="tertiary">
+          {recentActivities.length ? (
+            <ul className="space-y-2">
+              {recentActivities.map((activity) => (
+                <li key={activity.id} className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+                  <p className="text-sm text-zinc-100">{activity.label}</p>
+                  <p className="text-xs text-zinc-500">{activity.date}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-zinc-500">No recent activity yet.</p>
+          )}
+        </Card>
       </section>
-
-      <Card title="Recent Activity">
-        {recentActivities.length ? (
-          <ul className="space-y-2">
-            {recentActivities.map((activity) => (
-              <li key={activity.id} className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-                <p className="text-sm text-zinc-100">{activity.label}</p>
-                <p className="text-xs text-zinc-500">{activity.date}</p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-zinc-500">No recent activity yet.</p>
-        )}
-      </Card>
     </div>
   );
 }

@@ -53,7 +53,7 @@ function ProgressOverview({
   return (
     <div className="space-y-3.5">
       <section className="grid gap-3 sm:grid-cols-2">
-        <Card title="Current Weight">
+        <Card title="Current Weight" variant="primary">
           <p className="text-[2rem] font-semibold leading-none tracking-tight text-white">
             {latestWeight !== null ? latestWeight.toFixed(1) : "--"}{" "}
             <span className="text-lg text-zinc-300">{displayUnit}</span>
@@ -69,7 +69,7 @@ function ProgressOverview({
             </div>
           ) : null}
         </Card>
-        <Card title="Seven-Day Average">
+        <Card title="Seven-Day Average" variant="secondary">
           <p className="text-[2rem] font-semibold leading-none tracking-tight text-white">
             {sevenDayAverage !== null ? sevenDayAverage.toFixed(1) : "--"}{" "}
             <span className="text-lg text-zinc-300">{displayUnit}</span>
@@ -87,7 +87,7 @@ function ProgressOverview({
         </Card>
       </section>
 
-      <Card title="Weight History">
+      <Card title="Weight History" variant="tertiary">
         <WeightLogManager
           entries={weightHistory}
           displayUnit={displayUnit}
@@ -96,12 +96,12 @@ function ProgressOverview({
         />
       </Card>
 
-      <Card title="Weight Chart" subtitle="Range filters + trend line">
+      <Card title="Weight Chart" subtitle="Range filters + trend line" variant="tertiary">
         <WeightChart entries={weightHistory} unit={displayUnit} />
       </Card>
 
       <section className="grid gap-3 md:grid-cols-[1.3fr_1fr]">
-        <Card title="Live Strength System">
+        <Card title="Live Strength System" variant="secondary">
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
               <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Bench (Est. 1RM)</p>
@@ -143,7 +143,7 @@ function ProgressOverview({
           )}
         </Card>
 
-        <Card title="Exercise History">
+        <Card title="Exercise History" variant="tertiary">
           {strengthSummary.exercise_snapshots.length ? (
             <ul className="space-y-2">
               {strengthSummary.exercise_snapshots.slice(0, 8).map((snapshot) => (
@@ -225,7 +225,7 @@ export default async function ProgressPage() {
     <div className="space-y-4">
       <PageHeader title="Progress" subtitle="Track trends in Overview, then use Photos, Measurements, and Journal for weekly check-ins." />
       {weightLoadError ? (
-        <Card>
+        <Card variant="tertiary">
           <p className="text-sm text-rose-200">Weight data is temporarily unavailable.</p>
           <p className="mt-1 text-xs text-zinc-500">{weightLoadError}</p>
         </Card>

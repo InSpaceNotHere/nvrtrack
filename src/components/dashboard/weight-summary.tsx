@@ -25,7 +25,7 @@ export function WeightSummary({
 }: WeightSummaryProps) {
   if (currentWeight === null || sevenDayAverage === null) {
     return (
-      <Card title="Body Weight">
+      <Card title="Body Weight" variant="secondary">
         <p className="text-sm text-zinc-300">No weigh-ins saved yet.</p>
         <p className="mt-1 text-sm text-zinc-500">
           Log your first weight entry to activate trend lines and seven-day averages.
@@ -38,7 +38,7 @@ export function WeightSummary({
   const labels = trend.length <= 7 ? trend : trend.slice(-7);
 
   return (
-    <Card title="Body Weight">
+    <Card title="Body Weight" variant="secondary">
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <p className="ds-metric text-white sm:text-[2.1rem]">
