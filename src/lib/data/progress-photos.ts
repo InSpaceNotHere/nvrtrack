@@ -225,7 +225,7 @@ export async function deleteMyProgressPhoto(photoId: string): Promise<DataAccess
   }
 
   const storageDelete = await auth.data.supabase.storage.from("progress-photos").remove([existingRow.storage_path]);
-  if (storageDelete.error) {
+  if (storageDelete.error && !isStorageObjectMissingError(storageDelete.error.message)) {
     return fail({
       code: "DB_ERROR",
       message: "Failed to delete progress photo file from storage.",
@@ -243,7 +243,7 @@ export async function deleteMyProgressPhoto(photoId: string): Promise<DataAccess
   if (error) {
     return fail({
       code: "DB_ERROR",
-      message: "Failed to delete progress photo.",
+      message: "Photo file removed but metadata cleanup failed. Retry delete.",
       cause: error.message,
     });
   }
@@ -252,6 +252,11 @@ export async function deleteMyProgressPhoto(photoId: string): Promise<DataAccess
     return fail({ code: "NOT_FOUND", message: "Progress photo not found." });
   }
   return ok(row);
+}
+
+function isStorageObjectMissingError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return normalized.includes("not found") || normalized.includes("no such object");
 }
 
 async function signProgressPhotoRows(
