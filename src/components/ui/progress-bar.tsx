@@ -14,7 +14,7 @@ export function ProgressBar({ value, max, label, compact = false }: ProgressBarP
       {label ? <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">{label}</p> : null}
       <div className={`w-full overflow-hidden rounded-full bg-white/10 ${height}`}>
         <div
-          className={`rounded-full bg-[#87a3ff] transition-[width] duration-300 ${height}`}
+          className={`rounded-full bg-[var(--ds-color-accent)] transition-[width] duration-300 ${height}`}
           style={{ width: `${ratio}%` }}
           aria-label={label ?? "progress"}
           aria-valuemin={0}
