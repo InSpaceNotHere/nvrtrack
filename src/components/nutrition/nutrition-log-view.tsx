@@ -558,6 +558,9 @@ export function NutritionLogView({
 
   const previousDate = addDaysToDateString(selectedDate, -1);
   const nextDate = addDaysToDateString(selectedDate, 1);
+  const hasDayEntries = entries.length > 0;
+  const caloriesRemaining = calorieGoal !== null ? roundNutritionValue(calorieGoal - dailyTotals.calories, 1) : null;
+  const proteinRemaining = proteinGoal !== null ? roundNutritionValue(proteinGoal - dailyTotals.protein_g, 1) : null;
 
   function setSuccessMessage(text: string) {
     setMessage(text);
@@ -784,34 +787,90 @@ export function NutritionLogView({
 
   return (
     <div className="space-y-4">
-      <Card title="Date">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="text-lg font-semibold text-white">{formatDateForDisplay(selectedDate)}</p>
-            {dateWasFallback ? <p className="text-xs text-zinc-500">Invalid date query reset to today.</p> : null}
+      <section className="grid gap-3 lg:grid-cols-[1fr_1.45fr]">
+        <Card title="Date" variant="tertiary">
+          <div className="space-y-3">
+            <div>
+              <p className="text-lg font-semibold text-white">{formatDateForDisplay(selectedDate)}</p>
+              {dateWasFallback ? <p className="text-xs text-zinc-500">Invalid date query reset to today.</p> : null}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <Link
+                href={`/nutrition?date=${previousDate}`}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+              >
+                Previous
+              </Link>
+              <Link
+                href={`/nutrition?date=${todayDate}`}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+              >
+                Today
+              </Link>
+              <Link
+                href={`/nutrition?date=${nextDate}`}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+              >
+                Next
+              </Link>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Link
-              href={`/nutrition?date=${previousDate}`}
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
-            >
-              Previous
-            </Link>
-            <Link
-              href={`/nutrition?date=${todayDate}`}
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
-            >
-              Today
-            </Link>
-            <Link
-              href={`/nutrition?date=${nextDate}`}
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
-            >
-              Next
-            </Link>
+        </Card>
+
+        <Card title="Daily Summary" subtitle="Calories and macros" variant="primary">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.2rem]">
+                {roundNutritionValue(dailyTotals.calories, 1).toLocaleString()}
+              </p>
+              <p className="mt-1 text-sm text-zinc-400">
+                of {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"} kcal
+              </p>
+              <p className="mt-1 text-xs text-zinc-500">
+                Remaining: {caloriesRemaining !== null ? `${caloriesRemaining} kcal` : "--"}
+              </p>
+            </div>
+            {calorieGoal !== null && calorieGoal > 0 ? (
+              <CalorieRing consumed={dailyTotals.calories} goal={calorieGoal} size={84} />
+            ) : (
+              <div className="flex h-[84px] w-[84px] items-center justify-center rounded-full border border-white/10 text-[10px] uppercase tracking-[0.08em] text-zinc-500">
+                Goal not set
+              </div>
+            )}
           </div>
-        </div>
-      </Card>
+          <div className="mt-2">
+            {calorieGoal !== null && calorieGoal > 0 ? (
+              <ProgressBar value={dailyTotals.calories} max={calorieGoal} compact />
+            ) : (
+              <div className="h-1.5 w-full rounded-full bg-white/8" aria-hidden="true" />
+            )}
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Protein</p>
+              <p className="text-base font-semibold text-zinc-100">
+                {roundNutritionValue(dailyTotals.protein_g, 1)} / {proteinGoal ?? "--"} g
+              </p>
+              <p className="text-[11px] text-zinc-500">Remaining: {proteinRemaining !== null ? `${proteinRemaining} g` : "--"}</p>
+            </div>
+            <div className="space-y-1 rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
+              {[
+                { label: "Carbs", consumed: dailyTotals.carbohydrate_g, goal: carbohydrateGoal },
+                { label: "Fat", consumed: dailyTotals.fat_g, goal: fatGoal },
+                { label: "Fiber", consumed: dailyTotals.fiber_g, goal: null },
+              ].map((macro) => (
+                <div key={macro.label} className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">{macro.label}</span>
+                  <span className="font-medium text-zinc-200">
+                    {roundNutritionValue(macro.consumed, 1)}
+                    {macro.goal !== null ? ` / ${macro.goal}` : ""} g
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </section>
 
       {dataErrorMessage ? (
         <Card>
@@ -823,57 +882,9 @@ export function NutritionLogView({
         </Card>
       ) : null}
 
-      <Card title="Daily Calories">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.2rem]">
-              {roundNutritionValue(dailyTotals.calories, 1).toLocaleString()}
-            </p>
-            <p className="mt-1 text-sm text-zinc-400">
-              of {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"} kcal
-            </p>
-          </div>
-          {calorieGoal !== null && calorieGoal > 0 ? (
-            <CalorieRing consumed={dailyTotals.calories} goal={calorieGoal} size={96} />
-          ) : (
-            <div className="flex h-[96px] w-[96px] items-center justify-center rounded-full border border-white/10 text-[10px] uppercase tracking-[0.08em] text-zinc-500">
-              Goal not set
-            </div>
-          )}
-        </div>
-        <div className="mt-3 border-t border-white/8 pt-3">
-          <ul className="space-y-3">
-            {[
-              { label: "Protein", consumed: dailyTotals.protein_g, goal: proteinGoal },
-              {
-                label: "Carbohydrates",
-                consumed: dailyTotals.carbohydrate_g,
-                goal: carbohydrateGoal,
-              },
-              { label: "Fat", consumed: dailyTotals.fat_g, goal: fatGoal },
-            ].map((macro) => (
-              <li key={macro.label} className="space-y-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400">{macro.label}</span>
-                  <span className="font-medium text-zinc-100">
-                    {roundNutritionValue(macro.consumed, 1)}g / {macro.goal ?? "--"}g
-                  </span>
-                </div>
-                {macro.goal !== null && macro.goal > 0 ? (
-                  <ProgressBar value={macro.consumed} max={macro.goal} compact />
-                ) : (
-                  <div className="h-1.5 rounded-full bg-white/8" aria-hidden="true" />
-                )}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-zinc-500">Fiber: {roundNutritionValue(dailyTotals.fiber_g, 1)}g</p>
-        </div>
-      </Card>
-
-      <Card title="Food Log" subtitle="Grouped by meal">
+      <Card title="Food Log" subtitle="Meals and entries" variant="secondary">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-xs text-zinc-500">Daily totals are calculated from logged entries and servings.</p>
+          <p className="text-xs text-zinc-500">Scan meals, then add foods quickly.</p>
           <Button type="button" onClick={() => openComposer("breakfast")} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
             Add Food
           </Button>
@@ -1499,35 +1510,31 @@ export function NutritionLogView({
           </div>
         ) : null}
 
-        {!entries.length ? (
-          <div className="rounded-xl border border-dashed border-white/15 bg-black/20 p-4">
+        {!hasDayEntries ? (
+          <div className="rounded-xl border border-dashed border-white/15 bg-black/20 p-3">
             <div className="mb-2">
               <StateChip state="missing" label="No entries logged" />
             </div>
-            <p className="text-sm font-medium text-zinc-200">No food entries logged for this date.</p>
-            <p className="mt-1 text-sm text-zinc-500">Use Add Food to log your first meal on this day.</p>
-            <Button type="button" onClick={() => openComposer("breakfast")} variant="primary" size="sm" className="mt-3 h-9 rounded-lg px-3 text-xs">
-              Add Food
-            </Button>
+            <p className="text-sm text-zinc-300">No food entries logged for this date. Use Add Food to start today&apos;s log.</p>
           </div>
         ) : null}
 
-        <div className="mt-4 space-y-3">
+        <div className="mt-3 space-y-2">
           {MEAL_ORDER.map((meal) => {
             const mealEntries = groupedEntries[meal];
             const mealTotal = mealTotals[meal];
 
             return (
-              <section key={meal} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                <div className="mb-2 flex items-center justify-between gap-2">
+              <section key={meal} className="rounded-lg border border-white/10 bg-black/20 p-2.5">
+                <div className="mb-1.5 flex items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold text-white">{MEAL_LABELS[meal]}</p>
-                    <p className="text-xs text-zinc-500">{roundNutritionValue(mealTotal.calories, 1)} kcal</p>
+                    <p className="text-[11px] text-zinc-500">{roundNutritionValue(mealTotal.calories, 1)} kcal</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => openComposer(meal)}
-                    className="rounded-md border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-100 hover:bg-white/10"
+                    className="rounded-md border border-white/15 px-2.5 py-1 text-[11px] font-medium text-zinc-100 hover:bg-white/10"
                   >
                     Add
                   </button>
@@ -1728,9 +1735,9 @@ export function NutritionLogView({
                       );
                     })}
                   </ul>
-                ) : (
+                ) : hasDayEntries ? (
                   <p className="text-xs text-zinc-500">No entries in this meal.</p>
-                )}
+                ) : null}
               </section>
             );
           })}
@@ -1740,7 +1747,7 @@ export function NutritionLogView({
       <div className="flex justify-end">
         <Link
           href="/nutrition/foods"
-          className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-4 text-sm font-medium text-zinc-100 transition-colors hover:bg-white/10"
+          className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-3 text-xs font-medium text-zinc-300 transition-colors hover:bg-white/10"
         >
           Manage Saved Foods
         </Link>
