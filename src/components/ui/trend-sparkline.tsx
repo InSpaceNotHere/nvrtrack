@@ -12,7 +12,7 @@ export function TrendSparkline({ points, unit }: TrendSparklineProps) {
   if (points.length === 0) {
     return (
       <svg viewBox="0 0 100 40" className="h-14 w-full" role="img" aria-label="Trend unavailable">
-        <line x1="0" y1="20" x2="100" y2="20" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        <line x1="0" y1="20" x2="100" y2="20" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
       </svg>
     );
   }
@@ -42,7 +42,7 @@ export function TrendSparkline({ points, unit }: TrendSparklineProps) {
         aria-label={`Single weigh-in at ${latest.value.toFixed(1)} ${unit}`}
       >
         <line x1="0" y1="20" x2="100" y2="20" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-        <circle cx="50" cy="20" r="2.8" fill="rgba(135,163,255,0.95)" />
+        <circle cx="50" cy="20" r="2.8" fill="var(--ds-color-accent)" />
       </svg>
     );
   }
@@ -55,7 +55,7 @@ export function TrendSparkline({ points, unit }: TrendSparklineProps) {
       aria-label={`Weight trend from ${points[0].label} to ${latest.label}. Latest ${latest.value.toFixed(1)} ${unit}`}
     >
       <line x1="0" y1="36" x2="100" y2="36" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-      <polyline points={polyline} fill="none" stroke="rgba(135,163,255,0.95)" strokeWidth="2" />
+      <polyline points={polyline} fill="none" stroke="var(--ds-color-accent)" strokeWidth="2" />
     </svg>
   );
 }
