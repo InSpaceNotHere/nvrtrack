@@ -4,7 +4,9 @@ import { WeightSummary } from "@/components/dashboard/weight-summary";
 import { WorkoutCard } from "@/components/dashboard/workout-card";
 import { Card } from "@/components/ui/card";
 import { CalorieRing } from "@/components/ui/calorie-ring";
+import { Chip } from "@/components/ui/chip";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { Section } from "@/components/ui/section";
 import { WeightLogManager } from "@/components/weight/weight-log-manager";
 import { getMyFoodEntriesForDate } from "@/lib/data/nutrition";
 import { getMyProfile } from "@/lib/data/profile";
@@ -65,14 +67,18 @@ export default async function HomePage() {
     label: shortDateLabel(entry.entryDate),
     value: entry.weight,
   }));
+  const calorieRemaining = calorieGoal !== null ? Math.max(calorieGoal - nutritionTotals.calories, 0) : null;
+  const proteinGoal = profileResult.data?.protein_goal ?? null;
+  const proteinRemaining = proteinGoal !== null ? Math.max(proteinGoal - nutritionTotals.protein_g, 0) : null;
 
   return (
-    <div className="space-y-4">
-      <header className="mb-1">
-        <p className="text-xs font-medium uppercase tracking-[0.13em] text-zinc-500">NVRTRACK</p>
-        <h1 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">
+    <div className="space-y-4 md:space-y-5">
+      <header className="rounded-[var(--ds-radius-xl)] border border-white/10 bg-[var(--ds-color-bg-surface)] px-3.5 py-3.5 sm:px-4 sm:py-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">NVRTRACK</p>
+        <h1 className="mt-1 text-[var(--ds-font-size-heading-lg)] font-semibold tracking-tight text-white">
           {displayName ? `Today Overview, ${displayName}` : "Today Overview"}
         </h1>
+        <p className="mt-1 text-xs text-zinc-400">High-signal daily status across nutrition, training, and bodyweight.</p>
       </header>
 
       {profileLoadError ? (
@@ -94,71 +100,110 @@ export default async function HomePage() {
         </Card>
       ) : null}
 
-      <Card title="Calories" subtitle="Today">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.2rem]">
-              {nutritionTotals.calories.toLocaleString()}
-              <span className="text-xl text-zinc-400">
-                {" / "}
-                {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"}
-              </span>
+      <Section title="Today Status" subtitle="At-a-glance metrics for immediate decision making">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Card title="Calories Remaining">
+            <p className="ds-metric text-white">{calorieRemaining !== null ? calorieRemaining.toLocaleString() : "--"}</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              {calorieGoal !== null
+                ? `${nutritionTotals.calories.toLocaleString()} consumed of ${calorieGoal.toLocaleString()}`
+                : "Set a calorie goal in Profile to activate remaining calories."}
             </p>
-            <p className="mt-2 text-xs uppercase tracking-[0.08em] text-zinc-500">
-              Daily intake from nutrition log entries
+          </Card>
+          <Card title="Protein Remaining">
+            <p className="ds-metric text-white">{proteinRemaining !== null ? Math.round(proteinRemaining).toLocaleString() : "--"}</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              {proteinGoal !== null
+                ? `${Math.round(nutritionTotals.protein_g).toLocaleString()}g consumed of ${proteinGoal.toLocaleString()}g`
+                : "Set a protein goal in Profile to activate remaining protein."}
             </p>
-            {calorieGoal === null ? (
-              <p className="mt-1 text-xs text-zinc-500">Set a calorie goal in Profile to activate progress.</p>
-            ) : null}
-          </div>
-          {calorieGoal !== null ? (
-            <CalorieRing consumed={nutritionTotals.calories} goal={calorieGoal} size={108} />
-          ) : (
-            <div className="flex h-[108px] w-[108px] items-center justify-center rounded-full border border-white/10 text-[11px] uppercase tracking-[0.08em] text-zinc-500">
-              Goal not set
+          </Card>
+          <Card title="Bodyweight">
+            <p className="ds-metric text-white">
+              {currentWeight !== null ? currentWeight.toFixed(1) : "--"}{" "}
+              <span className="text-base text-zinc-400">{displayUnit}</span>
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Chip>{currentChange}</Chip>
+              {sevenDayAverage !== null ? <Chip>{sevenDayAverage.toFixed(1)} {displayUnit} avg</Chip> : null}
             </div>
-          )}
+          </Card>
         </div>
-        <div className="mt-3">
-          {calorieGoal !== null ? (
-            <ProgressBar value={nutritionTotals.calories} max={calorieGoal} />
-          ) : (
-            <div className="h-2 w-full rounded-full bg-white/8" aria-hidden="true" />
-          )}
-        </div>
-        <div className="mt-3 border-t border-white/8 pt-3">
-          <MacroSummary macros={macroStats} />
-        </div>
-      </Card>
+      </Section>
 
-      <section className="grid gap-3 md:grid-cols-2">
-        <WeightSummary
-          currentWeight={currentWeight}
-          currentChange={currentChange}
-          sevenDayAverage={sevenDayAverage}
-          averageChange={sevenDayAverageChange}
-          trend={trend}
-          unit={displayUnit}
-        />
+      <Section title="Today&apos;s Workout" subtitle="Plan signal and quick execution">
         <WorkoutCard
           workoutName={HOME_DATA.workout.name}
           exercises={HOME_DATA.workout.exercises}
           totalSets={HOME_DATA.workout.totalSets}
           actionLabel="Continue Workout"
         />
-      </section>
+      </Section>
 
-      <Card title="Quick Weight Entry" subtitle="Live body-weight logging">
-        <WeightLogManager entries={weightMetrics.historyNewestFirst} displayUnit={displayUnit} showHistory={false} />
-      </Card>
+      <Section title="Nutrition" subtitle="Daily intake and macro progress">
+        <Card title="Calories" subtitle="Today">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.2rem]">
+                {nutritionTotals.calories.toLocaleString()}
+                <span className="text-xl text-zinc-400">
+                  {" / "}
+                  {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"}
+                </span>
+              </p>
+              <p className="mt-2 text-xs uppercase tracking-[0.08em] text-zinc-500">
+                Daily intake from nutrition log entries
+              </p>
+              {calorieGoal === null ? (
+                <p className="mt-1 text-xs text-zinc-500">Set a calorie goal in Profile to activate progress.</p>
+              ) : null}
+            </div>
+            {calorieGoal !== null ? (
+              <CalorieRing consumed={nutritionTotals.calories} goal={calorieGoal} size={108} />
+            ) : (
+              <div className="flex h-[108px] w-[108px] items-center justify-center rounded-full border border-white/10 text-[11px] uppercase tracking-[0.08em] text-zinc-500">
+                Goal not set
+              </div>
+            )}
+          </div>
+          <div className="mt-3">
+            {calorieGoal !== null ? (
+              <ProgressBar value={nutritionTotals.calories} max={calorieGoal} />
+            ) : (
+              <div className="h-2 w-full rounded-full bg-white/8" aria-hidden="true" />
+            )}
+          </div>
+          <div className="mt-3 border-t border-white/8 pt-3">
+            <MacroSummary macros={macroStats} />
+          </div>
+        </Card>
+      </Section>
 
-      <Card title="1000 LB Club">
-        <ul className="space-y-3">
-          {CLUB_TARGETS.map((goal) => (
-            <GoalProgressRow key={goal.lift} goal={goal} />
-          ))}
-        </ul>
-      </Card>
+      <Section title="Progress" subtitle="Weight trend and strength progression">
+        <div className="grid gap-3 md:grid-cols-2">
+          <WeightSummary
+            currentWeight={currentWeight}
+            currentChange={currentChange}
+            sevenDayAverage={sevenDayAverage}
+            averageChange={sevenDayAverageChange}
+            trend={trend}
+            unit={displayUnit}
+          />
+          <Card title="1000 LB Club">
+            <ul className="space-y-3">
+              {CLUB_TARGETS.map((goal) => (
+                <GoalProgressRow key={goal.lift} goal={goal} />
+              ))}
+            </ul>
+          </Card>
+        </div>
+      </Section>
+
+      <Section title="Recent Activity" subtitle="Fast update workflow">
+        <Card title="Quick Weight Entry" subtitle="Live body-weight logging">
+          <WeightLogManager entries={weightMetrics.historyNewestFirst} displayUnit={displayUnit} showHistory={false} />
+        </Card>
+      </Section>
     </div>
   );
 }
