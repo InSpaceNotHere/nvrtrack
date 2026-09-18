@@ -17,15 +17,19 @@ export function MacroSummary({ macros }: MacroSummaryProps) {
           <div className="flex items-center justify-between text-sm">
             <span className="text-zinc-400">{macro.name}</span>
             {macro.goal === null ? (
-              <span className="font-medium text-zinc-500">
-                {formatValue(macro.consumed)}
-                {macro.unit} / -- {macro.unit}
+              <span className="font-medium text-zinc-500 tabular-nums">
+                <span className="text-zinc-200">{formatValue(macro.consumed)}</span>
+                <span className="ml-0.5 text-[11px] text-zinc-400">{macro.unit}</span>
+                <span className="mx-1 text-zinc-500">/</span>--
+                <span className="ml-0.5 text-[11px] text-zinc-500">{macro.unit}</span>
               </span>
             ) : (
-              <span className="font-medium text-zinc-100">
-                {formatValue(macro.consumed)}
-                {macro.unit} / {macro.goal}
-                {macro.unit}
+              <span className="font-medium text-zinc-100 tabular-nums">
+                <span>{formatValue(macro.consumed)}</span>
+                <span className="ml-0.5 text-[11px] text-zinc-300">{macro.unit}</span>
+                <span className="mx-1 text-zinc-500">/</span>
+                <span>{macro.goal}</span>
+                <span className="ml-0.5 text-[11px] text-zinc-400">{macro.unit}</span>
               </span>
             )}
           </div>

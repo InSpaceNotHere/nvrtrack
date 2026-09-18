@@ -4,6 +4,8 @@ import { WeightSummary } from "@/components/dashboard/weight-summary";
 import { WorkoutCard } from "@/components/dashboard/workout-card";
 import { Card } from "@/components/ui/card";
 import { CalorieRing } from "@/components/ui/calorie-ring";
+import { Chip } from "@/components/ui/chip";
+import { MetricValue } from "@/components/ui/metric-value";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { WeightLogManager } from "@/components/weight/weight-log-manager";
 import { getMyFoodEntriesForDate, getMyRecentFoodEntries } from "@/lib/data/nutrition";
@@ -245,19 +247,21 @@ export default async function HomePage() {
         />
         <Card title="Dashboard Signals" subtitle="Today&apos;s status" variant="secondary">
           <ul className="space-y-2 text-sm">
-            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              Calories remaining:{" "}
-              <span className="font-semibold text-white">{calorieRemaining !== null ? calorieRemaining.toFixed(0) : "--"}</span>
+            <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <span className="text-zinc-400">Calories remaining</span>
+              <MetricValue value={calorieRemaining !== null ? calorieRemaining.toFixed(0) : "--"} unit="kcal" tone="secondary" className="text-lg" />
             </li>
-            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              Protein remaining:{" "}
-              <span className="font-semibold text-white">{proteinRemaining !== null ? proteinRemaining.toFixed(0) : "--"} g</span>
+            <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <span className="text-zinc-400">Protein remaining</span>
+              <MetricValue value={proteinRemaining !== null ? proteinRemaining.toFixed(0) : "--"} unit="g" tone="secondary" className="text-lg" />
             </li>
-            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              Workout streak: <span className="font-semibold text-white">{workoutStreak} day{workoutStreak === 1 ? "" : "s"}</span>
+            <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <span className="text-zinc-400">Workout streak:</span>
+              <MetricValue value={String(workoutStreak)} unit={`day${workoutStreak === 1 ? "" : "s"}`} tone="secondary" className="text-lg" />
             </li>
-            <li className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              Weekly streak: <span className="font-semibold text-white">{weeklyStreak} week{weeklyStreak === 1 ? "" : "s"}</span>
+            <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <span className="text-zinc-400">Weekly streak:</span>
+              <MetricValue value={String(weeklyStreak)} unit={`week${weeklyStreak === 1 ? "" : "s"}`} tone="secondary" className="text-lg" />
             </li>
           </ul>
         </Card>
@@ -268,12 +272,9 @@ export default async function HomePage() {
         <Card title="Calories" subtitle="Today" variant="secondary">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.2rem]">
-                {nutritionTotals.calories.toLocaleString()}
-                <span className="text-xl text-zinc-400">
-                  {" / "}
-                  {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"}
-                </span>
+              <MetricValue value={nutritionTotals.calories.toLocaleString()} unit="kcal" />
+              <p className="mt-1 text-sm text-zinc-400">
+                Goal: {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"} kcal
               </p>
               <p className="mt-2 text-xs uppercase tracking-[0.08em] text-zinc-500">
                 Daily intake from nutrition log entries
@@ -312,31 +313,27 @@ export default async function HomePage() {
           trend={trend}
           unit={displayUnit}
         />
-        <Card title="Strength Dashboard">
+        <Card title="Strength Dashboard" variant="secondary">
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            <Chip tone="accent">Estimated lift tiles</Chip>
+            <Chip>Canonical total only</Chip>
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
               <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Bench (Est. 1RM)</p>
-              <p className="mt-1 text-lg font-semibold text-white">
-                {strengthSummary.bench.current_estimated_one_rep_max?.toFixed(1) ?? "--"} {displayUnit}
-              </p>
+              <MetricValue value={strengthSummary.bench.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
             </div>
             <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
               <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Squat (Est. 1RM)</p>
-              <p className="mt-1 text-lg font-semibold text-white">
-                {strengthSummary.squat.current_estimated_one_rep_max?.toFixed(1) ?? "--"} {displayUnit}
-              </p>
+              <MetricValue value={strengthSummary.squat.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
             </div>
             <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
               <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Deadlift (Est. 1RM)</p>
-              <p className="mt-1 text-lg font-semibold text-white">
-                {strengthSummary.deadlift.current_estimated_one_rep_max?.toFixed(1) ?? "--"} {displayUnit}
-              </p>
+              <MetricValue value={strengthSummary.deadlift.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
             </div>
             <div className="rounded-xl border border-white/10 bg-black/20 p-2.5">
               <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Tested Total</p>
-              <p className="mt-1 text-lg font-semibold text-white">
-                {strengthSummary.total_tested?.toFixed(1) ?? "--"} {displayUnit}
-              </p>
+              <MetricValue value={strengthSummary.total_tested?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
               <p className="text-[11px] text-zinc-500">
                 {strengthSummary.thousand_club_progress_percent !== null
                   ? `1000 LB Club ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`

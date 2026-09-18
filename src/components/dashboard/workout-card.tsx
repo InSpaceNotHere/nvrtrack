@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Dumbbell } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
+import { MetricValue } from "@/components/ui/metric-value";
 
 interface WorkoutCardProps {
   workoutName: string;
@@ -30,9 +31,11 @@ export function WorkoutCard({
           <p className="text-xl font-semibold leading-tight text-white">{workoutName}</p>
           <p className="mt-1 text-sm text-zinc-400">{statusText}</p>
           {exercises !== null && totalSets !== null ? (
-            <p className="mt-1 text-xs text-zinc-500">
-              {exercises} exercises • {totalSets} total sets
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+              <MetricValue value={String(exercises)} unit="exercises" tone="secondary" className="text-base" />
+              <span>•</span>
+              <MetricValue value={String(totalSets)} unit="sets" tone="secondary" className="text-base" />
+            </div>
           ) : null}
         </div>
       </div>

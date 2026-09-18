@@ -3,6 +3,8 @@ import { ProgressPhotoManager } from "@/components/progress/progress-photo-manag
 import { BodyMeasurementManager } from "@/components/progress/body-measurement-manager";
 import { WeeklyJournalManager } from "@/components/progress/weekly-journal-manager";
 import { Card } from "@/components/ui/card";
+import { Chip } from "@/components/ui/chip";
+import { MetricValue } from "@/components/ui/metric-value";
 import { PageHeader } from "@/components/ui/page-header";
 import { TrendSparkline } from "@/components/ui/trend-sparkline";
 import { WeightLogManager } from "@/components/weight/weight-log-manager";
@@ -54,10 +56,7 @@ function ProgressOverview({
     <div className="space-y-3.5">
       <section className="grid gap-3 sm:grid-cols-2">
         <Card title="Current Weight" variant="primary">
-          <p className="text-[2rem] font-semibold leading-none tracking-tight text-white">
-            {latestWeight !== null ? latestWeight.toFixed(1) : "--"}{" "}
-            <span className="text-lg text-zinc-300">{displayUnit}</span>
-          </p>
+          <MetricValue value={latestWeight !== null ? latestWeight.toFixed(1) : "--"} unit={displayUnit} />
           <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-zinc-400">{latestChangeLabel}</p>
           <div className="mt-2.5">
             <TrendSparkline points={trendPoints} unit={displayUnit} />
@@ -70,10 +69,7 @@ function ProgressOverview({
           ) : null}
         </Card>
         <Card title="Seven-Day Average" variant="secondary">
-          <p className="text-[2rem] font-semibold leading-none tracking-tight text-white">
-            {sevenDayAverage !== null ? sevenDayAverage.toFixed(1) : "--"}{" "}
-            <span className="text-lg text-zinc-300">{displayUnit}</span>
-          </p>
+          <MetricValue value={sevenDayAverage !== null ? sevenDayAverage.toFixed(1) : "--"} unit={displayUnit} />
           <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-zinc-400">{sevenDayAverageLabel}</p>
           <div className="mt-2.5">
             <TrendSparkline points={trendPoints} unit={displayUnit} />
@@ -102,34 +98,37 @@ function ProgressOverview({
 
       <section className="grid gap-3 md:grid-cols-[1.3fr_1fr]">
         <Card title="Live Strength System" variant="secondary">
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            <Chip tone="accent">Estimated 1RM</Chip>
+            <Chip>Tested Total tracked separately</Chip>
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Bench (Est. 1RM)</p>
-              <p className="mt-1 text-xl font-semibold text-white">
-                {strengthSummary.bench.current_estimated_one_rep_max?.toFixed(1) ?? "--"} {displayUnit}
-              </p>
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Bench • Estimated 1RM</p>
+              <MetricValue value={strengthSummary.bench.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
             </div>
             <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Squat (Est. 1RM)</p>
-              <p className="mt-1 text-xl font-semibold text-white">
-                {strengthSummary.squat.current_estimated_one_rep_max?.toFixed(1) ?? "--"} {displayUnit}
-              </p>
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Squat • Estimated 1RM</p>
+              <MetricValue value={strengthSummary.squat.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
             </div>
             <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Deadlift (Est. 1RM)</p>
-              <p className="mt-1 text-xl font-semibold text-white">
-                {strengthSummary.deadlift.current_estimated_one_rep_max?.toFixed(1) ?? "--"} {displayUnit}
-              </p>
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Deadlift • Estimated 1RM</p>
+              <MetricValue value={strengthSummary.deadlift.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
             </div>
             <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Tested Total</p>
-              <p className="mt-1 text-xl font-semibold text-white">
-                {strengthSummary.total_tested?.toFixed(1) ?? "--"} {displayUnit}
-              </p>
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Strength Total • Tested 1RM Only</p>
+              <MetricValue value={strengthSummary.total_tested?.toFixed(1) ?? "--"} unit={displayUnit} className="mt-1" />
+              <div className="mt-1.5">
+                {strengthSummary.thousand_club_progress_percent !== null ? (
+                  <Chip tone="success">{`1000 LB Club ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`}</Chip>
+                ) : (
+                  <Chip tone="default">1000 LB Club requires tested bench, squat, and deadlift</Chip>
+                )}
+              </div>
               <p className="text-[11px] text-zinc-500">
                 {strengthSummary.thousand_club_progress_percent !== null
-                  ? `1000 LB Club ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`
-                  : "Need tested bench, squat, and deadlift 1RM"}
+                  ? "Progress is based on tested canonical bench, squat, and deadlift totals."
+                  : "Estimated 1RMs never qualify for a tested 1000 LB Club total."}
               </p>
             </div>
           </div>
@@ -157,7 +156,7 @@ function ProgressOverview({
                     ) : null}
                   </div>
                   <p className="mt-1 text-[11px] text-zinc-400">
-                    1RM {snapshot.current_estimated_one_rep_max?.toFixed(1) ?? "--"} • Lifetime{" "}
+                    Est. 1RM {snapshot.current_estimated_one_rep_max?.toFixed(1) ?? "--"} • Lifetime Est.{" "}
                     {snapshot.lifetime_estimated_one_rep_max?.toFixed(1) ?? "--"} • Heaviest{" "}
                     {snapshot.heaviest_weight?.toFixed(1) ?? "--"} • Best Rep PR{" "}
                     {snapshot.rep_pr !== null && snapshot.rep_pr_reps !== null

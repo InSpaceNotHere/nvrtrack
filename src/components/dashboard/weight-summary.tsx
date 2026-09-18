@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Card } from "@/components/ui/card";
+import { MetricValue } from "@/components/ui/metric-value";
 import { TrendSparkline, type TrendSparklinePoint } from "@/components/ui/trend-sparkline";
 import type { WeightUnit } from "@/lib/weight/conversions";
 
@@ -41,15 +42,11 @@ export function WeightSummary({
     <Card title="Body Weight" variant="secondary">
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <p className="ds-metric text-white sm:text-[2.1rem]">
-            {currentWeight.toFixed(1)} <span className="text-lg text-zinc-300">{unit}</span>
-          </p>
+          <MetricValue value={currentWeight.toFixed(1)} unit={unit} />
           <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-zinc-400">{currentChange}</p>
         </div>
         <div className="rounded-[var(--ds-radius-md)] border border-white/10 bg-black/20 p-2.5 sm:p-3">
-          <p className="text-lg font-semibold text-white sm:text-xl">
-            {sevenDayAverage.toFixed(1)} <span className="text-sm text-zinc-300">{unit} avg</span>
-          </p>
+          <MetricValue value={sevenDayAverage.toFixed(1)} unit={`${unit} avg`} tone="secondary" />
           <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-zinc-400">{averageChange}</p>
         </div>
       </div>

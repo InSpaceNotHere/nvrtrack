@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MuscleMap } from "@/components/training/muscle-map";
 import { WorkoutPlanner } from "@/components/training/workout-planner";
 import { Card } from "@/components/ui/card";
+import { MetricValue } from "@/components/ui/metric-value";
 import { PageHeader } from "@/components/ui/page-header";
 import { getExerciseCatalog } from "@/lib/data/exercise-catalog";
 import { getMyExercises } from "@/lib/data/exercises";
@@ -200,7 +201,7 @@ export default async function TrainingPage() {
           <Card title="Current Week">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-2xl font-semibold tracking-tight text-white">{completedThisWeek}</p>
+                <MetricValue value={String(completedThisWeek)} unit="completed" />
                 <p className="mt-1 text-xs uppercase tracking-[0.08em] text-zinc-500">Completed workouts this week</p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -233,7 +234,9 @@ export default async function TrainingPage() {
             <Card title="Continue Active Workout" variant="primary">
               <div className="rounded-xl border border-white/10 bg-black/20 p-3">
                 <p className="text-base font-semibold text-white">{activeWorkout.name}</p>
-                <p className="mt-1 text-xs text-zinc-500">{formatDate(activeWorkout.workout_date)}</p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  <span className="text-zinc-400">Date:</span> {formatDate(activeWorkout.workout_date)}
+                </p>
                 <Link
                   href={`/training/workouts/${activeWorkout.id}`}
                   className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"

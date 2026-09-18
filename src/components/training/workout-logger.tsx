@@ -24,6 +24,7 @@ import { MuscleMap } from "@/components/training/muscle-map";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
+import { MetricValue } from "@/components/ui/metric-value";
 import { Select } from "@/components/ui/select";
 import { Toast } from "@/components/ui/toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -809,9 +810,7 @@ export function WorkoutLogger({
           </div>
           <div className="rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-right">
             <p className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">Volume</p>
-            <p className="text-sm font-semibold text-zinc-100">
-              {summary.totalVolume === null ? "--" : `${summary.totalVolume.toLocaleString()} ${displayUnit}`}
-            </p>
+            <MetricValue value={summary.totalVolume === null ? "--" : summary.totalVolume.toLocaleString()} unit={displayUnit} tone="secondary" className="mt-1 text-base" />
             <p className="mt-0.5 text-[11px] text-zinc-500">
               {summary.completedSetCount}/{summary.totalSetCount} sets complete
             </p>
@@ -821,23 +820,24 @@ export function WorkoutLogger({
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
           <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
             <p className="uppercase tracking-[0.08em] text-zinc-500">Exercises</p>
-            <p className="mt-1 text-sm font-semibold text-zinc-100">{summary.exerciseCount}</p>
+            <MetricValue value={String(summary.exerciseCount)} tone="secondary" className="mt-1 text-base" />
           </div>
           <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
             <p className="uppercase tracking-[0.08em] text-zinc-500">Completed Sets</p>
-            <p className="mt-1 text-sm font-semibold text-zinc-100">{summary.completedSetCount}</p>
+            <MetricValue value={String(summary.completedSetCount)} tone="secondary" className="mt-1 text-base" />
           </div>
           <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
             <p className="uppercase tracking-[0.08em] text-zinc-500">Best Est. 1RM</p>
-            <p className="mt-1 text-sm font-semibold text-zinc-100">
-              {summary.bestEstimatedOneRepMax === null
-                ? "--"
-                : `${summary.bestEstimatedOneRepMax.toLocaleString()} ${displayUnit}`}
-            </p>
+            <MetricValue
+              value={summary.bestEstimatedOneRepMax === null ? "--" : summary.bestEstimatedOneRepMax.toLocaleString()}
+              unit={displayUnit}
+              tone="secondary"
+              className="mt-1 text-base"
+            />
           </div>
           <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
             <p className="uppercase tracking-[0.08em] text-zinc-500">Potential PRs</p>
-            <p className="mt-1 text-sm font-semibold text-zinc-100">{summary.potentialPrCount}</p>
+            <MetricValue value={String(summary.potentialPrCount)} tone="secondary" className="mt-1 text-base" />
             {liveDurationMinutes !== null ? <p className="mt-0.5 text-[10px] text-zinc-500">{liveDurationMinutes} min</p> : null}
           </div>
         </div>

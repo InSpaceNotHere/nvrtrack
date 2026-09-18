@@ -157,3 +157,29 @@ body {
   letter-spacing: -0.03em;
   font-weight: 650;
 }
+
+.ds-metric-primary {
+  font-size: clamp(1.9rem, 5vw, 2.45rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: 650;
+  color: var(--ds-color-text-primary);
+  white-space: nowrap;
+}
+
+.ds-metric-secondary {
+  font-size: clamp(1.2rem, 3.3vw, 1.55rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: var(--ds-color-text-primary);
+  white-space: nowrap;
+}
+
+.ds-metric-unit {
+  font-size: 0.52em;
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--ds-color-text-secondary);
+  font-weight: 500;
+}
