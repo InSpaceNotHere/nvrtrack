@@ -6,6 +6,21 @@ import type { TrainingWeightUnit, WorkoutExerciseRow, WorkoutRow, WorkoutSetLike
 export type StrengthLiftKey = "bench" | "squat" | "deadlift";
 const MAX_REPS_FOR_ESTIMATED_1RM = 12;
 
+type StrengthWorkoutInput = Pick<WorkoutRow, "id" | "name" | "workout_date" | "started_at" | "completed_at" | "created_at">;
+type StrengthExerciseInput = Pick<WorkoutExerciseRow, "id" | "workout_id" | "exercise_id" | "catalog_exercise_id" | "exercise_name"> & {
+  source_canonical_lift?: string | null;
+};
+type StrengthSetInput = Pick<
+  WorkoutSetRow,
+  "id" | "user_id" | "workout_exercise_id" | "position" | "set_type" | "weight" | "weight_unit" | "reps" | "rpe" | "is_completed" | "notes" | "created_at" | "updated_at"
+>;
+
+export interface StrengthHistorySetRow {
+  workout: StrengthWorkoutInput;
+  exercise: StrengthExerciseInput;
+  set: StrengthSetInput;
+}
+
 export interface StrengthHistoryPoint {
   workout_id: string;
   workout_name: string;
@@ -67,7 +82,7 @@ function normalizeText(value: string | null | undefined): string {
   return value?.trim().toLowerCase() ?? "";
 }
 
-function exerciseIdentityKey(exercise: WorkoutExerciseRow): string {
+function exerciseIdentityKey(exercise: StrengthExerciseInput): string {
   if (exercise.catalog_exercise_id) {
     return `catalog:${exercise.catalog_exercise_id}`;
   }
@@ -91,7 +106,7 @@ function sortByWorkoutDateAscending(left: StrengthHistoryPoint, right: StrengthH
   return left.workout_id.localeCompare(right.workout_id);
 }
 
-function toWorkoutSetLike(set: WorkoutSetRow, exercise: WorkoutExerciseRow): WorkoutSetLike {
+function toWorkoutSetLike(set: StrengthSetInput, exercise: StrengthExerciseInput): WorkoutSetLike {
   return {
     ...set,
     catalog_exercise_id: exercise.catalog_exercise_id,
@@ -100,8 +115,8 @@ function toWorkoutSetLike(set: WorkoutSetRow, exercise: WorkoutExerciseRow): Wor
   };
 }
 
-function toCanonicalLiftFromExercise(exercise: WorkoutExerciseRow): CanonicalLift | null {
-  return toCanonicalLift((exercise as WorkoutExerciseRow & { source_canonical_lift?: string | null }).source_canonical_lift ?? null);
+function toCanonicalLiftFromExercise(exercise: StrengthExerciseInput): CanonicalLift | null {
+  return toCanonicalLift(exercise.source_canonical_lift ?? null);
 }
 
 function toConvertedWeight(set: WorkoutSetLike, displayUnit: TrainingWeightUnit): number | null {
@@ -133,9 +148,9 @@ function isRecentPr(workoutDate: string, referenceDate: Date): boolean {
 }
 
 export function buildStrengthDashboardSummary(params: {
-  workouts: WorkoutRow[];
-  exercises: WorkoutExerciseRow[];
-  setsByExerciseId: Map<string, WorkoutSetRow[]>;
+  workouts: StrengthWorkoutInput[];
+  exercises: StrengthExerciseInput[];
+  setsByExerciseId: Map<string, StrengthSetInput[]>;
   displayUnit: TrainingWeightUnit;
   referenceDate?: Date;
 }): StrengthDashboardSummary {
@@ -397,4 +412,34 @@ export function buildStrengthDashboardSummary(params: {
       return left.exercise_name.localeCompare(right.exercise_name);
     }),
   };
+}
+
+export function buildStrengthDashboardSummaryFromHistoryRows(params: {
+  rows: StrengthHistorySetRow[];
+  displayUnit: TrainingWeightUnit;
+  referenceDate?: Date;
+}): StrengthDashboardSummary {
+  const workoutsById = new Map<string, StrengthWorkoutInput>();
+  const exercisesById = new Map<string, StrengthExerciseInput>();
+  const setsByExerciseId = new Map<string, StrengthSetInput[]>();
+
+  for (const row of params.rows) {
+    workoutsById.set(row.workout.id, row.workout);
+    exercisesById.set(row.exercise.id, row.exercise);
+
+    const list = setsByExerciseId.get(row.exercise.id);
+    if (list) {
+      list.push(row.set);
+    } else {
+      setsByExerciseId.set(row.exercise.id, [row.set]);
+    }
+  }
+
+  return buildStrengthDashboardSummary({
+    workouts: [...workoutsById.values()],
+    exercises: [...exercisesById.values()],
+    setsByExerciseId,
+    displayUnit: params.displayUnit,
+    referenceDate: params.referenceDate,
+  });
 }

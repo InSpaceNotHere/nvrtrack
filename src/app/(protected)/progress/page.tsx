@@ -11,9 +11,8 @@ import { getMyBodyMeasurementEntries } from "@/lib/data/body-measurements";
 import { getMyProfile } from "@/lib/data/profile";
 import { getMyProgressPhotoDates, getMyProgressPhotoPage } from "@/lib/data/progress-photos";
 import { getMyWeeklyJournalEntries } from "@/lib/data/weekly-journal";
-import { getMyWorkoutExercisesForWorkoutIds, getMyWorkouts, getWorkoutSetsForWorkoutExerciseIds } from "@/lib/data/workouts";
-import { buildStrengthDashboardSummary } from "@/lib/training/strength";
-import { groupSetsByWorkoutExerciseId } from "@/lib/training/session";
+import { getMyStrengthHistorySetRows } from "@/lib/data/workouts";
+import { buildStrengthDashboardSummaryFromHistoryRows } from "@/lib/training/strength";
 import { getWeightEntries } from "@/lib/data/weight";
 import { getCurrentWeekStartMondayInTimeZone, getDateStringInTimeZone, normalizeTimeZone } from "@/lib/timezone";
 import {
@@ -38,7 +37,7 @@ interface ProgressOverviewProps {
   sevenDayAverageLabel: string;
   trendPoints: { label: string; value: number }[];
   weightHistory: ReturnType<typeof computeWeightMetrics>["historyNewestFirst"];
-  strengthSummary: ReturnType<typeof buildStrengthDashboardSummary>;
+  strengthSummary: ReturnType<typeof buildStrengthDashboardSummaryFromHistoryRows>;
 }
 
 function ProgressOverview({
@@ -182,28 +181,21 @@ function ProgressOverview({
 }
 
 export default async function ProgressPage() {
-  const [profileResult, weightEntriesResult, workoutsResult, progressPhotosPageResult, progressPhotoDatesResult, measurementEntriesResult, journalEntriesResult] =
+  const [profileResult, weightEntriesResult, strengthRowsResult, progressPhotosPageResult, progressPhotoDatesResult, measurementEntriesResult, journalEntriesResult] =
     await Promise.all([
       getMyProfile(),
       getWeightEntries(),
-      getMyWorkouts(),
+      getMyStrengthHistorySetRows(),
       getMyProgressPhotoPage(0, 24),
       getMyProgressPhotoDates(),
       getMyBodyMeasurementEntries(),
       getMyWeeklyJournalEntries(),
     ]);
-  const workouts = workoutsResult.data ?? [];
-  const workoutExercisesResult = await getMyWorkoutExercisesForWorkoutIds(workouts.map((workout) => workout.id));
-  const workoutSetsResult = await getWorkoutSetsForWorkoutExerciseIds(
-    (workoutExercisesResult.data ?? []).map((exercise) => exercise.id),
-  );
 
   const weightLoadError =
     weightEntriesResult.error?.message ??
     profileResult.error?.message ??
-    workoutsResult.error?.message ??
-    workoutExercisesResult.error?.message ??
-    workoutSetsResult.error?.message ??
+    strengthRowsResult.error?.message ??
     progressPhotosPageResult.error?.message ??
     progressPhotoDatesResult.error?.message ??
     measurementEntriesResult.error?.message ??
@@ -226,10 +218,8 @@ export default async function ProgressPage() {
     weightMetrics.canCompareSevenDayPeriods && weightMetrics.sevenDayComparisonDelta !== null
       ? formatDeltaLabel(weightMetrics.sevenDayComparisonDelta, displayUnit)
       : `Comparison unavailable (need ${MIN_ENTRIES_FOR_PERIOD_COMPARISON} entries per seven-day period)`;
-  const strengthSummary = buildStrengthDashboardSummary({
-    workouts,
-    exercises: workoutExercisesResult.data ?? [],
-    setsByExerciseId: groupSetsByWorkoutExerciseId(workoutSetsResult.data ?? []),
+  const strengthSummary = buildStrengthDashboardSummaryFromHistoryRows({
+    rows: strengthRowsResult.data ?? [],
     displayUnit,
     referenceDate,
   });

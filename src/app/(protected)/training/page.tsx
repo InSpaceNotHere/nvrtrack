@@ -14,8 +14,10 @@ import {
   getMyWorkoutTemplates,
 } from "@/lib/data/workout-planner";
 import {
+  getMyActiveWorkout,
+  getMyCompletedWorkouts,
   getMyWorkoutExercisesForWorkoutIds,
-  getMyWorkouts,
+  getMyRecentWorkouts,
   getWorkoutSetsForWorkoutExerciseIds,
 } from "@/lib/data/workouts";
 import { sortWorkoutsForHistory } from "@/lib/training/calculations";
@@ -24,9 +26,7 @@ import { buildWeekDates, buildPlannerWeek, findPlannerDayForDate } from "@/lib/t
 import { getDateStringInTimeZone, normalizeTimeZone } from "@/lib/timezone";
 import {
   buildWorkoutSummaryStats,
-  countCompletedWorkoutsThisWeek,
   groupSetsByWorkoutExerciseId,
-  selectMostRecentActiveWorkout,
 } from "@/lib/training/session";
 import type { WorkoutExerciseRow } from "@/lib/training/types";
 
@@ -52,19 +52,22 @@ function titleCase(value: string): string {
 }
 
 export default async function TrainingPage() {
-  const [workoutsResult, profileResult] = await Promise.all([
-    getMyWorkouts(),
+  const [activeWorkoutResult, recentWorkoutsResult, profileResult] = await Promise.all([
+    getMyActiveWorkout(),
+    getMyRecentWorkouts(5),
     getMyProfile(),
   ]);
   const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
   const todayDate = getDateStringInTimeZone(profileTimeZone, new Date());
   const referenceDate = new Date(`${todayDate}T12:00:00.000Z`);
-  const workouts = sortWorkoutsForHistory(workoutsResult.data ?? []);
-  const activeWorkout = selectMostRecentActiveWorkout(workouts);
-  const completedThisWeek = countCompletedWorkoutsThisWeek(workouts, referenceDate);
+  const weekDates = buildWeekDates(referenceDate);
+  const weekStart = weekDates[0];
+  const weekEnd = weekDates[weekDates.length - 1];
+  const completedWeekWorkoutsResult = await getMyCompletedWorkouts({ startDate: weekStart, endDate: weekEnd });
+  const recentWorkouts = sortWorkoutsForHistory(recentWorkoutsResult.data ?? []);
+  const activeWorkout = activeWorkoutResult.data ?? null;
+  const completedThisWeek = completedWeekWorkoutsResult.data?.length ?? 0;
   const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
-
-  const recentWorkouts = workouts.slice(0, 5);
   const workoutExercisesResult = await getMyWorkoutExercisesForWorkoutIds(recentWorkouts.map((workout) => workout.id));
   const workoutSetsResult = await getWorkoutSetsForWorkoutExerciseIds(
     (workoutExercisesResult.data ?? []).map((exercise) => exercise.id),
@@ -107,10 +110,6 @@ export default async function TrainingPage() {
     })),
   );
   const previewFocusLabel = buildPrimaryFocusLabel(previewWorkoutTargeting);
-  const weekDates = buildWeekDates(referenceDate);
-  const weekStart = weekDates[0];
-  const weekEnd = weekDates[weekDates.length - 1];
-
   const [templatesResult, templateExercisesResult, weekdayScheduleResult, scheduleOverridesResult, catalogResult, customExercisesResult] =
     await Promise.all([
       getMyWorkoutTemplates(),
@@ -125,9 +124,11 @@ export default async function TrainingPage() {
     templateExercises: templateExercisesResult.data ?? [],
     weekdayScheduleRows: weekdayScheduleResult.data ?? [],
     scheduleOverrideRows: scheduleOverridesResult.data ?? [],
-    completedWorkouts: workouts
-      .filter((workout) => workout.completed_at !== null)
-      .map((workout) => ({ id: workout.id, workout_date: workout.workout_date, name: workout.name })),
+    completedWorkouts: (completedWeekWorkoutsResult.data ?? []).map((workout) => ({
+      id: workout.id,
+      workout_date: workout.workout_date,
+      name: workout.name,
+    })),
   });
   const todayPlan = findPlannerDayForDate(plannerWeek, todayDate);
   const plannerExerciseOptions = [
@@ -154,7 +155,9 @@ export default async function TrainingPage() {
   ];
 
   const dataErrorMessage =
-    workoutsResult.error?.message ??
+    activeWorkoutResult.error?.message ??
+    recentWorkoutsResult.error?.message ??
+    completedWeekWorkoutsResult.error?.message ??
     workoutExercisesResult.error?.message ??
     workoutSetsResult.error?.message ??
     templatesResult.error?.message ??
@@ -165,6 +168,7 @@ export default async function TrainingPage() {
     customExercisesResult.error?.message ??
     profileResult.error?.message ??
     null;
+  const hasWorkouts = recentWorkouts.length > 0 || activeWorkout !== null;
 
   return (
     <div className="space-y-4">
@@ -185,7 +189,7 @@ export default async function TrainingPage() {
         exerciseOptions={plannerExerciseOptions}
       />
 
-      {!workouts.length ? (
+      {!hasWorkouts ? (
         <Card title="Start Your First Workout">
           <p className="text-sm text-zinc-300">No workouts logged yet. Create a workout and begin adding exercises and sets.</p>
           <Link

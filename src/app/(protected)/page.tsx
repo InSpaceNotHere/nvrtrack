@@ -15,9 +15,10 @@ import {
   getMyWorkoutTemplates,
 } from "@/lib/data/workout-planner";
 import {
+  getMyActiveWorkout,
+  getMyCompletedWorkouts,
   getMyWorkoutExercises,
-  getMyWorkoutExercisesForWorkoutIds,
-  getMyWorkouts,
+  getMyStrengthHistorySetRows,
   getWorkoutSetsForWorkoutExerciseIds,
 } from "@/lib/data/workouts";
 import { getWeightEntries } from "@/lib/data/weight";
@@ -25,9 +26,9 @@ import { calculateDailyTotals } from "@/lib/nutrition/calculations";
 import { getTodayDateString } from "@/lib/nutrition/date";
 import { normalizeTimeZone } from "@/lib/timezone";
 import { buildPlannerWeek, buildWeekDates, findPlannerDayForDate } from "@/lib/training/planner";
-import { buildWorkoutSummaryStats, groupSetsByWorkoutExerciseId, selectMostRecentActiveWorkout } from "@/lib/training/session";
+import { buildWorkoutSummaryStats, groupSetsByWorkoutExerciseId } from "@/lib/training/session";
 import { computeWorkoutDayStreak, computeWorkoutWeeklyStreak } from "@/lib/training/streaks";
-import { buildStrengthDashboardSummary } from "@/lib/training/strength";
+import { buildStrengthDashboardSummaryFromHistoryRows } from "@/lib/training/strength";
 import type { TrainingWeightUnit } from "@/lib/training/types";
 import { MIN_ENTRIES_FOR_PERIOD_COMPARISON, formatDeltaLabel, computeWeightMetrics, shortDateLabel } from "@/lib/weight/metrics";
 import type { WeightUnit } from "@/lib/weight/conversions";
@@ -43,16 +44,18 @@ export default async function HomePage() {
   const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
   const todayDate = getTodayDateString(profileTimeZone);
   const referenceDate = new Date(`${todayDate}T12:00:00.000Z`);
-  const [weightEntriesResult, nutritionEntriesResult, recentFoodEntriesResult, workoutsResult] = await Promise.all([
+  const [weightEntriesResult, nutritionEntriesResult, recentFoodEntriesResult, completedWorkoutsResult, activeWorkoutResult, strengthRowsResult] = await Promise.all([
     getWeightEntries(),
     getMyFoodEntriesForDate(todayDate),
     getMyRecentFoodEntries(6),
-    getMyWorkouts(),
+    getMyCompletedWorkouts(),
+    getMyActiveWorkout(),
+    getMyStrengthHistorySetRows(),
   ]);
   const profileLoadError = profileResult.error?.message ?? null;
   const weightLoadError = weightEntriesResult.error?.message ?? null;
   const nutritionLoadError = nutritionEntriesResult.error?.message ?? null;
-  const workoutLoadError = workoutsResult.error?.message ?? null;
+  const workoutLoadError = completedWorkoutsResult.error?.message ?? activeWorkoutResult.error?.message ?? strengthRowsResult.error?.message ?? null;
   const recentFoodError = recentFoodEntriesResult.error?.message ?? null;
 
   const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
@@ -90,16 +93,9 @@ export default async function HomePage() {
     value: entry.weight,
   }));
 
-  const workouts = workoutsResult.data ?? [];
-  const workoutIds = workouts.map((workout) => workout.id);
-  const allWorkoutExercisesResult = await getMyWorkoutExercisesForWorkoutIds(workoutIds);
-  const allWorkoutSetsResult = await getWorkoutSetsForWorkoutExerciseIds(
-    (allWorkoutExercisesResult.data ?? []).map((exercise) => exercise.id),
-  );
-  const strengthSummary = buildStrengthDashboardSummary({
-    workouts,
-    exercises: allWorkoutExercisesResult.data ?? [],
-    setsByExerciseId: groupSetsByWorkoutExerciseId(allWorkoutSetsResult.data ?? []),
+  const completedWorkouts = completedWorkoutsResult.data ?? [];
+  const strengthSummary = buildStrengthDashboardSummaryFromHistoryRows({
+    rows: strengthRowsResult.data ?? [],
     displayUnit: displayUnit as TrainingWeightUnit,
     referenceDate,
   });
@@ -116,14 +112,16 @@ export default async function HomePage() {
     templateExercises: templateExercisesResult.data ?? [],
     weekdayScheduleRows: weekdayScheduleResult.data ?? [],
     scheduleOverrideRows: scheduleOverridesResult.data ?? [],
-    completedWorkouts: workouts
-      .filter((workout) => workout.completed_at !== null)
-      .map((workout) => ({ id: workout.id, workout_date: workout.workout_date, name: workout.name })),
+    completedWorkouts: completedWorkouts.map((workout) => ({
+      id: workout.id,
+      workout_date: workout.workout_date,
+      name: workout.name,
+    })),
   });
   const todayPlan = findPlannerDayForDate(plannerWeek, todayDate);
 
-  const activeWorkout = selectMostRecentActiveWorkout(workouts);
-  const todaysCompletedWorkout = [...workouts]
+  const activeWorkout = activeWorkoutResult.data ?? null;
+  const todaysCompletedWorkout = [...completedWorkouts]
     .filter((workout) => workout.workout_date === todayDate && workout.completed_at !== null)
     .sort((a, b) => Date.parse(b.completed_at ?? b.created_at) - Date.parse(a.completed_at ?? a.created_at))[0];
   const workoutCardTarget = activeWorkout ?? todaysCompletedWorkout ?? null;
@@ -164,17 +162,17 @@ export default async function HomePage() {
   const proteinRemaining = (profileResult.data?.protein_goal ?? null) !== null
     ? (profileResult.data?.protein_goal ?? 0) - nutritionTotals.protein_g
     : null;
-  const workoutStreak = computeWorkoutDayStreak(workouts, {
+  const workoutStreak = computeWorkoutDayStreak(completedWorkouts, {
     timeZone: profileTimeZone,
     reference: new Date(),
   });
-  const weeklyStreak = computeWorkoutWeeklyStreak(workouts, {
+  const weeklyStreak = computeWorkoutWeeklyStreak(completedWorkouts, {
     timeZone: profileTimeZone,
     reference: new Date(),
   });
 
   const recentActivities = [
-    ...(workouts
+    ...(completedWorkouts
       .filter((workout) => workout.completed_at !== null)
       .slice(0, 2)
       .map((workout) => ({

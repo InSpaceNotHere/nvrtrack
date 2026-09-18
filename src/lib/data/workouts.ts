@@ -18,6 +18,7 @@ import type {
 import { coerceMuscleIdArray, mapLegacyMuscleGroupToPrimaryMuscles } from "@/lib/training/muscles";
 import { toCanonicalLift, type CanonicalLift } from "@/lib/training/canonical-lifts";
 import { isValidDateString } from "@/lib/nutrition/date";
+import type { StrengthHistorySetRow } from "@/lib/training/strength";
 
 function sanitizeLimit(limit: number, fallback = 20): number {
   if (!Number.isInteger(limit) || limit <= 0) {
@@ -58,6 +59,42 @@ function asWorkoutSetRow(value: unknown): WorkoutSetRow | null {
     return null;
   }
   return value as WorkoutSetRow;
+}
+
+interface StrengthHistorySetRowRaw {
+  id: string;
+  user_id: string;
+  workout_exercise_id: string;
+  position: number;
+  set_type: string;
+  weight: number | null;
+  weight_unit: string | null;
+  reps: number | null;
+  rpe: number | null;
+  is_completed: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  workout_exercises:
+    | {
+        id: string;
+        workout_id: string;
+        exercise_id: string | null;
+        catalog_exercise_id: string | null;
+        exercise_name: string;
+        source_canonical_lift: string | null;
+        workouts:
+          | {
+              id: string;
+              name: string;
+              workout_date: string;
+              started_at: string | null;
+              completed_at: string | null;
+              created_at: string;
+            }
+          | null;
+      }
+    | null;
 }
 
 function isMissingColumnError(message: string | undefined): boolean {
@@ -298,6 +335,7 @@ export async function getMyRecentWorkouts(limit = 20): Promise<DataAccessResult<
     .select("*")
     .eq("user_id", auth.data.user.id)
     .order("workout_date", { ascending: false })
+    .order("started_at", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(safeLimit);
 
@@ -310,6 +348,97 @@ export async function getMyRecentWorkouts(limit = 20): Promise<DataAccessResult<
   }
 
   return ok(asWorkoutRows(data));
+}
+
+export async function getMyActiveWorkout(): Promise<DataAccessResult<WorkoutRow | null>> {
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
+  }
+
+  const { data, error } = await auth.data.supabase
+    .from("workouts")
+    .select("*")
+    .eq("user_id", auth.data.user.id)
+    .is("completed_at", null)
+    .order("started_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to load active workout.",
+      cause: error.message,
+    });
+  }
+
+  return ok(asWorkoutRow(data));
+}
+
+export async function getMyCompletedWorkouts(options?: {
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}): Promise<DataAccessResult<WorkoutRow[]>> {
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
+  }
+
+  if (options?.startDate && !isValidDateString(options.startDate)) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: "Start date is invalid.",
+    });
+  }
+
+  if (options?.endDate && !isValidDateString(options.endDate)) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: "End date is invalid.",
+    });
+  }
+
+  if (options?.startDate && options?.endDate && options.startDate > options.endDate) {
+    return fail({
+      code: "INVALID_INPUT",
+      message: "Date range is invalid.",
+    });
+  }
+
+  const safeLimit = options?.limit !== undefined ? sanitizeLimit(options.limit) : null;
+  let query = auth.data.supabase
+    .from("workouts")
+    .select("*")
+    .eq("user_id", auth.data.user.id)
+    .not("completed_at", "is", null);
+
+  if (options?.startDate) {
+    query = query.gte("workout_date", options.startDate);
+  }
+  if (options?.endDate) {
+    query = query.lte("workout_date", options.endDate);
+  }
+  if (safeLimit !== null) {
+    query = query.limit(safeLimit);
+  }
+  const { data, error } = await query
+    .order("workout_date", { ascending: false })
+    .order("started_at", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to load completed workouts.",
+      cause: error.message,
+    });
+  }
+
+  const rows = asWorkoutRows(data);
+  return ok(rows);
 }
 
 export async function createMyWorkout(input: WorkoutInput): Promise<DataAccessResult<WorkoutRow>> {
@@ -1101,6 +1230,111 @@ export async function getWorkoutSetsForWorkoutExerciseIds(
   }
 
   return ok(asWorkoutSetRows(data));
+}
+
+export async function getMyStrengthHistorySetRows(): Promise<DataAccessResult<StrengthHistorySetRow[]>> {
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
+  }
+
+  const supabase = asLooseSupabaseClient(auth.data.supabase);
+  const { data, error } = await supabase
+    .from("workout_sets")
+    .select(
+      `
+      id,
+      user_id,
+      workout_exercise_id,
+      position,
+      set_type,
+      weight,
+      weight_unit,
+      reps,
+      rpe,
+      is_completed,
+      notes,
+      created_at,
+      updated_at,
+      workout_exercises!inner(
+        id,
+        workout_id,
+        exercise_id,
+        catalog_exercise_id,
+        exercise_name,
+        source_canonical_lift,
+        workouts!inner(
+          id,
+          name,
+          workout_date,
+          started_at,
+          completed_at,
+          created_at
+        )
+      )
+      `,
+    )
+    .eq("user_id", auth.data.user.id)
+    .eq("is_completed", true)
+    .order("workout_exercise_id", { ascending: true })
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to load strength history sets.",
+      cause: error.message,
+    });
+  }
+
+  const rows = (Array.isArray(data) ? data : []) as StrengthHistorySetRowRaw[];
+  const normalized: StrengthHistorySetRow[] = [];
+  for (const row of rows) {
+    const exercise = row.workout_exercises;
+    const workout = exercise?.workouts ?? null;
+    if (
+      !exercise ||
+      !workout ||
+      workout.completed_at === null
+    ) {
+      continue;
+    }
+    normalized.push({
+      workout: {
+        id: workout.id,
+        name: workout.name,
+        workout_date: workout.workout_date,
+        started_at: workout.started_at,
+        completed_at: workout.completed_at,
+        created_at: workout.created_at,
+      },
+      exercise: {
+        id: exercise.id,
+        workout_id: exercise.workout_id,
+        exercise_id: exercise.exercise_id,
+        catalog_exercise_id: exercise.catalog_exercise_id,
+        exercise_name: exercise.exercise_name,
+        source_canonical_lift: toCanonicalLift(exercise.source_canonical_lift),
+      },
+      set: {
+        id: row.id,
+        user_id: row.user_id,
+        workout_exercise_id: row.workout_exercise_id,
+        position: row.position,
+        set_type: row.set_type,
+        weight: row.weight,
+        weight_unit: row.weight_unit,
+        reps: row.reps,
+        rpe: row.rpe,
+        is_completed: row.is_completed,
+        notes: row.notes,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      },
+    });
+  }
+  return ok(normalized);
 }
 
 export async function createWorkoutSet(

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { WorkoutExerciseRow, WorkoutRow, WorkoutSetRow } from "./types";
-import { buildStrengthDashboardSummary } from "./strength";
+import { buildStrengthDashboardSummary, buildStrengthDashboardSummaryFromHistoryRows } from "./strength";
 import { groupSetsByWorkoutExerciseId } from "./session";
 
 function makeWorkout(overrides: Partial<WorkoutRow>): WorkoutRow {
@@ -60,6 +60,70 @@ function makeSet(overrides: Partial<WorkoutSetRow>): WorkoutSetRow {
 }
 
 describe("training strength summary", () => {
+  it("keeps lifetime semantics identical when built from focused strength history rows", () => {
+    const workouts = [
+      makeWorkout({ id: "w1", workout_date: "2026-07-01" }),
+      makeWorkout({ id: "w2", workout_date: "2026-07-08" }),
+      makeWorkout({ id: "w3", workout_date: "2026-07-15", completed_at: null }),
+    ];
+    const exercises = [
+      { ...makeExercise({ id: "e1", workout_id: "w1", exercise_name: "Barbell Bench Press" }), source_canonical_lift: "bench_press" },
+      { ...makeExercise({ id: "e2", workout_id: "w2", exercise_name: "Back Squat" }), source_canonical_lift: "squat" },
+      { ...makeExercise({ id: "e3", workout_id: "w3", exercise_name: "Conventional Deadlift" }), source_canonical_lift: "deadlift" },
+    ] as WorkoutExerciseRow[];
+    const sets = [
+      makeSet({ id: "s1", workout_exercise_id: "e1", weight: 225, reps: 5 }),
+      makeSet({ id: "s2", workout_exercise_id: "e1", weight: 245, reps: 1 }),
+      makeSet({ id: "s3", workout_exercise_id: "e2", weight: 315, reps: 3 }),
+      makeSet({ id: "s4", workout_exercise_id: "e2", weight: 335, reps: 1 }),
+      makeSet({ id: "s5", workout_exercise_id: "e3", weight: 405, reps: 1, is_completed: false }),
+    ];
+
+    const fromGraph = buildStrengthDashboardSummary({
+      workouts,
+      exercises,
+      setsByExerciseId: groupSetsByWorkoutExerciseId(sets),
+      displayUnit: "lb",
+      referenceDate: new Date("2026-07-20T00:00:00.000Z"),
+    });
+
+    const workoutById = new Map(workouts.map((workout) => [workout.id, workout]));
+    const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
+    const historyRows = sets
+      .filter((set) => set.is_completed && (set.weight ?? 0) > 0 && (set.reps ?? 0) > 0)
+      .map((set) => {
+        const exercise = exerciseById.get(set.workout_exercise_id)!;
+        const workout = workoutById.get(exercise.workout_id)!;
+        return {
+          workout: {
+            id: workout.id,
+            name: workout.name,
+            workout_date: workout.workout_date,
+            started_at: workout.started_at,
+            completed_at: workout.completed_at,
+            created_at: workout.created_at,
+          },
+          exercise: {
+            id: exercise.id,
+            workout_id: exercise.workout_id,
+            exercise_id: exercise.exercise_id,
+            catalog_exercise_id: exercise.catalog_exercise_id,
+            exercise_name: exercise.exercise_name,
+            source_canonical_lift: (exercise as WorkoutExerciseRow & { source_canonical_lift?: string | null }).source_canonical_lift ?? null,
+          },
+          set,
+        };
+      });
+
+    const fromFocusedRows = buildStrengthDashboardSummaryFromHistoryRows({
+      rows: historyRows,
+      displayUnit: "lb",
+      referenceDate: new Date("2026-07-20T00:00:00.000Z"),
+    });
+
+    expect(fromFocusedRows).toEqual(fromGraph);
+  });
+
   it("uses canonical lift metadata and excludes similarly named non-canonical variations", () => {
     const workouts = [
       makeWorkout({ id: "w1", workout_date: "2026-07-10" }),
