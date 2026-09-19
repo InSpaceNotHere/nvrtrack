@@ -42,7 +42,7 @@ interface TrainingPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
 }
 
-type TrainingFixture = "active-scheduled" | "scheduled" | "rest" | "completed" | "uninitialized";
+type TrainingFixture = "active-scheduled" | "active-different" | "scheduled" | "rest" | "completed" | "uninitialized";
 
 type WeekStripStatus = "none" | "rest" | "scheduled" | "completed" | "skipped" | "moved" | "active";
 
@@ -140,7 +140,14 @@ function asSingleParam(value: string | string[] | undefined): string | undefined
 }
 
 function isFixture(value: string | undefined): value is TrainingFixture {
-  return value === "active-scheduled" || value === "scheduled" || value === "rest" || value === "completed" || value === "uninitialized";
+  return (
+    value === "active-scheduled" ||
+    value === "active-different" ||
+    value === "scheduled" ||
+    value === "rest" ||
+    value === "completed" ||
+    value === "uninitialized"
+  );
 }
 
 function buildFixtureWeek(weekDates: string[], fixture: TrainingFixture): WeekStripDay[] {
@@ -148,6 +155,7 @@ function buildFixtureWeek(weekDates: string[], fixture: TrainingFixture): WeekSt
   const templates = ["Lower", "Pull", "Push", "Rest", "Upper", "Legs", "Run"];
   const statusPresets: Record<TrainingFixture, WeekStripStatus[]> = {
     "active-scheduled": ["completed", "scheduled", "active", "rest", "scheduled", "skipped", "moved"],
+    "active-different": ["completed", "scheduled", "scheduled", "rest", "active", "completed", "rest"],
     scheduled: ["completed", "scheduled", "scheduled", "rest", "scheduled", "completed", "rest"],
     rest: ["completed", "scheduled", "rest", "rest", "scheduled", "completed", "rest"],
     completed: ["completed", "scheduled", "completed", "rest", "scheduled", "completed", "rest"],
@@ -199,6 +207,35 @@ function applyFixturePresentation(
       completedThisWeek: 2,
       recentContext: {
         workoutName: "Lower Strength",
+        workoutDate: weekDates[0] ?? "",
+        workoutHref: "/training?view=history",
+      },
+      plannerUninitialized: false,
+    };
+  }
+  if (fixture === "active-different") {
+    return {
+      activeSession: {
+        workoutId: "fixture-active-different",
+        workoutName: "Travel Hotel Session",
+        elapsedLabel: "22m elapsed",
+        exerciseCount: 4,
+        completedSetCount: 5,
+        totalSetCount: 12,
+      },
+      todaySummary: {
+        status: "scheduled",
+        workoutName: "Lower Strength",
+        exerciseCount: 5,
+        durationMinutes: 55,
+        muscleFocus: "Primary focus: quads, glutes, hamstrings",
+        actionLabel: "Start Workout",
+        actionHref: "/training/start",
+      },
+      weekStrip,
+      completedThisWeek: 2,
+      recentContext: {
+        workoutName: "Pull Strength",
         workoutDate: weekDates[0] ?? "",
         workoutHref: "/training?view=history",
       },
@@ -293,7 +330,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const resolvedSearchParams = (await Promise.resolve(searchParams)) ?? {};
   const view = asSingleParam(resolvedSearchParams.view);
   const fixtureParam = asSingleParam(resolvedSearchParams.fixture);
-  const fixture = isFixture(fixtureParam) ? fixtureParam : null;
+  const allowFixturePreview = process.env.NODE_ENV !== "production";
+  const fixture = allowFixturePreview && isFixture(fixtureParam) ? fixtureParam : null;
 
   const [activeWorkoutResult, recentWorkoutsResult, profileResult] = await Promise.all([
     getMyActiveWorkout(),
@@ -430,36 +468,57 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         }
       : null;
 
-  const todayStatus: WeekStripStatus = activeWorkout
-    ? "active"
-    : todaysCompletedWorkout
-      ? "completed"
-      : toWeekStripStatus(todayPlan?.status ?? "none");
-  let todaySummary: TodayTrainingSummary = {
-    status: todayStatus,
-    workoutName:
-      activeWorkout?.name ??
-      todayPlan?.template_name ??
-      todaysCompletedWorkout?.name ??
-      (todayStatus === "rest" ? "Rest Day" : "No plan scheduled"),
-    exerciseCount: todayPlan?.exercise_count ?? 0,
-    durationMinutes: todayPlan?.estimated_duration_minutes ?? null,
-    muscleFocus: todayPlan ? buildPrimaryFocusLabel(todayPlan.muscle_targeting, 3) : null,
-    actionLabel: activeWorkout
-      ? "Resume Workout"
-      : todaysCompletedWorkout
-        ? "View Summary"
-        : todayStatus === "scheduled"
-          ? "Start Workout"
-          : "Open Program",
-    actionHref: activeWorkout
-      ? `/training/workouts/${activeWorkout.id}`
-      : todaysCompletedWorkout
-        ? `/training/workouts/${todaysCompletedWorkout.id}`
-        : todayStatus === "scheduled"
-          ? "/training/start"
-          : "/training?view=program",
-  };
+  const todayPlannedStatus: WeekStripStatus = todaysCompletedWorkout
+    ? "completed"
+    : toWeekStripStatus(todayPlan?.status ?? "none");
+  const todayPlannedName =
+    todayPlan?.template_name ??
+    todaysCompletedWorkout?.name ??
+    (todayPlannedStatus === "rest" ? "Rest Day" : "No plan scheduled");
+  const todayPlannedActionLabel = todaysCompletedWorkout
+    ? "View Summary"
+    : todayPlannedStatus === "scheduled"
+      ? "Start Workout"
+      : "Open Program";
+  const todayPlannedActionHref = todaysCompletedWorkout
+    ? `/training/workouts/${todaysCompletedWorkout.id}`
+    : todayPlannedStatus === "scheduled"
+      ? "/training/start"
+      : "/training?view=program";
+
+  // Deduplicate when the active workout and today's scheduled workout represent the same underlying session.
+  const isActiveWorkoutSameAsToday =
+    !!activeWorkout &&
+    !!(
+      (todayPlan?.workout_id && todayPlan.workout_id === activeWorkout.id) ||
+      (todaysCompletedWorkout?.id && todaysCompletedWorkout.id === activeWorkout.id) ||
+      (activeWorkout.workout_date === todayDate &&
+        todayPlan &&
+        todayPlan.status !== "rest" &&
+        todayPlannedName &&
+        activeWorkout.name &&
+        todayPlannedName.trim().toLowerCase() === activeWorkout.name.trim().toLowerCase())
+    );
+
+  let todaySummary: TodayTrainingSummary = activeWorkout && !isActiveWorkoutSameAsToday
+    ? {
+        status: todayPlannedStatus,
+        workoutName: todayPlannedName,
+        exerciseCount: todayPlan?.exercise_count ?? 0,
+        durationMinutes: todayPlan?.estimated_duration_minutes ?? null,
+        muscleFocus: todayPlan ? buildPrimaryFocusLabel(todayPlan.muscle_targeting, 3) : null,
+        actionLabel: todayPlannedActionLabel,
+        actionHref: todayPlannedActionHref,
+      }
+    : {
+        status: activeWorkout ? "active" : todayPlannedStatus,
+        workoutName: activeWorkout?.name ?? todayPlannedName,
+        exerciseCount: todayPlan?.exercise_count ?? 0,
+        durationMinutes: todayPlan?.estimated_duration_minutes ?? null,
+        muscleFocus: todayPlan ? buildPrimaryFocusLabel(todayPlan.muscle_targeting, 3) : null,
+        actionLabel: activeWorkout ? "Resume Workout" : todayPlannedActionLabel,
+        actionHref: activeWorkout ? `/training/workouts/${activeWorkout.id}` : todayPlannedActionHref,
+      };
 
   let weekStrip: WeekStripDay[] = plannerWeek.map((day) => ({
     date: day.date,
@@ -488,6 +547,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   let completedWeekCount = completedThisWeek;
   let plannerUninitialized = (templatesResult.data ?? []).length === 0 && plannerWeek.every((day) => day.status === "none");
 
+  let dedupeActiveAndToday = isActiveWorkoutSameAsToday;
+
   if (fixture) {
     const fixturePresentation = applyFixturePresentation(fixture, weekDates);
     activeSession = fixturePresentation.activeSession;
@@ -496,7 +557,14 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
     recentContext = fixturePresentation.recentContext;
     completedWeekCount = fixturePresentation.completedThisWeek;
     plannerUninitialized = fixturePresentation.plannerUninitialized;
+    if (fixture === "active-scheduled") {
+      dedupeActiveAndToday = true;
+    } else if (fixture === "active-different") {
+      dedupeActiveAndToday = false;
+    }
   }
+
+  const shouldRenderTodayCard = !activeSession || !dedupeActiveAndToday;
 
   const tools = [
     {
@@ -657,33 +725,35 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             </Card>
           ) : null}
 
-          <Card title="Today" variant="secondary">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="text-base font-semibold text-zinc-100">{todaySummary.workoutName}</p>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                    <StateChip state={toState(todaySummary.status)} className="text-[10px]" />
-                    <p className="text-xs text-zinc-400">
-                      {todaySummary.exerciseCount} exercises
-                      {todaySummary.durationMinutes !== null ? ` • ~${todaySummary.durationMinutes} min` : ""}
-                    </p>
+          {shouldRenderTodayCard ? (
+            <Card title="Today" variant="secondary">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="text-base font-semibold text-zinc-100">{todaySummary.workoutName}</p>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                      <StateChip state={toState(todaySummary.status)} className="text-[10px]" />
+                      <p className="text-xs text-zinc-400">
+                        {todaySummary.exerciseCount} exercises
+                        {todaySummary.durationMinutes !== null ? ` • ~${todaySummary.durationMinutes} min` : ""}
+                      </p>
+                    </div>
                   </div>
+                  {todaySummary.actionHref ? (
+                    <Link
+                      href={todaySummary.actionHref}
+                      className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
+                    >
+                      {todaySummary.actionLabel}
+                    </Link>
+                  ) : null}
                 </div>
-                {todaySummary.actionHref ? (
-                  <Link
-                    href={todaySummary.actionHref}
-                    className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
-                  >
-                    {todaySummary.actionLabel}
-                  </Link>
-                ) : null}
+                <p className="text-[11px] text-zinc-500">
+                  {todaySummary.muscleFocus ?? (todaySummary.status === "rest" ? "Recovery and mobility focus." : "Muscle focus updates after a plan is assigned.")}
+                </p>
               </div>
-              <p className="text-[11px] text-zinc-500">
-                {todaySummary.muscleFocus ?? (todaySummary.status === "rest" ? "Recovery and mobility focus." : "Muscle focus updates after a plan is assigned.")}
-              </p>
-            </div>
-          </Card>
+            </Card>
+          ) : null}
 
           <Card title="This Week" variant="secondary">
             <div className="mb-2 flex items-center justify-between gap-2">
