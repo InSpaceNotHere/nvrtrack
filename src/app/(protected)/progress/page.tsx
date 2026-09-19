@@ -1,15 +1,14 @@
-import { ProgressTabs } from "@/components/progress/progress-tabs";
+import Link from "next/link";
+
 import { ProgressPhotoManager } from "@/components/progress/progress-photo-manager";
 import { BodyMeasurementManager } from "@/components/progress/body-measurement-manager";
 import { WeeklyJournalManager } from "@/components/progress/weekly-journal-manager";
 import { Card } from "@/components/ui/card";
-import { Chip } from "@/components/ui/chip";
 import { MetricValue } from "@/components/ui/metric-value";
 import { PageHeader } from "@/components/ui/page-header";
 import { StateChip } from "@/components/ui/state-chip";
 import { TrendSparkline } from "@/components/ui/trend-sparkline";
 import { WeightLogManager } from "@/components/weight/weight-log-manager";
-import { WeightChart } from "@/components/weight/weight-chart";
 import { getMyBodyMeasurementEntries } from "@/lib/data/body-measurements";
 import { getMyProfile } from "@/lib/data/profile";
 import { getMyProgressPhotoDates, getMyProgressPhotoPage } from "@/lib/data/progress-photos";
@@ -18,12 +17,7 @@ import { getMyStrengthHistorySetRows } from "@/lib/data/workouts";
 import { buildStrengthDashboardSummaryFromHistoryRows } from "@/lib/training/strength";
 import { getWeightEntries } from "@/lib/data/weight";
 import { getCurrentWeekStartMondayInTimeZone, getDateStringInTimeZone, normalizeTimeZone } from "@/lib/timezone";
-import {
-  MIN_ENTRIES_FOR_PERIOD_COMPARISON,
-  computeWeightMetrics,
-  formatDeltaLabel,
-  shortDateLabel,
-} from "@/lib/weight/metrics";
+import { computeWeightMetrics, formatDeltaLabel, shortDateLabel } from "@/lib/weight/metrics";
 import type { WeightUnit } from "@/lib/weight/conversions";
 
 function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightUnit {
@@ -32,72 +26,56 @@ function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightU
 
 interface ProgressOverviewProps {
   displayUnit: WeightUnit;
-  todayDate: string;
   latestWeight: number | null;
   latestChangeLabel: string;
-  sevenDayAverage: number | null;
-  sevenDayAverageLabel: string;
   trendPoints: { label: string; value: number }[];
-  weightHistory: ReturnType<typeof computeWeightMetrics>["historyNewestFirst"];
   strengthSummary: ReturnType<typeof buildStrengthDashboardSummaryFromHistoryRows>;
 }
 
 function ProgressOverview({
   displayUnit,
-  todayDate,
   latestWeight,
   latestChangeLabel,
-  sevenDayAverage,
-  sevenDayAverageLabel,
   trendPoints,
-  weightHistory,
   strengthSummary,
 }: ProgressOverviewProps) {
   return (
-    <div className="space-y-3.5">
-      <section className="grid gap-3 sm:grid-cols-2">
-        <Card title="Current Weight" variant="primary">
+    <div className="space-y-3">
+      <section className="grid gap-3 md:grid-cols-[1.2fr_1fr]">
+        <Card title="Weight" subtitle="Current and 7-day change" variant="primary">
           <MetricValue value={latestWeight !== null ? latestWeight.toFixed(1) : "--"} unit={displayUnit} />
           <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-zinc-400">{latestChangeLabel}</p>
-          {trendPoints.length ? (
-            <div className="mt-2.5">
-              <TrendSparkline points={trendPoints} unit={displayUnit} />
+          <div className="mt-3 grid gap-2">
+            <Link
+              href="/progress?view=weight"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Log Weight
+            </Link>
+            <div className="grid grid-cols-3 gap-2">
+              <Link
+                href="/progress?view=photos"
+                className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+              >
+                Photos
+              </Link>
+              <Link
+                href="/progress?view=measurements"
+                className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+              >
+                Measurements
+              </Link>
+              <Link
+                href="/progress?view=journal"
+                className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+              >
+                Journal
+              </Link>
             </div>
-          ) : (
-            <p className="mt-2 text-xs text-zinc-500">Log your first weigh-in to start trend tracking.</p>
-          )}
-          {trendPoints.length ? (
-            <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-500">
-              <span>{trendPoints[0]?.label}</span>
-              <span>{trendPoints[trendPoints.length - 1]?.label}</span>
-            </div>
-          ) : null}
+          </div>
         </Card>
-        <Card title="Seven-Day Average" variant="secondary">
-          <MetricValue value={sevenDayAverage !== null ? sevenDayAverage.toFixed(1) : "--"} unit={displayUnit} />
-          <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-zinc-400">{sevenDayAverageLabel}</p>
-          {trendPoints.length ? (
-            <div className="mt-2.5">
-              <TrendSparkline points={trendPoints} unit={displayUnit} />
-            </div>
-          ) : (
-            <p className="mt-2 text-xs text-zinc-500">Seven-day average activates with regular weigh-ins.</p>
-          )}
-          {trendPoints.length ? (
-            <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-500">
-              <span>{trendPoints[0]?.label}</span>
-              <span>{trendPoints[trendPoints.length - 1]?.label}</span>
-            </div>
-          ) : null}
-        </Card>
-      </section>
 
-      <Card title="Weight Chart" subtitle="Range filters + trend line" variant="secondary">
-        <WeightChart entries={weightHistory} unit={displayUnit} />
-      </Card>
-
-      <section className="grid gap-3 md:grid-cols-[1.3fr_1fr]">
-        <Card title="Live Strength System" variant="secondary">
+        <Card title="Strength Snapshot" subtitle="Bench, squat, deadlift, latest PR" variant="secondary">
           <div className="mb-2 flex flex-wrap gap-1.5">
             <StateChip state="estimated" label="Estimated 1RM" />
             <StateChip state="tested" label="Tested total tracked separately" />
@@ -119,13 +97,15 @@ function ProgressOverview({
               <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Strength Total • Tested 1RM Only</p>
               <MetricValue value={strengthSummary.total_tested?.toFixed(1) ?? "--"} unit={displayUnit} className="mt-1" />
               <div className="mt-1.5">
-                {strengthSummary.thousand_club_progress_percent !== null ? (
-                  <Chip tone="success">{`1000 LB Club ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`}</Chip>
-                ) : (
-                  <StateChip state="missing" label="Need tested bench, squat, and deadlift" />
-                )}
+                <StateChip
+                  state={strengthSummary.thousand_club_progress_percent !== null ? "tested" : "missing"}
+                  label={
+                    strengthSummary.thousand_club_progress_percent !== null
+                      ? `Tested progress ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`
+                      : "Need tested bench, squat, and deadlift"
+                  }
+                />
               </div>
-              <p className="text-[11px] text-zinc-500">Estimated 1RMs never qualify for tested 1000 LB Club.</p>
             </div>
           </div>
           {strengthSummary.latest_pr ? (
@@ -137,57 +117,32 @@ function ProgressOverview({
             <p className="mt-2 text-xs text-zinc-500">No completed weighted sets yet.</p>
           )}
         </Card>
-
-        <Card title="Exercise History" variant="tertiary">
-          {strengthSummary.exercise_snapshots.length ? (
-            <ul className="space-y-2">
-              {strengthSummary.exercise_snapshots.slice(0, 8).map((snapshot) => (
-                <li key={snapshot.exercise_key} className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-zinc-100">{snapshot.exercise_name}</p>
-                    {snapshot.has_recent_pr ? (
-                      <StateChip state="pr" label="Recent PR" className="text-[10px]" />
-                    ) : null}
-                  </div>
-                  <p className="mt-1 text-[11px] text-zinc-400">
-                    Est. 1RM {snapshot.current_estimated_one_rep_max?.toFixed(1) ?? "--"} • Lifetime Est.{" "}
-                    {snapshot.lifetime_estimated_one_rep_max?.toFixed(1) ?? "--"} • Heaviest{" "}
-                    {snapshot.heaviest_weight?.toFixed(1) ?? "--"} • Best Rep PR{" "}
-                    {snapshot.rep_pr !== null && snapshot.rep_pr_reps !== null
-                      ? `${snapshot.rep_pr.toFixed(1)} x ${snapshot.rep_pr_reps}`
-                      : "--"}
-                  </p>
-                  <p className="text-[11px] text-zinc-500">Total volume: {snapshot.total_volume?.toFixed(1) ?? "--"} {displayUnit}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-zinc-500">Complete weighted sets to build exercise history.</p>
-          )}
-        </Card>
       </section>
 
-      <Card title="Weight History" subtitle="Log new entries and manage history" variant="tertiary">
-        <details className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
-            Log Weight / Manage History
-          </summary>
-          <div className="mt-2">
-            <WeightLogManager
-              entries={weightHistory}
-              displayUnit={displayUnit}
-              showHistory
-              initialEntryDate={todayDate}
-              defaultEditorOpen={false}
-            />
-          </div>
-        </details>
+      <Card title="Chart" subtitle="Recent body-weight trend" variant="secondary">
+        {trendPoints.length ? (
+          <>
+            <TrendSparkline points={trendPoints} unit={displayUnit} />
+            <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-500">
+              <span>{trendPoints[0]?.label}</span>
+              <span>{trendPoints[trendPoints.length - 1]?.label}</span>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-zinc-500">Log your first weigh-in to start trend tracking.</p>
+        )}
       </Card>
     </div>
   );
 }
 
-export default async function ProgressPage() {
+interface ProgressPageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
+}
+
+export default async function ProgressPage({ searchParams }: ProgressPageProps) {
+  const resolvedSearchParams = (await Promise.resolve(searchParams)) ?? {};
+  const view = Array.isArray(resolvedSearchParams.view) ? resolvedSearchParams.view[0] : resolvedSearchParams.view;
   const [profileResult, weightEntriesResult, strengthRowsResult, progressPhotosPageResult, progressPhotoDatesResult, measurementEntriesResult, journalEntriesResult] =
     await Promise.all([
       getMyProfile(),
@@ -220,11 +175,6 @@ export default async function ProgressPage() {
 
   const latestWeight = weightMetrics.latest?.weight ?? null;
   const latestChangeLabel = formatDeltaLabel(weightMetrics.previousEntryDelta, displayUnit);
-  const sevenDayAverage = weightMetrics.currentSevenDayAverage?.value ?? null;
-  const sevenDayAverageLabel =
-    weightMetrics.canCompareSevenDayPeriods && weightMetrics.sevenDayComparisonDelta !== null
-      ? formatDeltaLabel(weightMetrics.sevenDayComparisonDelta, displayUnit)
-      : `Comparison unavailable (need ${MIN_ENTRIES_FOR_PERIOD_COMPARISON} entries per seven-day period)`;
   const strengthSummary = buildStrengthDashboardSummaryFromHistoryRows({
     rows: strengthRowsResult.data ?? [],
     displayUnit,
@@ -233,43 +183,84 @@ export default async function ProgressPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Progress" subtitle="Review trends first, then log check-ins." />
+      <PageHeader title="Progress" subtitle="Am I improving?" />
       {weightLoadError ? (
         <Card variant="tertiary">
           <p className="text-sm text-rose-200">Weight data is temporarily unavailable.</p>
           <p className="mt-1 text-xs text-zinc-500">{weightLoadError}</p>
         </Card>
       ) : null}
-      <ProgressTabs
-        overview={
-          <ProgressOverview
+      {view === "weight" ? (
+        <Card title="Log Weight" subtitle="Track and manage body-weight history" variant="tertiary">
+          <div className="mb-2">
+            <Link
+              href="/progress"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Back to Progress
+            </Link>
+          </div>
+          <WeightLogManager
+            entries={weightMetrics.historyNewestFirst}
             displayUnit={displayUnit}
-            todayDate={todayDate}
-            latestWeight={latestWeight}
-            latestChangeLabel={latestChangeLabel}
-            sevenDayAverage={sevenDayAverage}
-            sevenDayAverageLabel={sevenDayAverageLabel}
-            trendPoints={trendPoints}
-            weightHistory={weightMetrics.historyNewestFirst}
-            strengthSummary={strengthSummary}
+            showHistory
+            initialEntryDate={todayDate}
+            defaultEditorOpen
           />
-        }
-        photos={
+        </Card>
+      ) : view === "photos" ? (
+        <>
+          <Card variant="tertiary">
+            <Link
+              href="/progress"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Back to Progress
+            </Link>
+          </Card>
           <ProgressPhotoManager
             initialRows={progressPhotosPageResult.data?.rows ?? []}
             initialNextOffset={progressPhotosPageResult.data?.nextOffset ?? null}
             availableDates={progressPhotoDatesResult.data ?? []}
             todayDate={todayDate}
           />
-        }
-        measurements={<BodyMeasurementManager entries={measurementEntriesResult.data ?? []} todayDate={todayDate} />}
-        journal={
+        </>
+      ) : view === "measurements" ? (
+        <>
+          <Card variant="tertiary">
+            <Link
+              href="/progress"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Back to Progress
+            </Link>
+          </Card>
+          <BodyMeasurementManager entries={measurementEntriesResult.data ?? []} todayDate={todayDate} />
+        </>
+      ) : view === "journal" ? (
+        <>
+          <Card variant="tertiary">
+            <Link
+              href="/progress"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Back to Progress
+            </Link>
+          </Card>
           <WeeklyJournalManager
             entries={journalEntriesResult.data ?? []}
             initialWeekStart={getCurrentWeekStartMondayInTimeZone(profileTimeZone, referenceDate)}
           />
-        }
-      />
+        </>
+      ) : (
+        <ProgressOverview
+          displayUnit={displayUnit}
+          latestWeight={latestWeight}
+          latestChangeLabel={latestChangeLabel}
+          trendPoints={trendPoints}
+          strengthSummary={strengthSummary}
+        />
+      )}
     </div>
   );
 }

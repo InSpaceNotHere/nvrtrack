@@ -1,12 +1,10 @@
 import Link from "next/link";
 
-import { MacroSummary } from "@/components/dashboard/macro-summary";
 import { WorkoutCard } from "@/components/dashboard/workout-card";
 import { Card } from "@/components/ui/card";
 import { MetricValue } from "@/components/ui/metric-value";
 import { StateChip } from "@/components/ui/state-chip";
 import { TrendSparkline } from "@/components/ui/trend-sparkline";
-import { WeightLogManager } from "@/components/weight/weight-log-manager";
 import { getMyFoodEntriesForDate } from "@/lib/data/nutrition";
 import { getMyProfile } from "@/lib/data/profile";
 import {
@@ -26,8 +24,6 @@ import { buildStrengthDashboardSummaryFromHistoryRows } from "@/lib/training/str
 import type { TrainingWeightUnit } from "@/lib/training/types";
 import { MIN_ENTRIES_FOR_PERIOD_COMPARISON, formatDeltaLabel, computeWeightMetrics, shortDateLabel } from "@/lib/weight/metrics";
 import type { WeightUnit } from "@/lib/weight/conversions";
-import { MACRO_STATS } from "@/lib/sample-data";
-import type { MacroStat } from "@/types/fitness";
 
 function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightUnit {
   return preferredWeightUnit === "kg" ? "kg" : "lb";
@@ -57,29 +53,13 @@ export default async function HomePage() {
   const nutritionTotals = calculateDailyTotals(nutritionEntriesResult.data ?? []);
 
   const calorieGoal = profileResult.data?.calorie_goal ?? null;
-  const macroGoals: Record<MacroStat["name"], number | null> = {
-    Protein: profileResult.data?.protein_goal ?? null,
-    Carbohydrates: profileResult.data?.carbohydrate_goal ?? null,
-    Fat: profileResult.data?.fat_goal ?? null,
-  };
-  const macroConsumed: Record<MacroStat["name"], number> = {
-    Protein: nutritionTotals.protein_g,
-    Carbohydrates: nutritionTotals.carbohydrate_g,
-    Fat: nutritionTotals.fat_g,
-  };
-  const macroStats: MacroStat[] = MACRO_STATS.map((macro) => ({
-    ...macro,
-    consumed: macroConsumed[macro.name],
-    goal: macroGoals[macro.name],
-  }));
-
   const currentWeight = weightMetrics.latest?.weight ?? null;
   const currentChange = formatDeltaLabel(weightMetrics.previousEntryDelta, displayUnit);
   const sevenDayAverage = weightMetrics.currentSevenDayAverage?.value ?? null;
   const sevenDayAverageChange =
     weightMetrics.canCompareSevenDayPeriods && weightMetrics.sevenDayComparisonDelta !== null
       ? formatDeltaLabel(weightMetrics.sevenDayComparisonDelta, displayUnit)
-      : `Comparison unavailable (need ${MIN_ENTRIES_FOR_PERIOD_COMPARISON} entries in each seven-day period)`;
+      : `Need ${MIN_ENTRIES_FOR_PERIOD_COMPARISON} weigh-ins in each week`;
   const completedWorkouts = completedWorkoutsResult.data ?? [];
   const strengthSummary = buildStrengthDashboardSummaryFromHistoryRows({
     rows: strengthRowsResult.data ?? [],
@@ -99,6 +79,7 @@ export default async function HomePage() {
   let workoutCardActionHref = "/training/start";
   let workoutCardExercises: number | null = null;
   let workoutCardSets: number | null = null;
+  let workoutCardDurationMinutes: number | null = null;
   let workoutCardState: "active" | "completed" | "planned" | "neutral" = "planned";
 
   if (workoutCardTarget) {
@@ -113,13 +94,14 @@ export default async function HomePage() {
     });
     workoutCardExercises = summary.exerciseCount;
     workoutCardSets = summary.totalSetCount;
+    workoutCardDurationMinutes = summary.durationMinutes;
 
     if (workoutCardTarget.completed_at) {
       workoutCardName = workoutCardTarget.name;
       workoutCardStatus = "Completed today";
       workoutCardState = "completed";
-      workoutCardActionLabel = "View Workout";
-      workoutCardActionHref = `/training/workouts/${workoutCardTarget.id}?view=summary`;
+      workoutCardActionLabel = "Start Workout";
+      workoutCardActionHref = "/training/start";
     } else {
       workoutCardName = workoutCardTarget.name;
       workoutCardStatus = "Workout in progress";
@@ -182,6 +164,7 @@ export default async function HomePage() {
           statusState={workoutCardState}
           exercises={workoutCardExercises}
           totalSets={workoutCardSets}
+          durationMinutes={workoutCardDurationMinutes}
           actionLabel={workoutCardActionLabel}
           actionHref={workoutCardActionHref}
         />
@@ -228,86 +211,50 @@ export default async function HomePage() {
       </section>
 
       <section className="grid gap-3 md:grid-cols-[1.2fr_1fr]">
-        <Card title="Progress Snapshot" subtitle="Am I improving?" variant="secondary">
-          <div className="grid gap-2 sm:grid-cols-2">
+        <Card title="Progress Strip" subtitle="This week at a glance" variant="secondary">
+          <div className="grid gap-2">
             <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Current weight</p>
-              <MetricValue value={currentWeight !== null ? currentWeight.toFixed(1) : "--"} unit={displayUnit} tone="secondary" className="mt-1 text-base" />
-              <p className="mt-1 text-xs text-zinc-500">{currentChange}</p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Seven-day average</p>
-              <MetricValue value={sevenDayAverage !== null ? sevenDayAverage.toFixed(1) : "--"} unit={displayUnit} tone="secondary" className="mt-1 text-base" />
-              <p className="mt-1 text-xs text-zinc-500">{sevenDayAverageChange}</p>
-            </div>
-          </div>
-          {progressTrendPoints.length ? (
-            <div className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Weight trend</p>
-              <TrendSparkline points={progressTrendPoints} unit={displayUnit} />
-            </div>
-          ) : null}
-          <div className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-            <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Latest PR</p>
-            {latestPr ? (
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <StateChip state="pr" label="Recent PR" />
-                <p className="text-xs text-zinc-300">
-                  {latestPr.exercise_name} • {latestPr.workout_date}
-                </p>
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">7-day trend</p>
+              <div className="mt-1 flex items-end justify-between gap-2">
+                <MetricValue value={sevenDayAverage !== null ? sevenDayAverage.toFixed(1) : "--"} unit={displayUnit} tone="secondary" className="text-base" />
+                <p className="text-xs text-zinc-500">{sevenDayAverageChange}</p>
               </div>
-            ) : (
-              <p className="mt-1 text-xs text-zinc-500">No PR recorded yet.</p>
-            )}
+              {progressTrendPoints.length ? <TrendSparkline points={progressTrendPoints} unit={displayUnit} /> : null}
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Latest PR</p>
+              {latestPr ? (
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <StateChip state="pr" label="Recent PR" />
+                  <p className="text-xs text-zinc-300">
+                    {latestPr.exercise_name} • {latestPr.workout_date}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-1 text-xs text-zinc-500">No PR yet.</p>
+              )}
+            </div>
           </div>
-          <Link
-            href="/progress"
-            className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-semibold text-zinc-100 transition-colors hover:bg-white/10"
-          >
-            View Strength & Progress Details
-          </Link>
         </Card>
 
-        <Card title="Quick Actions" subtitle="Fast daily actions" variant="tertiary">
-          <div className="flex flex-col gap-2">
+        <Card title="Quick Actions" subtitle="Primary daily actions" variant="tertiary">
+          <div className="grid gap-2">
             <Link
-              href="/nutrition"
+              href="/nutrition?view=add"
               className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
             >
               Add Food
             </Link>
-            <details className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
-                Log Weight
-              </summary>
-              <div className="mt-2">
-                <WeightLogManager
-                  entries={weightMetrics.historyNewestFirst}
-                  displayUnit={displayUnit}
-                  showHistory={false}
-                  initialEntryDate={todayDate}
-                  defaultEditorOpen
-                />
-              </div>
-            </details>
+            <Link
+              href="/progress?view=weight"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Log Weight
+            </Link>
           </div>
+          <p className="mt-2 text-xs text-zinc-500">{currentWeight !== null ? `Current ${currentWeight.toFixed(1)} ${displayUnit} (${currentChange})` : "Log your first body-weight entry to start tracking."}</p>
         </Card>
       </section>
-
-      <details className="rounded-xl border border-white/10 bg-black/15 p-3">
-        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
-          More Nutrition Detail
-        </summary>
-        <div className="mt-2 rounded-lg border border-white/10 bg-black/20 p-3">
-          <MacroSummary macros={macroStats} />
-          <Link
-            href="/nutrition"
-            className="mt-3 inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-          >
-            Open Nutrition
-          </Link>
-        </div>
-      </details>
     </div>
   );
 }

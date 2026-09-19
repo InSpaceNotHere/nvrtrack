@@ -1,11 +1,21 @@
+import Link from "next/link";
+
+import { LogoutButton } from "@/components/auth/logout-button";
 import { NotificationCenter } from "@/components/profile/notification-center";
 import { ProfileSettingsForm } from "@/components/profile/profile-settings-form";
+import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { getMyNotificationPreferences, getMyNotifications } from "@/lib/data/notifications";
 import { getMyProfile } from "@/lib/data/profile";
 import { profileToFormValues } from "@/lib/profile/validation";
 
-export default async function ProfilePage() {
+interface ProfilePageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
+}
+
+export default async function ProfilePage({ searchParams }: ProfilePageProps) {
+  const resolvedSearchParams = (await Promise.resolve(searchParams)) ?? {};
+  const view = Array.isArray(resolvedSearchParams.view) ? resolvedSearchParams.view[0] : resolvedSearchParams.view;
   const [profileResult, notificationsResult, preferencesResult] = await Promise.all([
     getMyProfile(),
     getMyNotifications(),
@@ -15,7 +25,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Profile" />
+      <PageHeader title="Profile" subtitle="My setup" />
       {profileResult.error ? (
         <p className="rounded-lg border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
           {profileResult.error.message}
@@ -26,18 +36,92 @@ export default async function ProfilePage() {
           {notificationsResult.error?.message ?? preferencesResult.error?.message}
         </p>
       ) : null}
-      <ProfileSettingsForm initialValues={formValues} />
-      {preferencesResult.data ? (
-        <details className="rounded-xl border border-white/10 bg-black/15 p-3">
-          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
-            App Notifications
-          </summary>
-          <p className="mt-1 text-xs text-zinc-500">Optional reminder settings and inbox.</p>
-          <div className="mt-2">
+      {view === "edit" ? (
+        <>
+          <Card variant="tertiary">
+            <Link
+              href="/profile"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Back to Profile
+            </Link>
+          </Card>
+          <ProfileSettingsForm initialValues={formValues} />
+        </>
+      ) : view === "notifications" ? (
+        <>
+          <Card variant="tertiary">
+            <Link
+              href="/profile"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Back to Profile
+            </Link>
+          </Card>
+          {preferencesResult.data ? (
             <NotificationCenter preferences={preferencesResult.data} notifications={notificationsResult.data ?? []} />
+          ) : (
+            <Card variant="tertiary">
+              <p className="text-sm text-zinc-400">Notification preferences are unavailable.</p>
+            </Card>
+          )}
+        </>
+      ) : view === "account" ? (
+        <Card title="Account" variant="tertiary">
+          <div className="mb-3">
+            <Link
+              href="/profile"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+            >
+              Back to Profile
+            </Link>
           </div>
-        </details>
-      ) : null}
+          <LogoutButton />
+        </Card>
+      ) : (
+        <>
+          <section className="grid gap-3 lg:grid-cols-2">
+            <Card title="Profile Summary" variant="primary">
+              <p className="text-base font-semibold text-white">{profileResult.data?.display_name?.trim() || "NVRTRACK User"}</p>
+              <p className="mt-1 text-xs text-zinc-500">Signed in account settings and goals.</p>
+            </Card>
+            <Card title="Goals" subtitle="Daily targets" variant="secondary">
+              <ul className="space-y-1 text-xs text-zinc-300">
+                <li>Calories: {profileResult.data?.calorie_goal?.toFixed(0) ?? "--"} kcal</li>
+                <li>Protein: {profileResult.data?.protein_goal?.toFixed(0) ?? "--"} g</li>
+                <li>Weight goal: --</li>
+              </ul>
+            </Card>
+          </section>
+          <Card title="Preferences" subtitle="Units and timezone" variant="secondary">
+            <p className="text-xs text-zinc-300">
+              Unit: {formValues.preferredWeightUnit.toUpperCase()} • Timezone: {formValues.timezone || "UTC"}
+            </p>
+          </Card>
+          <Card title="Actions" variant="tertiary">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Link
+                href="/profile?view=edit"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+              >
+                Edit Profile / Goals
+              </Link>
+              <Link
+                href="/profile?view=notifications"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+              >
+                Notifications / Reminders
+              </Link>
+              <Link
+                href="/profile?view=account"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+              >
+                Account / Logout
+              </Link>
+            </div>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

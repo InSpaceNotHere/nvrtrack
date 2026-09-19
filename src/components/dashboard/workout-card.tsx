@@ -11,6 +11,7 @@ interface WorkoutCardProps {
   statusState?: "active" | "completed" | "planned" | "neutral";
   exercises: number | null;
   totalSets: number | null;
+  durationMinutes?: number | null;
   actionLabel?: string;
   actionHref?: string;
 }
@@ -21,6 +22,7 @@ export function WorkoutCard({
   statusState = "neutral",
   exercises,
   totalSets,
+  durationMinutes = null,
   actionLabel,
   actionHref,
 }: WorkoutCardProps) {
@@ -31,16 +33,21 @@ export function WorkoutCard({
           <Dumbbell className="h-4 w-4 text-[#87a3ff]" aria-hidden="true" />
         </div>
         <div>
-          <p className="text-xl font-semibold leading-tight text-white">{workoutName}</p>
+          <p className="text-lg font-semibold leading-tight text-white">{workoutName}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <StateChip state={statusState} />
-            <p className="text-sm text-zinc-400">{statusText}</p>
+            <p className="text-xs text-zinc-400">{statusText}</p>
           </div>
-          {exercises !== null && totalSets !== null ? (
+          {exercises !== null ? (
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-              <MetricValue value={String(exercises)} unit="exercises" tone="secondary" className="text-base" />
-              <span>•</span>
-              <MetricValue value={String(totalSets)} unit="sets" tone="secondary" className="text-base" />
+              <MetricValue value={String(exercises)} unit="exercises" tone="secondary" className="text-sm" />
+              {totalSets !== null ? (
+                <>
+                  <span>•</span>
+                  <MetricValue value={String(totalSets)} unit="sets" tone="secondary" className="text-sm" />
+                </>
+              ) : null}
+              {durationMinutes !== null ? <span>• ~{durationMinutes} min</span> : null}
             </div>
           ) : null}
         </div>

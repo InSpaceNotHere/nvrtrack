@@ -68,8 +68,7 @@ test("progress photo storage remains private across users", async ({ page, brows
   let secondaryPage: Page | null = null;
 
   try {
-    await page.goto("/progress");
-    await page.getByRole("tab", { name: "Photos" }).click();
+    await page.goto("/progress?view=photos");
 
     const imageBuffer = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y5WGw4AAAAASUVORK5CYII=",
@@ -87,16 +86,14 @@ test("progress photo storage remains private across users", async ({ page, brows
     await photoForm.getByRole("button", { name: "Save Photo" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Progress photo saved." })).toBeVisible();
 
-    await page.reload();
-    await page.getByRole("tab", { name: "Photos" }).click();
+    await page.goto("/progress?view=photos");
     const timelineItem = page.locator("li").filter({ hasText: photoNote }).first();
     await expect(timelineItem).toBeVisible();
     const signedSrc = await timelineItem.locator("img").first().getAttribute("src");
     const authenticatedUrl = buildAuthenticatedStorageUrlFromSignedSrc(signedSrc);
 
     secondaryPage = await createSecondaryUserContext(browser, runId);
-    await secondaryPage.goto("/progress");
-    await secondaryPage.getByRole("tab", { name: "Photos" }).click();
+    await secondaryPage.goto("/progress?view=photos");
     await expect(secondaryPage.locator("li").filter({ hasText: photoNote })).toHaveCount(0);
 
     if (authenticatedUrl) {
@@ -105,8 +102,7 @@ test("progress photo storage remains private across users", async ({ page, brows
       expect(response.status()).toBeGreaterThanOrEqual(400);
     }
   } finally {
-    await page.goto("/progress");
-    await page.getByRole("tab", { name: "Photos" }).click();
+    await page.goto("/progress?view=photos");
     const deleteButton = page.locator("li").filter({ hasText: photoNote }).first().getByRole("button", { name: "Delete" });
     if (await deleteButton.count()) {
       await deleteButton.click();

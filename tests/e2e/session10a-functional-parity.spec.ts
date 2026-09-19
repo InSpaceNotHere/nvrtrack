@@ -57,6 +57,9 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
 
   try {
     await page.goto("/training");
+    await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+    await page.getByRole("link", { name: "Program" }).click();
+    await expect(page).toHaveURL(/\/training\?view=program/);
     await expect(page.getByRole("heading", { name: "Workout Planner" })).toBeVisible();
 
     const weekdayControl = page.locator("label").filter({ hasText: weekdayLabel }).first().locator("select");
@@ -119,12 +122,11 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
     );
 
     await page.goto("/progress");
-    await expect(page.getByRole("heading", { name: "Live Strength System" })).toBeVisible();
-    const thirtyDayFilter = page.getByRole("button", { name: "30D" });
-    const emptyWeightState = page.getByText("No weight data available.");
-    await expect(thirtyDayFilter.or(emptyWeightState)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Strength Snapshot" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Chart" })).toBeVisible();
 
-    await page.getByRole("tab", { name: "Photos" }).click();
+    await page.getByRole("link", { name: "Photos" }).click();
+    await expect(page).toHaveURL(/\/progress\?view=photos/);
     const photoForm = page.locator("form").first();
     const imageBuffer = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y5WGw4AAAAASUVORK5CYII=",
@@ -142,13 +144,12 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
     await expect(page.getByRole("status").filter({ hasText: "Progress photo saved." })).toBeVisible();
     await expectNoUnexpectedErrorAlert(page);
 
-    await page.reload();
-    await page.getByRole("tab", { name: "Photos" }).click();
+    await page.goto("/progress?view=photos");
     const photoTimelineItem = page.locator("li").filter({ hasText: photoNote }).first();
     await expect(photoTimelineItem).toBeVisible();
     await expect(photoTimelineItem.locator("img")).toHaveCount(1);
 
-    await page.getByRole("tab", { name: "Measurements" }).click();
+    await page.goto("/progress?view=measurements");
     await page.getByLabel("Entry date").fill(measurementDate);
     await page.getByLabel("Waist (in)").fill("34.5");
     await page.getByLabel("Notes").fill(measurementNote);
@@ -156,11 +157,10 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
     await expect(page.getByRole("status").filter({ hasText: "Measurements saved." })).toBeVisible();
     await expectNoUnexpectedErrorAlert(page);
 
-    await page.reload();
-    await page.getByRole("tab", { name: "Measurements" }).click();
+    await page.goto("/progress?view=measurements");
     await expect(page.locator("li").filter({ hasText: measurementNote }).first()).toBeVisible();
 
-    await page.getByRole("tab", { name: "Journal" }).click();
+    await page.goto("/progress?view=journal");
     await page.getByLabel("Week start").fill(journalWeekStart);
     await page.getByLabel("Mood").fill("Focused");
     await page.getByLabel("Notes").fill(journalNote);
@@ -168,8 +168,7 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
     await expect(page.getByRole("status").filter({ hasText: "Weekly journal saved." })).toBeVisible();
     await expectNoUnexpectedErrorAlert(page);
 
-    await page.reload();
-    await page.getByRole("tab", { name: "Journal" }).click();
+    await page.goto("/progress?view=journal");
     await expect(page.locator("li").filter({ hasText: journalNote }).first()).toBeVisible();
 
     await page.goto("/");
@@ -177,7 +176,7 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
     await expect(page.getByRole("heading", { name: "Progress Snapshot" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Quick Actions" })).toBeVisible();
   } finally {
-    await page.goto("/training");
+    await page.goto("/training?view=program");
     const weekdayControl = page.locator("label").filter({ hasText: weekdayLabel }).first().locator("select");
     if (originalWeekdayValue !== null) {
       const options = await weekdayControl.locator("option").evaluateAll((nodes) =>
@@ -189,15 +188,14 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
       }
     }
 
-    await page.goto("/progress");
-    await page.getByRole("tab", { name: "Photos" }).click();
+    await page.goto("/progress?view=photos");
     const photoDeleteButton = page.locator("li").filter({ hasText: photoNote }).first().getByRole("button", { name: "Delete" });
     if (await photoDeleteButton.count()) {
       await photoDeleteButton.click();
       await expect(page.getByRole("status").filter({ hasText: "Progress photo deleted." })).toBeVisible();
     }
 
-    await page.getByRole("tab", { name: "Measurements" }).click();
+    await page.goto("/progress?view=measurements");
     const measurementDeleteButton = page
       .locator("li")
       .filter({ hasText: measurementNote })
@@ -208,7 +206,7 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
       await expect(page.getByRole("status").filter({ hasText: "Measurement entry deleted." })).toBeVisible();
     }
 
-    await page.getByRole("tab", { name: "Journal" }).click();
+    await page.goto("/progress?view=journal");
     const journalDeleteButton = page.locator("li").filter({ hasText: journalNote }).first().getByRole("button", { name: "Delete" });
     if (await journalDeleteButton.count()) {
       await journalDeleteButton.click();

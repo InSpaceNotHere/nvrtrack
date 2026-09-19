@@ -21,6 +21,11 @@ async function signUpFreshUser(page: Page, label: string): Promise<{ email: stri
 
 async function openTraining(page: Page): Promise<void> {
   await page.goto("/training");
+  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+}
+
+async function openTrainingProgram(page: Page): Promise<void> {
+  await page.goto("/training?view=program");
   await expect(page.getByRole("heading", { name: "Workout Planner" })).toBeVisible();
 }
 
@@ -78,7 +83,7 @@ async function findScheduledWeeklyRow(page: Page): Promise<Locator> {
 
 test("P0 planner initialization is explicit and planner schedule mutations remain user-driven", async ({ page }) => {
   await signUpFreshUser(page, "planner");
-  await openTraining(page);
+  await openTrainingProgram(page);
 
   const createStarterButton = page.getByRole("button", { name: "Create Starter Schedule" });
   await expect(createStarterButton).toBeVisible();
@@ -88,7 +93,7 @@ test("P0 planner initialization is explicit and planner schedule mutations remai
 
   await page.goto("/");
   await page.reload();
-  await openTraining(page);
+  await openTrainingProgram(page);
   await expect(page.getByRole("button", { name: "Create Starter Schedule" })).toBeVisible();
 
   await page.getByRole("button", { name: "Create Starter Schedule" }).click();
@@ -132,7 +137,7 @@ test("P0 planner initialization is explicit and planner schedule mutations remai
   await todayControl.selectOption(assignableTemplate.value);
   await expect(page.getByRole("status").filter({ hasText: "Weekday schedule updated." })).toBeVisible();
 
-  await openTraining(page);
+  await openTrainingProgram(page);
 });
 
 test("P0 strength and streak dashboard signals remain strict for missing tested canonical lifts and duplicate same-day completions", async ({
@@ -140,7 +145,7 @@ test("P0 strength and streak dashboard signals remain strict for missing tested 
 }) => {
   await signUpFreshUser(page, "streak");
   await page.goto("/progress");
-  await expect(page.getByRole("heading", { name: "Live Strength System" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Strength Snapshot" })).toBeVisible();
   await expect(page.getByText("Bench • Estimated 1RM")).toBeVisible();
   await expect(page.getByText("Squat • Estimated 1RM")).toBeVisible();
   await expect(page.getByText("Deadlift • Estimated 1RM")).toBeVisible();
