@@ -37,13 +37,13 @@ export function WorkoutCard({
           <Dumbbell className="h-4 w-4 text-[#87a3ff]" aria-hidden="true" />
         </div>
         <div>
-          <p className="text-base font-semibold leading-tight text-white">{workoutName}</p>
+          <p data-testid="home-workout-name" className="text-base font-semibold leading-tight text-white">{workoutName}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
             <StateChip state={statusState} className="text-[10px]" />
-            <p className="text-xs text-zinc-400">{statusText}</p>
+            <p data-testid="home-workout-status" className="text-xs text-zinc-400">{statusText}</p>
           </div>
           {exercises !== null ? (
-            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
+            <div data-testid="home-workout-summary" className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
               <MetricValue value={String(exercises)} unit="exercises" tone="secondary" className="text-sm" />
               {totalSets !== null ? (
                 <>

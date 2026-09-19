@@ -114,7 +114,7 @@ export default async function HomePage() {
   });
   const latestPr = strengthSummary.latest_pr;
   return (
-    <div className="space-y-2">
+    <div className="mx-auto w-full max-w-[760px] space-y-2">
       <header>
         <h1 className="text-[15px] font-semibold tracking-tight text-white">
           {displayName ? `Today, ${displayName}` : "Today Overview"}
@@ -166,7 +166,7 @@ export default async function HomePage() {
             <span>Calories</span>
             <Flame className="h-3.5 w-3.5 text-[#87a3ff]" aria-hidden="true" />
           </div>
-          <p className="mt-0.5 text-[15px] font-semibold text-white">
+          <p data-testid="home-calories-value" className="mt-0.5 text-[15px] font-semibold text-white">
             {nutritionTotals.calories.toFixed(0)}
             <span className="text-xs text-zinc-400"> / {calorieGoal?.toFixed(0) ?? "--"} kcal</span>
           </p>
@@ -177,7 +177,7 @@ export default async function HomePage() {
             <span>Protein</span>
             <Droplets className="h-3.5 w-3.5 text-[#87a3ff]" aria-hidden="true" />
           </div>
-          <p className="mt-0.5 text-[15px] font-semibold text-white">
+          <p data-testid="home-protein-value" className="mt-0.5 text-[15px] font-semibold text-white">
             {nutritionTotals.protein_g.toFixed(0)}
             <span className="text-xs text-zinc-400"> / {profileResult.data?.protein_goal?.toFixed(0) ?? "--"} g</span>
           </p>
@@ -188,7 +188,7 @@ export default async function HomePage() {
             <span>Weight</span>
             <Scale className="h-3.5 w-3.5 text-[#87a3ff]" aria-hidden="true" />
           </div>
-          <p className="mt-0.5 text-[15px] font-semibold text-white">
+          <p data-testid="home-weight-value" className="mt-0.5 text-[15px] font-semibold text-white">
             {currentWeight !== null ? currentWeight.toFixed(1) : "--"}
             <span className="text-xs text-zinc-400"> {displayUnit}</span>
           </p>
@@ -205,7 +205,7 @@ export default async function HomePage() {
             <span>Workout Streak</span>
             <Zap className="h-3.5 w-3.5 text-[#87a3ff]" aria-hidden="true" />
           </div>
-          <p className="mt-0.5 text-[15px] font-semibold text-white">{workoutStreak}d</p>
+          <p data-testid="home-streak-value" className="mt-0.5 text-[15px] font-semibold text-white">{workoutStreak}d</p>
           <p className="mt-0.5 text-[11px] text-zinc-400">Daily consistency</p>
         </article>
         </div>
@@ -216,14 +216,14 @@ export default async function HomePage() {
         <div className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-2 py-1.5">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">7D Weight Trend</p>
-            <p className="text-sm font-semibold text-zinc-100">
+            <p data-testid="home-trend-value" className="text-sm font-semibold text-zinc-100">
               {sevenDayAverage !== null ? `${sevenDayAverage.toFixed(1)} ${displayUnit}` : "--"}
             </p>
-            <p className="text-[11px] text-zinc-500">{sevenDayAverageChange}</p>
+            <p data-testid="home-trend-context" className="text-[11px] text-zinc-500">{sevenDayAverageChange}</p>
           </div>
           <div className="text-right">
             <StateChip state="pr" label="Latest PR" className="text-[10px]" />
-            <p className="mt-0.5 max-w-[116px] truncate text-[11px] text-zinc-300">{latestPr ? latestPr.exercise_name : "--"}</p>
+            <p data-testid="home-latest-pr" className="mt-0.5 max-w-[116px] truncate text-[11px] text-zinc-300">{latestPr ? latestPr.exercise_name : "--"}</p>
           </div>
         </div>
       </section>
