@@ -51,8 +51,8 @@ async function startWorkoutWithDate(page: Page, name: string, date: string): Pro
 }
 
 async function readWorkoutStreakDays(page: Page): Promise<number> {
-  const text = (await page.locator("li").filter({ hasText: /Workout streak/i }).first().innerText()).replace(/\s+/g, " ");
-  const match = text.match(/Workout streak\s*(\d+)\s*(?:day|d)/i);
+  const text = (await page.locator("article").filter({ hasText: /Workout streak/i }).first().innerText()).replace(/\s+/g, " ");
+  const match = text.match(/Workout streak\s*(\d+)\s*(?:day|d)?/i);
   if (!match) {
     throw new Error(`Unable to parse workout streak from: ${text}`);
   }

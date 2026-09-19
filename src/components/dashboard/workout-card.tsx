@@ -14,6 +14,8 @@ interface WorkoutCardProps {
   durationMinutes?: number | null;
   actionLabel?: string;
   actionHref?: string;
+  secondaryActionLabel?: string;
+  secondaryActionHref?: string;
 }
 
 export function WorkoutCard({
@@ -25,6 +27,8 @@ export function WorkoutCard({
   durationMinutes = null,
   actionLabel,
   actionHref,
+  secondaryActionLabel,
+  secondaryActionHref,
 }: WorkoutCardProps) {
   return (
     <Card title="Today&apos;s Workout" variant="primary">
@@ -53,12 +57,24 @@ export function WorkoutCard({
         </div>
       </div>
       {actionLabel && actionHref ? (
-        <Link
-          href={actionHref}
-          className="mt-2 inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
-        >
-          {actionLabel}
-        </Link>
+        <div className="mt-2">
+          <Link
+            href={actionHref}
+            className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+          >
+            {actionLabel}
+          </Link>
+          {secondaryActionLabel && secondaryActionHref ? (
+            <div className="mt-1.5 text-right">
+              <Link
+                href={secondaryActionHref}
+                className="text-[11px] font-medium text-zinc-400 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-zinc-200"
+              >
+                {secondaryActionLabel}
+              </Link>
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </Card>
   );

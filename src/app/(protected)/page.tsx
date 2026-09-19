@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Activity, Droplets, Flame, Scale, Zap } from "lucide-react";
 
 import { WorkoutCard } from "@/components/dashboard/workout-card";
 import { Card } from "@/components/ui/card";
@@ -153,70 +154,95 @@ export default async function HomePage() {
         durationMinutes={workoutCardDurationMinutes}
         actionLabel={workoutCardActionLabel}
         actionHref={workoutCardActionHref}
+        secondaryActionLabel="Program"
+        secondaryActionHref="/training?view=program"
       />
 
-      <Card title="Daily Targets" variant="secondary">
-        <ul className="grid grid-cols-2 gap-1.5 text-xs">
-          <li className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
-            <p className="text-zinc-500">Calories</p>
-            <p className="text-sm font-semibold text-zinc-100">
-              {nutritionTotals.calories.toFixed(0)} / {calorieGoal?.toFixed(0) ?? "--"}
-            </p>
-          </li>
-          <li className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
-            <p className="text-zinc-500">Protein</p>
-            <p className="text-sm font-semibold text-zinc-100">
-              {nutritionTotals.protein_g.toFixed(0)} / {profileResult.data?.protein_goal?.toFixed(0) ?? "--"}g
-            </p>
-          </li>
-          <li className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
-            <p className="text-zinc-500">Weight</p>
-            <p className="text-sm font-semibold text-zinc-100">
-              {currentWeight !== null ? `${currentWeight.toFixed(1)} ${displayUnit}` : "--"}
-            </p>
-          </li>
-          <li className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
-            <p className="text-zinc-500">Workout streak</p>
-            <p className="text-sm font-semibold text-zinc-100">{workoutStreak}d</p>
-          </li>
-        </ul>
-      </Card>
-
-      <Card title="Progress Strip" variant="secondary">
-        <div className="grid gap-1.5">
-          <div className="flex items-center justify-between rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">7D trend</p>
-              <p className="text-sm font-semibold text-zinc-100">{sevenDayAverage !== null ? `${sevenDayAverage.toFixed(1)} ${displayUnit}` : "--"}</p>
-            </div>
-            <p className="text-[11px] text-zinc-500">{sevenDayAverageChange}</p>
-          </div>
-          <div className="flex items-center justify-between rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
-            <div className="flex items-center gap-1.5">
-              <StateChip state="pr" label="Latest PR" className="text-[10px]" />
-              <p className="text-[11px] text-zinc-300">{latestPr ? latestPr.exercise_name : "--"}</p>
-            </div>
-            <p className="text-[11px] text-zinc-500">{latestPr ? latestPr.workout_date : "--"}</p>
-          </div>
-        </div>
-      </Card>
-
-      <Card title="Quick Actions" variant="tertiary">
+      <section>
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Daily Targets</p>
         <div className="grid grid-cols-2 gap-2">
-          <Link
-            href="/nutrition?view=add"
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
-          >
-            Add Food
-          </Link>
+        <article className="min-h-[102px] rounded-xl border border-[#87a3ff]/25 bg-gradient-to-b from-[#111b34] to-[#0d1323] p-2 shadow-[var(--ds-shadow-sm)]">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.08em] text-zinc-400">
+            <span>Calories</span>
+            <Flame className="h-3.5 w-3.5 text-[#87a3ff]" aria-hidden="true" />
+          </div>
+          <p className="mt-0.5 text-[15px] font-semibold text-white">
+            {nutritionTotals.calories.toFixed(0)}
+            <span className="text-xs text-zinc-400"> / {calorieGoal?.toFixed(0) ?? "--"} kcal</span>
+          </p>
+        </article>
+
+        <article className="min-h-[102px] rounded-xl border border-[#87a3ff]/25 bg-gradient-to-b from-[#111b34] to-[#0d1323] p-2 shadow-[var(--ds-shadow-sm)]">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.08em] text-zinc-400">
+            <span>Protein</span>
+            <Droplets className="h-3.5 w-3.5 text-[#87a3ff]" aria-hidden="true" />
+          </div>
+          <p className="mt-0.5 text-[15px] font-semibold text-white">
+            {nutritionTotals.protein_g.toFixed(0)}
+            <span className="text-xs text-zinc-400"> / {profileResult.data?.protein_goal?.toFixed(0) ?? "--"} g</span>
+          </p>
+        </article>
+
+        <article className="min-h-[102px] rounded-xl border border-[#87a3ff]/25 bg-gradient-to-b from-[#111b34] to-[#0d1323] p-2 shadow-[var(--ds-shadow-sm)]">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.08em] text-zinc-400">
+            <span>Weight</span>
+            <Scale className="h-3.5 w-3.5 text-[#87a3ff]" aria-hidden="true" />
+          </div>
+          <p className="mt-0.5 text-[15px] font-semibold text-white">
+            {currentWeight !== null ? currentWeight.toFixed(1) : "--"}
+            <span className="text-xs text-zinc-400"> {displayUnit}</span>
+          </p>
           <Link
             href="/progress?view=weight"
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+            className="mt-1 inline-flex h-6 items-center justify-center rounded-md border border-white/15 px-2 text-[10px] font-semibold text-zinc-100 transition-colors hover:bg-white/10"
           >
             Log Weight
           </Link>
+        </article>
+
+        <article className="min-h-[102px] rounded-xl border border-[#87a3ff]/25 bg-gradient-to-b from-[#111b34] to-[#0d1323] p-2 shadow-[var(--ds-shadow-sm)]">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.08em] text-zinc-400">
+            <span>Workout Streak</span>
+            <Zap className="h-3.5 w-3.5 text-[#87a3ff]" aria-hidden="true" />
+          </div>
+          <p className="mt-0.5 text-[15px] font-semibold text-white">{workoutStreak}d</p>
+          <p className="mt-0.5 text-[11px] text-zinc-400">Daily consistency</p>
+        </article>
         </div>
-      </Card>
+      </section>
+
+      <section>
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Progress This Week</p>
+        <div className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-2 py-1.5">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">7D Weight Trend</p>
+            <p className="text-sm font-semibold text-zinc-100">
+              {sevenDayAverage !== null ? `${sevenDayAverage.toFixed(1)} ${displayUnit}` : "--"}
+            </p>
+            <p className="text-[11px] text-zinc-500">{sevenDayAverageChange}</p>
+          </div>
+          <div className="text-right">
+            <StateChip state="pr" label="Latest PR" className="text-[10px]" />
+            <p className="mt-0.5 max-w-[116px] truncate text-[11px] text-zinc-300">{latestPr ? latestPr.exercise_name : "--"}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-2 gap-2">
+        <Link
+          href="/nutrition?view=add"
+          className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+        >
+          Add Food
+        </Link>
+        <Link
+          href="/progress"
+          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-white/15 px-3 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+        >
+          <Activity className="h-4 w-4 text-[#87a3ff]" aria-hidden="true" />
+          View Progress
+        </Link>
+      </section>
     </div>
   );
 }
