@@ -173,9 +173,10 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
     await expect(page.locator("li").filter({ hasText: journalNote }).first()).toBeVisible();
 
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Daily Targets" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Progress Snapshot" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Quick Actions" })).toBeVisible();
+    await expect(page.getByText("Daily Targets")).toBeVisible();
+    await expect(page.getByText("Progress This Week")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Add Food" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "View Progress" })).toBeVisible();
   } finally {
     await page.goto("/training");
     const weekdayControl = page.locator("label").filter({ hasText: weekdayLabel }).first().locator("select");
