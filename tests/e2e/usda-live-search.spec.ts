@@ -22,6 +22,9 @@ async function login(page: Page) {
 }
 
 async function openComposer(page: Page) {
+  const url = new URL(page.url());
+  url.searchParams.set("view", "add");
+  await page.goto(`${url.pathname}?${url.searchParams.toString()}`);
   await page.getByRole("button", { name: "Add Food" }).first().click();
 }
 

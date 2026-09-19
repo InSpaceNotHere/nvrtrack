@@ -173,7 +173,7 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
 
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Daily Targets" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Progress Snapshot" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Progress Strip" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Quick Actions" })).toBeVisible();
   } finally {
     await page.goto("/training?view=program");

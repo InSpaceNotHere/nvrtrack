@@ -28,7 +28,7 @@ test("authentication smoke flow", async ({ page }) => {
   await expect(page).toHaveURL("/");
 
   // 6) Logout returns to /login
-  await page.goto("/profile");
+  await page.goto("/profile?view=account");
   await page.getByRole("button", { name: "Log Out" }).click();
   await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
 

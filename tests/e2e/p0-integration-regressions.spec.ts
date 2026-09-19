@@ -19,11 +19,6 @@ async function signUpFreshUser(page: Page, label: string): Promise<{ email: stri
   return { email, password };
 }
 
-async function openTraining(page: Page): Promise<void> {
-  await page.goto("/training");
-  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
-}
-
 async function openTrainingProgram(page: Page): Promise<void> {
   await page.goto("/training?view=program");
   await expect(page.getByRole("heading", { name: "Workout Planner" })).toBeVisible();
