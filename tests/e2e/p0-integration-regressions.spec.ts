@@ -20,7 +20,7 @@ async function signUpFreshUser(page: Page, label: string): Promise<{ email: stri
 }
 
 async function openTraining(page: Page): Promise<void> {
-  await page.goto("/training");
+  await page.goto("/training?view=program");
   await expect(page.getByRole("heading", { name: "Workout Planner" })).toBeVisible();
 }
 
