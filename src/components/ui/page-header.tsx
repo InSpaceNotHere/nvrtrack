@@ -6,10 +6,10 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, eyebrow }: PageHeaderProps) {
   return (
-    <header className="mb-4 sm:mb-5">
-      {eyebrow ? <p className="mb-1.5 text-[11px] uppercase tracking-[0.14em] text-zinc-500">{eyebrow}</p> : null}
-      <h1 className="text-[var(--ds-font-size-heading-lg)] font-semibold tracking-tight text-white">{title}</h1>
-      {subtitle ? <p className="mt-1.5 text-sm text-zinc-400">{subtitle}</p> : null}
+    <header className="mb-2.5 sm:mb-3">
+      {eyebrow ? <p className="mb-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500">{eyebrow}</p> : null}
+      <h1 className="text-[1.1rem] font-semibold tracking-tight text-white sm:text-[1.2rem]">{title}</h1>
+      {subtitle ? <p className="mt-1 text-xs text-zinc-400">{subtitle}</p> : null}
     </header>
   );
 }

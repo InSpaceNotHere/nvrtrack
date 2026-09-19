@@ -123,7 +123,6 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
 
     await page.goto("/progress");
     await expect(page.getByRole("heading", { name: "Strength Snapshot" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Chart" })).toBeVisible();
 
     await page.getByRole("link", { name: "Photos" }).click();
     await expect(page).toHaveURL(/\/progress\?view=photos/);

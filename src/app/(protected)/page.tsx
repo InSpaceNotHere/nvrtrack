@@ -2,9 +2,7 @@ import Link from "next/link";
 
 import { WorkoutCard } from "@/components/dashboard/workout-card";
 import { Card } from "@/components/ui/card";
-import { MetricValue } from "@/components/ui/metric-value";
 import { StateChip } from "@/components/ui/state-chip";
-import { TrendSparkline } from "@/components/ui/trend-sparkline";
 import { getMyFoodEntriesForDate } from "@/lib/data/nutrition";
 import { getMyProfile } from "@/lib/data/profile";
 import {
@@ -22,7 +20,7 @@ import { buildWorkoutSummaryStats, groupSetsByWorkoutExerciseId } from "@/lib/tr
 import { computeWorkoutDayStreak } from "@/lib/training/streaks";
 import { buildStrengthDashboardSummaryFromHistoryRows } from "@/lib/training/strength";
 import type { TrainingWeightUnit } from "@/lib/training/types";
-import { MIN_ENTRIES_FOR_PERIOD_COMPARISON, formatDeltaLabel, computeWeightMetrics, shortDateLabel } from "@/lib/weight/metrics";
+import { MIN_ENTRIES_FOR_PERIOD_COMPARISON, formatDeltaLabel, computeWeightMetrics } from "@/lib/weight/metrics";
 import type { WeightUnit } from "@/lib/weight/conversions";
 
 function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightUnit {
@@ -54,7 +52,6 @@ export default async function HomePage() {
 
   const calorieGoal = profileResult.data?.calorie_goal ?? null;
   const currentWeight = weightMetrics.latest?.weight ?? null;
-  const currentChange = formatDeltaLabel(weightMetrics.previousEntryDelta, displayUnit);
   const sevenDayAverage = weightMetrics.currentSevenDayAverage?.value ?? null;
   const sevenDayAverageChange =
     weightMetrics.canCompareSevenDayPeriods && weightMetrics.sevenDayComparisonDelta !== null
@@ -110,26 +107,16 @@ export default async function HomePage() {
       workoutCardActionHref = `/training/workouts/${workoutCardTarget.id}`;
     }
   }
-  const calorieRemaining = calorieGoal !== null ? calorieGoal - nutritionTotals.calories : null;
-  const proteinRemaining = (profileResult.data?.protein_goal ?? null) !== null
-    ? (profileResult.data?.protein_goal ?? 0) - nutritionTotals.protein_g
-    : null;
   const workoutStreak = computeWorkoutDayStreak(completedWorkouts, {
     timeZone: profileTimeZone,
     reference: new Date(),
   });
   const latestPr = strengthSummary.latest_pr;
-  const progressTrendPoints = weightMetrics.trendChronological.slice(-7).map((entry) => ({
-    label: shortDateLabel(entry.entryDate),
-    value: entry.weight,
-  }));
-
   return (
-    <div className="space-y-4">
-      <header className="mb-1">
-        <p className="text-xs font-medium uppercase tracking-[0.13em] text-zinc-500">NVRTRACK</p>
-        <h1 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">
-          {displayName ? `Today Overview, ${displayName}` : "Today Overview"}
+    <div className="space-y-2">
+      <header>
+        <h1 className="text-[15px] font-semibold tracking-tight text-white">
+          {displayName ? `Today, ${displayName}` : "Today Overview"}
         </h1>
       </header>
 
@@ -157,104 +144,79 @@ export default async function HomePage() {
           <p className="mt-1 text-xs text-zinc-500">{workoutLoadError}</p>
         </Card>
       ) : null}
-      <section className="grid gap-3 lg:grid-cols-[1.2fr_1fr]">
-        <WorkoutCard
-          workoutName={workoutCardName}
-          statusText={workoutCardStatus}
-          statusState={workoutCardState}
-          exercises={workoutCardExercises}
-          totalSets={workoutCardSets}
-          durationMinutes={workoutCardDurationMinutes}
-          actionLabel={workoutCardActionLabel}
-          actionHref={workoutCardActionHref}
-        />
-        <Card title="Daily Targets" subtitle="What matters today" variant="secondary">
-          <ul className="space-y-2 text-sm">
-            <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <span className="text-zinc-400">Calories</span>
-              <MetricValue
-                value={calorieGoal !== null ? `${nutritionTotals.calories.toFixed(0)} / ${calorieGoal.toFixed(0)}` : nutritionTotals.calories.toFixed(0)}
-                unit="kcal"
-                tone="secondary"
-                className="text-lg"
-              />
-            </li>
-            <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <span className="text-zinc-400">Protein</span>
-              <MetricValue
-                value={
-                  profileResult.data?.protein_goal !== null && profileResult.data?.protein_goal !== undefined
-                    ? `${nutritionTotals.protein_g.toFixed(0)} / ${profileResult.data.protein_goal.toFixed(0)}`
-                    : nutritionTotals.protein_g.toFixed(0)
-                }
-                unit="g"
-                tone="secondary"
-                className="text-lg"
-              />
-            </li>
-            <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <span className="text-zinc-400">Current body weight</span>
-              <MetricValue value={currentWeight !== null ? currentWeight.toFixed(1) : "--"} unit={displayUnit} tone="secondary" className="text-lg" />
-            </li>
-            <li className="flex items-end justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <span className="text-zinc-400">Workout streak</span>
-              <MetricValue value={String(workoutStreak)} unit={`day${workoutStreak === 1 ? "" : "s"}`} tone="secondary" className="text-lg" />
-            </li>
-          </ul>
-          {calorieRemaining !== null || proteinRemaining !== null ? (
-            <p className="mt-2 text-xs text-zinc-500">
-              Remaining: {calorieRemaining !== null ? `${calorieRemaining.toFixed(0)} kcal` : "--"} •{" "}
-              {proteinRemaining !== null ? `${proteinRemaining.toFixed(0)} g protein` : "--"}
+      <WorkoutCard
+        workoutName={workoutCardName}
+        statusText={workoutCardStatus}
+        statusState={workoutCardState}
+        exercises={workoutCardExercises}
+        totalSets={workoutCardSets}
+        durationMinutes={workoutCardDurationMinutes}
+        actionLabel={workoutCardActionLabel}
+        actionHref={workoutCardActionHref}
+      />
+
+      <Card title="Daily Targets" variant="secondary">
+        <ul className="grid grid-cols-2 gap-1.5 text-xs">
+          <li className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+            <p className="text-zinc-500">Calories</p>
+            <p className="text-sm font-semibold text-zinc-100">
+              {nutritionTotals.calories.toFixed(0)} / {calorieGoal?.toFixed(0) ?? "--"}
             </p>
-          ) : null}
-        </Card>
-      </section>
+          </li>
+          <li className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+            <p className="text-zinc-500">Protein</p>
+            <p className="text-sm font-semibold text-zinc-100">
+              {nutritionTotals.protein_g.toFixed(0)} / {profileResult.data?.protein_goal?.toFixed(0) ?? "--"}g
+            </p>
+          </li>
+          <li className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+            <p className="text-zinc-500">Weight</p>
+            <p className="text-sm font-semibold text-zinc-100">
+              {currentWeight !== null ? `${currentWeight.toFixed(1)} ${displayUnit}` : "--"}
+            </p>
+          </li>
+          <li className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+            <p className="text-zinc-500">Workout streak</p>
+            <p className="text-sm font-semibold text-zinc-100">{workoutStreak}d</p>
+          </li>
+        </ul>
+      </Card>
 
-      <section className="grid gap-3 md:grid-cols-[1.2fr_1fr]">
-        <Card title="Progress Strip" subtitle="This week at a glance" variant="secondary">
-          <div className="grid gap-2">
-            <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">7-day trend</p>
-              <div className="mt-1 flex items-end justify-between gap-2">
-                <MetricValue value={sevenDayAverage !== null ? sevenDayAverage.toFixed(1) : "--"} unit={displayUnit} tone="secondary" className="text-base" />
-                <p className="text-xs text-zinc-500">{sevenDayAverageChange}</p>
-              </div>
-              {progressTrendPoints.length ? <TrendSparkline points={progressTrendPoints} unit={displayUnit} /> : null}
+      <Card title="Progress Strip" variant="secondary">
+        <div className="grid gap-1.5">
+          <div className="flex items-center justify-between rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">7D trend</p>
+              <p className="text-sm font-semibold text-zinc-100">{sevenDayAverage !== null ? `${sevenDayAverage.toFixed(1)} ${displayUnit}` : "--"}</p>
             </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Latest PR</p>
-              {latestPr ? (
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <StateChip state="pr" label="Recent PR" />
-                  <p className="text-xs text-zinc-300">
-                    {latestPr.exercise_name} • {latestPr.workout_date}
-                  </p>
-                </div>
-              ) : (
-                <p className="mt-1 text-xs text-zinc-500">No PR yet.</p>
-              )}
-            </div>
+            <p className="text-[11px] text-zinc-500">{sevenDayAverageChange}</p>
           </div>
-        </Card>
+          <div className="flex items-center justify-between rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+            <div className="flex items-center gap-1.5">
+              <StateChip state="pr" label="Latest PR" className="text-[10px]" />
+              <p className="text-[11px] text-zinc-300">{latestPr ? latestPr.exercise_name : "--"}</p>
+            </div>
+            <p className="text-[11px] text-zinc-500">{latestPr ? latestPr.workout_date : "--"}</p>
+          </div>
+        </div>
+      </Card>
 
-        <Card title="Quick Actions" subtitle="Primary daily actions" variant="tertiary">
-          <div className="grid gap-2">
-            <Link
-              href="/nutrition?view=add"
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
-            >
-              Add Food
-            </Link>
-            <Link
-              href="/progress?view=weight"
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
-            >
-              Log Weight
-            </Link>
-          </div>
-          <p className="mt-2 text-xs text-zinc-500">{currentWeight !== null ? `Current ${currentWeight.toFixed(1)} ${displayUnit} (${currentChange})` : "Log your first body-weight entry to start tracking."}</p>
-        </Card>
-      </section>
+      <Card title="Quick Actions" variant="tertiary">
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            href="/nutrition?view=add"
+            className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+          >
+            Add Food
+          </Link>
+          <Link
+            href="/progress?view=weight"
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+          >
+            Log Weight
+          </Link>
+        </div>
+      </Card>
     </div>
   );
 }

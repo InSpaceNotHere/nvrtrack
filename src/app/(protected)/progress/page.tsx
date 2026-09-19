@@ -4,7 +4,6 @@ import { ProgressPhotoManager } from "@/components/progress/progress-photo-manag
 import { BodyMeasurementManager } from "@/components/progress/body-measurement-manager";
 import { WeeklyJournalManager } from "@/components/progress/weekly-journal-manager";
 import { Card } from "@/components/ui/card";
-import { MetricValue } from "@/components/ui/metric-value";
 import { PageHeader } from "@/components/ui/page-header";
 import { StateChip } from "@/components/ui/state-chip";
 import { TrendSparkline } from "@/components/ui/trend-sparkline";
@@ -40,19 +39,74 @@ function ProgressOverview({
   strengthSummary,
 }: ProgressOverviewProps) {
   return (
-    <div className="space-y-3">
-      <section className="grid gap-3 md:grid-cols-[1.2fr_1fr]">
-        <Card title="Weight" subtitle="Current and 7-day change" variant="primary">
-          <MetricValue value={latestWeight !== null ? latestWeight.toFixed(1) : "--"} unit={displayUnit} />
-          <p className="mt-1.5 text-xs uppercase tracking-[0.08em] text-zinc-400">{latestChangeLabel}</p>
-          <div className="mt-3 grid gap-2">
+    <div className="space-y-2">
+      <Card title="Strength Snapshot" variant="secondary">
+        <div className="grid gap-2">
+          <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+            <div className="flex items-end justify-between gap-2">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">Weight</p>
+                <p className="text-base font-semibold text-zinc-100">
+                  {latestWeight !== null ? `${latestWeight.toFixed(1)} ${displayUnit}` : "--"}
+                </p>
+              </div>
+              <p className="text-xs text-zinc-500">{latestChangeLabel}</p>
+            </div>
+            {trendPoints.length ? (
+              <>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.08em] text-zinc-500">Chart</p>
+                <div className="mt-1">
+                  <TrendSparkline points={trendPoints} unit={displayUnit} />
+                </div>
+                <div className="mt-0.5 flex items-center justify-between text-[10px] text-zinc-500">
+                  <span>{trendPoints[0]?.label}</span>
+                  <span>{trendPoints[trendPoints.length - 1]?.label}</span>
+                </div>
+              </>
+            ) : null}
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-center">
+              <p className="text-[10px] text-zinc-500">Bench • Estimated 1RM</p>
+              <p className="text-sm font-semibold text-zinc-100">{strengthSummary.bench.current_estimated_one_rep_max?.toFixed(0) ?? "--"}</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-center">
+              <p className="text-[10px] text-zinc-500">Squat • Estimated 1RM</p>
+              <p className="text-sm font-semibold text-zinc-100">{strengthSummary.squat.current_estimated_one_rep_max?.toFixed(0) ?? "--"}</p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-center">
+              <p className="text-[10px] text-zinc-500">Deadlift • Estimated 1RM</p>
+              <p className="text-sm font-semibold text-zinc-100">{strengthSummary.deadlift.current_estimated_one_rep_max?.toFixed(0) ?? "--"}</p>
+            </div>
+          </div>
+
+          <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+            <p className="text-[10px] text-zinc-500">Strength Total • Tested 1RM Only</p>
+            <p className="text-sm font-semibold text-zinc-100">{strengthSummary.total_tested?.toFixed(0) ?? "--"}</p>
+            <p className="text-[10px] text-zinc-500">
+              {strengthSummary.thousand_club_progress_percent !== null
+                ? `Tested progress ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`
+                : "Need tested bench, squat, and deadlift"}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+            <div className="flex items-center gap-1.5">
+              <StateChip state="pr" label="Latest PR" className="text-[10px]" />
+              <p className="text-[11px] text-zinc-300">{strengthSummary.latest_pr?.exercise_name ?? "--"}</p>
+            </div>
+            <p className="text-[11px] text-zinc-500">{strengthSummary.latest_pr?.workout_date ?? "--"}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5">
             <Link
               href="/progress?view=weight"
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+              className="inline-flex h-9 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-semibold text-zinc-100 transition-colors hover:bg-white/10"
             >
               Log Weight
             </Link>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 col-span-2">
               <Link
                 href="/progress?view=photos"
                 className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
@@ -63,7 +117,7 @@ function ProgressOverview({
                 href="/progress?view=measurements"
                 className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
               >
-                Measurements
+                Measures
               </Link>
               <Link
                 href="/progress?view=journal"
@@ -73,64 +127,7 @@ function ProgressOverview({
               </Link>
             </div>
           </div>
-        </Card>
-
-        <Card title="Strength Snapshot" subtitle="Bench, squat, deadlift, latest PR" variant="secondary">
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            <StateChip state="estimated" label="Estimated 1RM" />
-            <StateChip state="tested" label="Tested total tracked separately" />
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Bench • Estimated 1RM</p>
-              <MetricValue value={strengthSummary.bench.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Squat • Estimated 1RM</p>
-              <MetricValue value={strengthSummary.squat.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Deadlift • Estimated 1RM</p>
-              <MetricValue value={strengthSummary.deadlift.current_estimated_one_rep_max?.toFixed(1) ?? "--"} unit={displayUnit} tone="secondary" className="mt-1" />
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/25 p-2.5">
-              <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Strength Total • Tested 1RM Only</p>
-              <MetricValue value={strengthSummary.total_tested?.toFixed(1) ?? "--"} unit={displayUnit} className="mt-1" />
-              <div className="mt-1.5">
-                <StateChip
-                  state={strengthSummary.thousand_club_progress_percent !== null ? "tested" : "missing"}
-                  label={
-                    strengthSummary.thousand_club_progress_percent !== null
-                      ? `Tested progress ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`
-                      : "Need tested bench, squat, and deadlift"
-                  }
-                />
-              </div>
-            </div>
-          </div>
-          {strengthSummary.latest_pr ? (
-            <p className="mt-2 text-xs text-zinc-400">
-              Latest PR: {strengthSummary.latest_pr.exercise_name} on {strengthSummary.latest_pr.workout_date} (
-              {strengthSummary.latest_pr.estimated_one_rep_max.toFixed(1)} {displayUnit})
-            </p>
-          ) : (
-            <p className="mt-2 text-xs text-zinc-500">No completed weighted sets yet.</p>
-          )}
-        </Card>
-      </section>
-
-      <Card title="Chart" subtitle="Recent body-weight trend" variant="secondary">
-        {trendPoints.length ? (
-          <>
-            <TrendSparkline points={trendPoints} unit={displayUnit} />
-            <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-500">
-              <span>{trendPoints[0]?.label}</span>
-              <span>{trendPoints[trendPoints.length - 1]?.label}</span>
-            </div>
-          </>
-        ) : (
-          <p className="text-xs text-zinc-500">Log your first weigh-in to start trend tracking.</p>
-        )}
+        </div>
       </Card>
     </div>
   );
@@ -182,8 +179,8 @@ export default async function ProgressPage({ searchParams }: ProgressPageProps) 
   });
 
   return (
-    <div className="space-y-4">
-      <PageHeader title="Progress" subtitle="Am I improving?" />
+    <div className="space-y-2.5">
+      <PageHeader title="Progress" />
       {weightLoadError ? (
         <Card variant="tertiary">
           <p className="text-sm text-rose-200">Weight data is temporarily unavailable.</p>

@@ -62,8 +62,8 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
   const isDrillDown = view === "add";
 
   return (
-    <div className="space-y-4">
-      <PageHeader title="Nutrition" subtitle="What have I eaten?" />
+    <div className="space-y-2.5">
+      <PageHeader title="Nutrition" />
       {isDrillDown ? (
         <>
           <Card variant="tertiary">
@@ -101,77 +101,70 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
               <p className="mt-1 text-xs text-zinc-500">{errorMessages[0]}</p>
             </Card>
           ) : null}
-          <section className="grid gap-3 lg:grid-cols-[1fr_1.3fr]">
-            <Card title="Date" variant="tertiary">
-              <div className="grid grid-cols-3 gap-2">
+          <Card title="Today Log" variant="secondary">
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 <Link
                   href={`/nutrition?date=${previousDate}`}
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+                  className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/10"
                 >
                   Previous
                 </Link>
                 <Link
                   href={`/nutrition?date=${todayDate}`}
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+                  className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/10"
                 >
                   Today
                 </Link>
                 <Link
                   href={`/nutrition?date=${nextDate}`}
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+                  className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/10"
                 >
                   Next
                 </Link>
               </div>
-              {wasFallback ? <p className="mt-2 text-xs text-zinc-500">Invalid date query reset to today.</p> : null}
-            </Card>
-            <Card title="Daily Status" variant="primary">
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-                  <p className="text-xs text-zinc-500">Calories</p>
-                  <p className="text-base font-semibold text-white">
+              <div className="grid grid-cols-2 gap-1.5">
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+                  <p className="text-[10px] text-zinc-500">Calories</p>
+                  <p className="text-sm font-semibold text-white">
                     {dailyTotals.calories.toFixed(0)} / {profileResult.data?.calorie_goal?.toFixed(0) ?? "--"} kcal
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-                  <p className="text-xs text-zinc-500">Protein</p>
-                  <p className="text-base font-semibold text-white">
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+                  <p className="text-[10px] text-zinc-500">Protein</p>
+                  <p className="text-sm font-semibold text-white">
                     {dailyTotals.protein_g.toFixed(0)} / {profileResult.data?.protein_goal?.toFixed(0) ?? "--"} g
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 sm:col-span-2">
-                  <p className="text-xs text-zinc-500">
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5 col-span-2">
+                  <p className="text-[11px] text-zinc-500">
                     Carbs {dailyTotals.carbohydrate_g.toFixed(0)} / {profileResult.data?.carbohydrate_goal?.toFixed(0) ?? "--"} g • Fat{" "}
                     {dailyTotals.fat_g.toFixed(0)} / {profileResult.data?.fat_goal?.toFixed(0) ?? "--"} g
                   </p>
                 </div>
               </div>
-            </Card>
-          </section>
-
-          <Card title="Meals" subtitle="At-a-glance meal totals" variant="secondary">
-            <ul className="space-y-2">
+              <ul className="space-y-1">
               {MEAL_ROWS.map((meal) => (
-                <li key={meal.value} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-                  <div>
-                    <p className="text-sm font-medium text-zinc-100">{meal.label}</p>
-                    <p className="text-xs text-zinc-500">{mealTotals[meal.value].calories.toFixed(0)} kcal</p>
-                  </div>
+                <li key={meal.value} className="flex items-center justify-between rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+                  <p className="text-sm font-medium text-zinc-100">{meal.label}</p>
+                  <p className="text-xs text-zinc-500">{mealTotals[meal.value].calories.toFixed(0)} kcal</p>
                   <Link
                     href={`/nutrition?date=${selectedDate}&view=add`}
-                    className="inline-flex h-7 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+                    className="inline-flex h-7 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
                   >
-                    Add
+                    +
                   </Link>
                 </li>
               ))}
             </ul>
             <Link
               href={`/nutrition?date=${selectedDate}&view=add`}
-              className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+              className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
             >
               Add Food
             </Link>
+            </div>
+            {wasFallback ? <p className="mt-1 text-[11px] text-zinc-500">Date reset to today.</p> : null}
           </Card>
         </>
       )}

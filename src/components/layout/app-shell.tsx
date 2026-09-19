@@ -13,7 +13,7 @@ export function AppShell({ children }: AppShellProps) {
       <div className="mx-auto flex min-h-screen w-full max-w-[1360px]">
         <DesktopSidebar />
         <div className="relative flex min-h-screen flex-1 flex-col">
-          <main className="mx-auto w-full max-w-[1100px] flex-1 px-3 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-4 sm:pt-5 md:px-6 md:pb-8 md:pt-6">
+          <main className="mx-auto w-full max-w-[1100px] flex-1 px-3 pb-[calc(5.25rem+env(safe-area-inset-bottom))] pt-[calc(0.5rem+env(safe-area-inset-top))] sm:px-4 sm:pt-4 md:px-6 md:pb-8 md:pt-6">
             {children}
           </main>
           <MobileBottomNav />

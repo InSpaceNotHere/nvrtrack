@@ -24,8 +24,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const formValues = profileToFormValues(profileResult.data);
 
   return (
-    <div className="space-y-4">
-      <PageHeader title="Profile" subtitle="My setup" />
+    <div className="space-y-2.5">
+      <PageHeader title="Profile" />
       {profileResult.error ? (
         <p className="rounded-lg border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
           {profileResult.error.message}
@@ -80,43 +80,39 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         </Card>
       ) : (
         <>
-          <section className="grid gap-3 lg:grid-cols-2">
-            <Card title="Profile Summary" variant="primary">
-              <p className="text-base font-semibold text-white">{profileResult.data?.display_name?.trim() || "NVRTRACK User"}</p>
-              <p className="mt-1 text-xs text-zinc-500">Signed in account settings and goals.</p>
-            </Card>
-            <Card title="Goals" subtitle="Daily targets" variant="secondary">
-              <ul className="space-y-1 text-xs text-zinc-300">
-                <li>Calories: {profileResult.data?.calorie_goal?.toFixed(0) ?? "--"} kcal</li>
-                <li>Protein: {profileResult.data?.protein_goal?.toFixed(0) ?? "--"} g</li>
-                <li>Weight goal: --</li>
-              </ul>
-            </Card>
-          </section>
-          <Card title="Preferences" subtitle="Units and timezone" variant="secondary">
-            <p className="text-xs text-zinc-300">
-              Unit: {formValues.preferredWeightUnit.toUpperCase()} • Timezone: {formValues.timezone || "UTC"}
-            </p>
+          <Card title="Profile Summary" variant="secondary">
+            <div className="grid gap-1.5">
+              <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+                <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">Profile</p>
+                <p className="text-sm font-semibold text-zinc-100">{profileResult.data?.display_name?.trim() || "NVRTRACK User"}</p>
+              </div>
+              <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-zinc-300">
+                Calories {profileResult.data?.calorie_goal?.toFixed(0) ?? "--"} • Protein {profileResult.data?.protein_goal?.toFixed(0) ?? "--"}g
+              </div>
+              <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-zinc-300">
+                Unit {formValues.preferredWeightUnit.toUpperCase()} • TZ {formValues.timezone || "UTC"}
+              </div>
+            </div>
           </Card>
           <Card title="Actions" variant="tertiary">
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-2">
               <Link
                 href="/profile?view=edit"
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-2 text-xs font-semibold text-zinc-100 transition-colors hover:bg-white/10"
               >
-                Edit Profile / Goals
+                Edit
               </Link>
               <Link
                 href="/profile?view=notifications"
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-2 text-xs font-semibold text-zinc-100 transition-colors hover:bg-white/10"
               >
-                Notifications / Reminders
+                Notify
               </Link>
               <Link
                 href="/profile?view=account"
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-2 text-xs font-semibold text-zinc-100 transition-colors hover:bg-white/10"
               >
-                Account / Logout
+                Account
               </Link>
             </div>
           </Card>

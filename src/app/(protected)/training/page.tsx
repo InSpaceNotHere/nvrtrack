@@ -154,8 +154,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
     null;
 
   return (
-    <div className="space-y-4">
-      <PageHeader title="Training" subtitle="What am I training?" />
+    <div className="space-y-2.5">
+      <PageHeader title="Training" />
 
       {dataErrorMessage ? (
         <Card variant="tertiary">
@@ -257,8 +257,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         </>
       ) : (
         <>
-          <section className="grid gap-3 lg:grid-cols-[1.2fr_1fr]">
-            <Card title="Today" variant="primary">
+          <Card title="Training Today" variant="primary">
+            <div className="grid gap-2">
               <p className="text-base font-semibold text-white">{todayName}</p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <StateChip state={todayStatus === "active" ? "active" : toState(todayStatus)} />
@@ -266,46 +266,44 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   {todayExerciseCount ?? "--"} exercises{todayDuration !== null ? ` • ~${todayDuration} min` : ""}
                 </p>
               </div>
-              <Link
-                href={activeWorkout ? `/training/workouts/${activeWorkout.id}` : "/training/start"}
-                className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
-              >
-                {activeWorkout ? "Resume Workout" : "Start Workout"}
-              </Link>
-            </Card>
-            <Card title="Actions" subtitle="Open deeper training workflows" variant="tertiary">
-              <div className="grid gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href={activeWorkout ? `/training/workouts/${activeWorkout.id}` : "/training/start"}
+                  className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+                >
+                  {activeWorkout ? "Resume" : "Start"}
+                </Link>
                 <Link
                   href="/training?view=program"
                   className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
                 >
                   Program
                 </Link>
-                <Link
-                  href="/training?view=history"
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-white/15 px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/10"
-                >
-                  History
-                </Link>
               </div>
-            </Card>
-          </section>
+            </div>
+          </Card>
 
-          <Card title="This Week" subtitle="Monday–Sunday at a glance" variant="secondary">
+          <Card title="This Week" variant="secondary">
             <ul className="grid grid-cols-7 gap-1.5">
               {plannerWeek.map((plan) => (
-                <li key={plan.date} className="rounded-lg border border-white/10 bg-black/20 px-2 py-2 text-center">
+                <li key={plan.date} className="rounded-md border border-white/10 bg-black/20 px-1.5 py-1.5 text-center">
                   <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">{plan.weekday_label.slice(0, 3)}</p>
-                  <p className="mt-1 text-[11px] font-semibold text-zinc-200">{plan.template_name ? plan.template_name.slice(0, 9) : "Rest"}</p>
+                  <p className="mt-0.5 text-[10px] font-semibold text-zinc-200">{plan.template_name ? plan.template_name.slice(0, 7) : "Rest"}</p>
                   <div className="mt-1 flex justify-center">
                     <StateChip state={toState(plan.status)} label={plan.status} className="text-[10px]" />
                   </div>
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-zinc-500">
-              Completed this week: {completedThisWeek}. Manage skip/move/reset in Program.
-            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <p className="text-xs text-zinc-500">Completed: {completedThisWeek}</p>
+              <Link
+                href="/training?view=history"
+                className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+              >
+                History
+              </Link>
+            </div>
           </Card>
         </>
       )}
