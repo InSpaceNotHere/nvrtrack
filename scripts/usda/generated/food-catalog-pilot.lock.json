@@ -1,0 +1,2247 @@
+{
+  "schemaVersion": "food-catalog-pilot-lock-v1",
+  "manifestVersion": "food-catalog-pilot-manifest-v1",
+  "generatedAt": "2026-07-20T20:00:00.000Z",
+  "records": [
+    {
+      "fdcId": 168483,
+      "target": "Sweet potato, baked or cooked",
+      "displayName": "Sweet potato, baked in skin, flesh, without salt",
+      "description": "Sweet potato, cooked, baked in skin, flesh, without salt",
+      "normalizedName": "sweet potato baked in skin flesh without salt",
+      "aliases": [
+        "baked sweet potato",
+        "sweet potato baked",
+        "sweet potato cooked baked"
+      ],
+      "dataType": "SR Legacy",
+      "category": "carbohydrate",
+      "preparationExpectation": "cooked",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 180,
+      "nutrientsPer100g": {
+        "calories_kcal": 90,
+        "protein_g": 2.01,
+        "carbohydrate_g": 20.71,
+        "fat_g": 0.15,
+        "fiber_g": 3.3,
+        "sugar_g": 6.48,
+        "sodium_mg": 36
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 90,
+          "normalizedValue": 90
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 2.01,
+          "normalizedValue": 2.01
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 20.71,
+          "normalizedValue": 20.71
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 0.15,
+          "normalizedValue": 0.15
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 3.3,
+          "normalizedValue": 3.3
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 6.48,
+          "normalizedValue": 6.48
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 36,
+          "normalizedValue": 36
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:52.762Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "large",
+          "gramWeight": 180,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "small",
+          "gramWeight": 60,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup",
+          "gramWeight": 200,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "medium (2\" dia, 5\" long, raw)",
+          "gramWeight": 114,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Explicit baked sweet potato with no added salt variant."
+    },
+    {
+      "fdcId": 168878,
+      "target": "White rice, long-grain, cooked",
+      "displayName": "Rice, white, long-grain, enriched, cooked",
+      "description": "Rice, white, long-grain, regular, enriched, cooked",
+      "normalizedName": "rice white long grain enriched cooked",
+      "aliases": [
+        "cooked white rice",
+        "long grain white rice cooked",
+        "white rice cooked"
+      ],
+      "dataType": "SR Legacy",
+      "category": "carbohydrate",
+      "preparationExpectation": "cooked",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 158,
+      "nutrientsPer100g": {
+        "calories_kcal": 130,
+        "protein_g": 2.69,
+        "carbohydrate_g": 28.17,
+        "fat_g": 0.28,
+        "fiber_g": 0.4,
+        "sugar_g": 0.05,
+        "sodium_mg": 1
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 130,
+          "normalizedValue": 130
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 2.69,
+          "normalizedValue": 2.69
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 28.17,
+          "normalizedValue": 28.17
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 0.28,
+          "normalizedValue": 0.28
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0.4,
+          "normalizedValue": 0.4
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0.05,
+          "normalizedValue": 0.05
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 1,
+          "normalizedValue": 1
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:51.347Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup",
+          "gramWeight": 158,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Exact long-grain cooked white rice reference."
+    },
+    {
+      "fdcId": 169704,
+      "target": "Brown rice, cooked",
+      "displayName": "Rice, brown, long-grain, cooked",
+      "description": "Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)",
+      "normalizedName": "rice brown long grain cooked",
+      "aliases": [
+        "brown rice cooked",
+        "cooked brown rice",
+        "long grain brown rice cooked"
+      ],
+      "dataType": "SR Legacy",
+      "category": "carbohydrate",
+      "preparationExpectation": "cooked",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 202,
+      "nutrientsPer100g": {
+        "calories_kcal": 123,
+        "protein_g": 2.74,
+        "carbohydrate_g": 25.58,
+        "fat_g": 0.97,
+        "fiber_g": 1.6,
+        "sugar_g": 0.24,
+        "sodium_mg": 4
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 123,
+          "normalizedValue": 123
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 2.74,
+          "normalizedValue": 2.74
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 25.58,
+          "normalizedValue": 25.58
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 0.97,
+          "normalizedValue": 0.97
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 1.6,
+          "normalizedValue": 1.6
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0.24,
+          "normalizedValue": 0.24
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 4,
+          "normalizedValue": 4
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:51.594Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup",
+          "gramWeight": 202,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Closest exact long-grain cooked brown-rice generic record found."
+    },
+    {
+      "fdcId": 169967,
+      "target": "Broccoli, cooked",
+      "displayName": "Broccoli, cooked, boiled, drained, without salt",
+      "description": "Broccoli, cooked, boiled, drained, without salt",
+      "normalizedName": "broccoli cooked boiled drained without salt",
+      "aliases": [
+        "broccoli boiled without salt",
+        "broccoli cooked",
+        "cooked broccoli"
+      ],
+      "dataType": "SR Legacy",
+      "category": "produce_and_staples",
+      "preparationExpectation": "cooked",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 280,
+      "nutrientsPer100g": {
+        "calories_kcal": 35,
+        "protein_g": 2.38,
+        "carbohydrate_g": 7.18,
+        "fat_g": 0.41,
+        "fiber_g": 3.3,
+        "sugar_g": 1.39,
+        "sodium_mg": 41
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 35,
+          "normalizedValue": 35
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 2.38,
+          "normalizedValue": 2.38
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 7.18,
+          "normalizedValue": 7.18
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 0.41,
+          "normalizedValue": 0.41
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 3.3,
+          "normalizedValue": 3.3
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 1.39,
+          "normalizedValue": 1.39
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 41,
+          "normalizedValue": 41
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:53.109Z",
+      "sourcePortions": [
+        {
+          "quantity": 0.5,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup, chopped",
+          "gramWeight": 78,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "stalk, large (11\"-12\" long)",
+          "gramWeight": 280,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "spear (about 5\" long)",
+          "gramWeight": 37,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "stalk, medium (7-1/2\" - 8\" long)",
+          "gramWeight": 180,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "stalk, small (5\" long)",
+          "gramWeight": 140,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Uses the no-salt cooked broccoli variant for cleaner baseline values."
+    },
+    {
+      "fdcId": 170030,
+      "target": "Potato, baked or cooked",
+      "displayName": "Potato, russet, flesh and skin, baked",
+      "description": "Potatoes, Russet, flesh and skin, baked",
+      "normalizedName": "potato russet flesh and skin baked",
+      "aliases": [
+        "baked russet potato",
+        "potato baked",
+        "potato flesh and skin baked"
+      ],
+      "dataType": "SR Legacy",
+      "category": "carbohydrate",
+      "preparationExpectation": "cooked",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 173,
+      "nutrientsPer100g": {
+        "calories_kcal": 95,
+        "protein_g": 2.63,
+        "carbohydrate_g": 21.44,
+        "fat_g": 0.13,
+        "fiber_g": 2.3,
+        "sugar_g": 1.08,
+        "sodium_mg": 14
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 95,
+          "normalizedValue": 95
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 2.63,
+          "normalizedValue": 2.63
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 21.44,
+          "normalizedValue": 21.44
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 0.13,
+          "normalizedValue": 0.13
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 2.3,
+          "normalizedValue": 2.3
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 1.08,
+          "normalizedValue": 1.08
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 14,
+          "normalizedValue": 14
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:52.309Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "potato medium (2-1/4\" to 3-1/4\" dia.)",
+          "gramWeight": 173,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "potato large (3\" to 4-1/4\" dia.",
+          "gramWeight": 299,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "potato small (1-3/4\" to 2-1/2\" dia.)",
+          "gramWeight": 138,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Specific baked potato form with skin and flesh retained."
+    },
+    {
+      "fdcId": 170894,
+      "target": "Plain Greek yogurt",
+      "displayName": "Yogurt, Greek, plain, nonfat",
+      "description": "Yogurt, Greek, plain, nonfat (Includes foods for USDA's Food Distribution Program)",
+      "normalizedName": "yogurt greek plain nonfat",
+      "aliases": [
+        "greek yogurt plain",
+        "nonfat greek yogurt plain",
+        "plain greek yogurt nonfat"
+      ],
+      "dataType": "SR Legacy",
+      "category": "produce_and_staples",
+      "preparationExpectation": "neutral",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 170,
+      "nutrientsPer100g": {
+        "calories_kcal": 59,
+        "protein_g": 10.19,
+        "carbohydrate_g": 3.6,
+        "fat_g": 0.39,
+        "fiber_g": 0,
+        "sugar_g": 3.24,
+        "sodium_mg": 36
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 59,
+          "normalizedValue": 59
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 10.19,
+          "normalizedValue": 10.19
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 3.6,
+          "normalizedValue": 3.6
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 0.39,
+          "normalizedValue": 0.39
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 3.24,
+          "normalizedValue": 3.24
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 36,
+          "normalizedValue": 36
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:53.702Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "container",
+          "gramWeight": 170,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Foundation candidate 330137 did not resolve via detail endpoint during verification; selected closest exact generic SR record."
+    },
+    {
+      "fdcId": 171077,
+      "target": "Chicken breast, boneless, skinless, raw",
+      "displayName": "Chicken breast, boneless, skinless, raw",
+      "description": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+      "normalizedName": "chicken breast boneless skinless raw",
+      "aliases": [
+        "chicken breast raw",
+        "raw chicken breast",
+        "skinless chicken breast raw"
+      ],
+      "dataType": "SR Legacy",
+      "category": "protein",
+      "preparationExpectation": "raw",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 926,
+      "nutrientsPer100g": {
+        "calories_kcal": 120,
+        "protein_g": 22.5,
+        "carbohydrate_g": 0,
+        "fat_g": 2.62,
+        "fiber_g": 0,
+        "sugar_g": 0,
+        "sodium_mg": 45
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 120,
+          "normalizedValue": 120
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 22.5,
+          "normalizedValue": 22.5
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 2.62,
+          "normalizedValue": 2.62
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 45,
+          "normalizedValue": 45
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:48.594Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "package",
+          "gramWeight": 926,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "piece",
+          "gramWeight": 272,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 4,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "oz",
+          "gramWeight": 113,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Selected for explicit boneless/skinless/raw wording with complete macro fields."
+    },
+    {
+      "fdcId": 171140,
+      "target": "Chicken breast, boneless, skinless, cooked or roasted",
+      "displayName": "Chicken breast, boneless, skinless, cooked, braised",
+      "description": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, cooked, braised",
+      "normalizedName": "chicken breast boneless skinless cooked braised",
+      "aliases": [
+        "chicken breast braised",
+        "chicken breast cooked",
+        "cooked chicken breast"
+      ],
+      "dataType": "SR Legacy",
+      "category": "protein",
+      "preparationExpectation": "cooked",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 181,
+      "nutrientsPer100g": {
+        "calories_kcal": 157,
+        "protein_g": 32.06,
+        "carbohydrate_g": 0,
+        "fat_g": 3.24,
+        "fiber_g": 0,
+        "sugar_g": 0,
+        "sodium_mg": 47
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 157,
+          "normalizedValue": 157
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 32.06,
+          "normalizedValue": 32.06
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 3.24,
+          "normalizedValue": 3.24
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 47,
+          "normalizedValue": 47
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:48.949Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "piece",
+          "gramWeight": 181,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 3,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "oz",
+          "gramWeight": 85,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Retains boneless/skinless specificity while clearly representing cooked poultry."
+    },
+    {
+      "fdcId": 171265,
+      "target": "Whole milk",
+      "displayName": "Milk, whole, 3.25% milkfat, with added vitamin D",
+      "description": "Milk, whole, 3.25% milkfat, with added vitamin D",
+      "normalizedName": "milk whole 3 25 milkfat with added vitamin d",
+      "aliases": [
+        "milk 3 25",
+        "whole milk",
+        "whole milk vitamin d"
+      ],
+      "dataType": "SR Legacy",
+      "category": "produce_and_staples",
+      "preparationExpectation": "neutral",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 30.5,
+      "nutrientsPer100g": {
+        "calories_kcal": 61,
+        "protein_g": 3.15,
+        "carbohydrate_g": 4.8,
+        "fat_g": 3.25,
+        "fiber_g": 0,
+        "sugar_g": 5.05,
+        "sodium_mg": 43
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 61,
+          "normalizedValue": 61
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 3.15,
+          "normalizedValue": 3.15
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 4.8,
+          "normalizedValue": 4.8
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 3.25,
+          "normalizedValue": 3.25
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 5.05,
+          "normalizedValue": 5.05
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 43,
+          "normalizedValue": 43
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:53.481Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "fl oz",
+          "gramWeight": 30.5,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup",
+          "gramWeight": 244,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "tbsp",
+          "gramWeight": 15,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "quart",
+          "gramWeight": 976,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Specific standard whole-milk profile with complete macros."
+    },
+    {
+      "fdcId": 171287,
+      "target": "Whole egg",
+      "displayName": "Egg, whole, raw, fresh",
+      "description": "Egg, whole, raw, fresh",
+      "normalizedName": "egg whole raw fresh",
+      "aliases": [
+        "egg whole raw",
+        "raw whole egg",
+        "whole egg raw"
+      ],
+      "dataType": "SR Legacy",
+      "category": "protein",
+      "preparationExpectation": "neutral",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 243,
+      "nutrientsPer100g": {
+        "calories_kcal": 143,
+        "protein_g": 12.56,
+        "carbohydrate_g": 0.72,
+        "fat_g": 9.51,
+        "fiber_g": 0,
+        "sugar_g": 0.37,
+        "sodium_mg": 142
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 143,
+          "normalizedValue": 143
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 12.56,
+          "normalizedValue": 12.56
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 0.72,
+          "normalizedValue": 0.72
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 9.51,
+          "normalizedValue": 9.51
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0.37,
+          "normalizedValue": 0.37
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 142,
+          "normalizedValue": 142
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:50.721Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup (4.86 large eggs)",
+          "gramWeight": 243,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "medium",
+          "gramWeight": 44,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "extra large",
+          "gramWeight": 56,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "small",
+          "gramWeight": 38,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "jumbo",
+          "gramWeight": 63,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "large",
+          "gramWeight": 50,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Fresh whole egg baseline without frozen/salted modifiers."
+    },
+    {
+      "fdcId": 171413,
+      "target": "Olive oil",
+      "displayName": "Olive oil, salad or cooking",
+      "description": "Oil, olive, salad or cooking",
+      "normalizedName": "olive oil salad or cooking",
+      "aliases": [
+        "oil olive",
+        "olive oil",
+        "olive oil cooking"
+      ],
+      "dataType": "SR Legacy",
+      "category": "produce_and_staples",
+      "preparationExpectation": "neutral",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 13.5,
+      "nutrientsPer100g": {
+        "calories_kcal": 884,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 100,
+        "fiber_g": 0,
+        "sugar_g": 0,
+        "sodium_mg": 2
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 884,
+          "normalizedValue": 884
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 100,
+          "normalizedValue": 100
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 2,
+          "normalizedValue": 2
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:53.873Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "tablespoon",
+          "gramWeight": 13.5,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "tsp",
+          "gramWeight": 4.5,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup",
+          "gramWeight": 216,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Generic olive-oil entry, avoiding mixed-oil blends and mayo variants."
+    },
+    {
+      "fdcId": 171793,
+      "target": "Ground beef, approximately 90% lean / 10% fat, cooked",
+      "displayName": "Ground beef, 90% lean / 10% fat, patty, cooked, pan-broiled",
+      "description": "Beef, ground, 90% lean meat / 10% fat, patty, cooked, pan-broiled",
+      "normalizedName": "ground beef 90 lean 10 fat patty cooked pan broiled",
+      "aliases": [
+        "90 lean ground beef cooked",
+        "ground beef 90 10 cooked",
+        "ground beef patty cooked"
+      ],
+      "dataType": "SR Legacy",
+      "category": "protein",
+      "preparationExpectation": "cooked",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": null,
+      "nutrientsPer100g": {
+        "calories_kcal": 204,
+        "protein_g": 25.21,
+        "carbohydrate_g": 0,
+        "fat_g": 10.68,
+        "fiber_g": 0,
+        "sugar_g": 0,
+        "sodium_mg": 75
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 204,
+          "normalizedValue": 204
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 25.21,
+          "normalizedValue": 25.21
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 10.68,
+          "normalizedValue": 10.68
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 75,
+          "normalizedValue": 75
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:50.172Z",
+      "sourcePortions": [
+        {
+          "quantity": 3,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "oz",
+          "gramWeight": 85,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Maintains 90/10 identity while using a specific cooked preparation state."
+    },
+    {
+      "fdcId": 171998,
+      "target": "Salmon, cooked",
+      "displayName": "Salmon, Atlantic, wild, cooked, dry heat",
+      "description": "Fish, salmon, Atlantic, wild, cooked, dry heat",
+      "normalizedName": "salmon atlantic wild cooked dry heat",
+      "aliases": [
+        "atlantic salmon cooked",
+        "salmon cooked",
+        "wild salmon cooked"
+      ],
+      "dataType": "SR Legacy",
+      "category": "protein",
+      "preparationExpectation": "cooked",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": null,
+      "nutrientsPer100g": {
+        "calories_kcal": 182,
+        "protein_g": 25.44,
+        "carbohydrate_g": 0,
+        "fat_g": 8.13,
+        "fiber_g": 0,
+        "sugar_g": null,
+        "sodium_mg": 56
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 182,
+          "normalizedValue": 182
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 25.44,
+          "normalizedValue": 25.44
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 8.13,
+          "normalizedValue": 8.13
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": null,
+          "sourceNutrientNumber": null,
+          "sourceUnit": null,
+          "sourceValue": null,
+          "normalizedValue": null
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 56,
+          "normalizedValue": 56
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:50.993Z",
+      "sourcePortions": [
+        {
+          "quantity": 0.5,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "fillet",
+          "gramWeight": 154,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 3,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "oz",
+          "gramWeight": 85,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Selected clearly cooked wild Atlantic salmon record."
+    },
+    {
+      "fdcId": 172183,
+      "target": "Egg white",
+      "displayName": "Egg white, raw, fresh",
+      "description": "Egg, white, raw, fresh",
+      "normalizedName": "egg white raw fresh",
+      "aliases": [
+        "egg white raw",
+        "egg whites raw",
+        "raw egg white"
+      ],
+      "dataType": "SR Legacy",
+      "category": "protein",
+      "preparationExpectation": "neutral",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 243,
+      "nutrientsPer100g": {
+        "calories_kcal": 52,
+        "protein_g": 10.9,
+        "carbohydrate_g": 0.73,
+        "fat_g": 0.17,
+        "fiber_g": 0,
+        "sugar_g": 0.71,
+        "sodium_mg": 166
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 52,
+          "normalizedValue": 52
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 10.9,
+          "normalizedValue": 10.9
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 0.73,
+          "normalizedValue": 0.73
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 0.17,
+          "normalizedValue": 0.17
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0.71,
+          "normalizedValue": 0.71
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 166,
+          "normalizedValue": 166
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:50.892Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup",
+          "gramWeight": 243,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "large",
+          "gramWeight": 33,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Fresh egg-white-only counterpart to whole egg entry."
+    },
+    {
+      "fdcId": 172388,
+      "target": "Chicken thigh, cooked or roasted",
+      "displayName": "Chicken thigh, meat only, cooked, roasted",
+      "description": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
+      "normalizedName": "chicken thigh meat only cooked roasted",
+      "aliases": [
+        "chicken thigh cooked",
+        "chicken thigh roasted",
+        "cooked chicken thigh"
+      ],
+      "dataType": "SR Legacy",
+      "category": "protein",
+      "preparationExpectation": "cooked",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 137,
+      "nutrientsPer100g": {
+        "calories_kcal": 179,
+        "protein_g": 24.76,
+        "carbohydrate_g": 0,
+        "fat_g": 8.15,
+        "fiber_g": 0,
+        "sugar_g": 0,
+        "sodium_mg": 106
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 179,
+          "normalizedValue": 179
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 24.76,
+          "normalizedValue": 24.76
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 8.15,
+          "normalizedValue": 8.15
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 106,
+          "normalizedValue": 106
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:49.617Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "thigh with skin",
+          "gramWeight": 137,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "thigh without skin",
+          "gramWeight": 116,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 3,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "oz",
+          "gramWeight": 85,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Direct raw/cooked counterpart to the selected raw chicken thigh record."
+    },
+    {
+      "fdcId": 173627,
+      "target": "Chicken thigh, raw",
+      "displayName": "Chicken thigh, meat only, raw",
+      "description": "Chicken, broilers or fryers, dark meat, thigh, meat only, raw",
+      "normalizedName": "chicken thigh meat only raw",
+      "aliases": [
+        "chicken thigh meat only raw",
+        "chicken thigh raw",
+        "raw chicken thigh"
+      ],
+      "dataType": "SR Legacy",
+      "category": "protein",
+      "preparationExpectation": "raw",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 149,
+      "nutrientsPer100g": {
+        "calories_kcal": 121,
+        "protein_g": 19.66,
+        "carbohydrate_g": 0,
+        "fat_g": 4.12,
+        "fiber_g": 0,
+        "sugar_g": 0,
+        "sodium_mg": 95
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 121,
+          "normalizedValue": 121
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 19.66,
+          "normalizedValue": 19.66
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 4.12,
+          "normalizedValue": 4.12
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 95,
+          "normalizedValue": 95
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:49.194Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "thigh without skin",
+          "gramWeight": 149,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 4,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "oz",
+          "gramWeight": 113,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Avoids skin-in variant to keep a cleaner lean-meat reference."
+    },
+    {
+      "fdcId": 173904,
+      "target": "Oats, dry",
+      "displayName": "Oats, regular and quick, dry",
+      "description": "Cereals, oats, regular and quick, not fortified, dry",
+      "normalizedName": "oats regular and quick dry",
+      "aliases": [
+        "dry oats",
+        "oats dry",
+        "rolled oats dry"
+      ],
+      "dataType": "SR Legacy",
+      "category": "carbohydrate",
+      "preparationExpectation": "neutral",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 81,
+      "nutrientsPer100g": {
+        "calories_kcal": 379,
+        "protein_g": 13.15,
+        "carbohydrate_g": 67.7,
+        "fat_g": 6.52,
+        "fiber_g": 10.1,
+        "sugar_g": 0.99,
+        "sodium_mg": 6
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 379,
+          "normalizedValue": 379
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 13.15,
+          "normalizedValue": 13.15
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 67.7,
+          "normalizedValue": 67.7
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 6.52,
+          "normalizedValue": 6.52
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 10.1,
+          "normalizedValue": 10.1
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0.99,
+          "normalizedValue": 0.99
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 6,
+          "normalizedValue": 6
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:52.010Z",
+      "sourcePortions": [
+        {
+          "quantity": 0.33,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup",
+          "gramWeight": 27,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup",
+          "gramWeight": 81,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Avoids flavored instant oat variants."
+    },
+    {
+      "fdcId": 173944,
+      "target": "Banana, raw",
+      "displayName": "Bananas, raw",
+      "description": "Bananas, raw",
+      "normalizedName": "bananas raw",
+      "aliases": [
+        "banana raw",
+        "bananas raw",
+        "raw banana"
+      ],
+      "dataType": "SR Legacy",
+      "category": "produce_and_staples",
+      "preparationExpectation": "raw",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 126,
+      "nutrientsPer100g": {
+        "calories_kcal": 89,
+        "protein_g": 1.09,
+        "carbohydrate_g": 22.84,
+        "fat_g": 0.33,
+        "fiber_g": 2.6,
+        "sugar_g": 12.23,
+        "sodium_mg": 1
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 89,
+          "normalizedValue": 89
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 1.09,
+          "normalizedValue": 1.09
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 22.84,
+          "normalizedValue": 22.84
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 0.33,
+          "normalizedValue": 0.33
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 2.6,
+          "normalizedValue": 2.6
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 12.23,
+          "normalizedValue": 12.23
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 1,
+          "normalizedValue": 1
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:52.939Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "NLEA serving",
+          "gramWeight": 126,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "extra large (9\" or longer)",
+          "gramWeight": 152,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "large (8\" to 8-7/8\" long)",
+          "gramWeight": 136,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup, sliced",
+          "gramWeight": 150,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "small (6\" to 6-7/8\" long)",
+          "gramWeight": 101,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "extra small (less than 6\" long)",
+          "gramWeight": 81,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "medium (7\" to 7-7/8\" long)",
+          "gramWeight": 118,
+          "isUsableForGramConversion": true
+        },
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "cup, mashed",
+          "gramWeight": 225,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Selected to avoid banana-pepper false matches."
+    },
+    {
+      "fdcId": 174030,
+      "target": "Ground beef, approximately 90% lean / 10% fat, raw",
+      "displayName": "Ground beef, 90% lean / 10% fat, raw",
+      "description": "Beef, ground, 90% lean meat / 10% fat, raw",
+      "normalizedName": "ground beef 90 lean 10 fat raw",
+      "aliases": [
+        "90 lean ground beef raw",
+        "beef mince 90 10 raw",
+        "ground beef 90 10 raw"
+      ],
+      "dataType": "SR Legacy",
+      "category": "protein",
+      "preparationExpectation": "raw",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": null,
+      "nutrientsPer100g": {
+        "calories_kcal": 176,
+        "protein_g": 20,
+        "carbohydrate_g": 0,
+        "fat_g": 10,
+        "fiber_g": 0,
+        "sugar_g": 0,
+        "sodium_mg": 66
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 176,
+          "normalizedValue": 176
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 20,
+          "normalizedValue": 20
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 10,
+          "normalizedValue": 10
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 66,
+          "normalizedValue": 66
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:49.922Z",
+      "sourcePortions": [
+        {
+          "quantity": 4,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "oz",
+          "gramWeight": 113,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Chosen exact 90/10 raw record with complete core macros."
+    },
+    {
+      "fdcId": 175177,
+      "target": "Tilapia, cooked",
+      "displayName": "Tilapia, cooked, dry heat",
+      "description": "Fish, tilapia, cooked, dry heat",
+      "normalizedName": "tilapia cooked dry heat",
+      "aliases": [
+        "cooked tilapia",
+        "tilapia cooked",
+        "tilapia dry heat"
+      ],
+      "dataType": "SR Legacy",
+      "category": "protein",
+      "preparationExpectation": "cooked",
+      "brandOwner": null,
+      "brandName": null,
+      "gtinUpc": null,
+      "foodCategory": null,
+      "ingredients": null,
+      "servingSize": null,
+      "servingUnit": null,
+      "servingWeightGrams": 87,
+      "nutrientsPer100g": {
+        "calories_kcal": 128,
+        "protein_g": 26.15,
+        "carbohydrate_g": 0,
+        "fat_g": 2.65,
+        "fiber_g": 0,
+        "sugar_g": 0,
+        "sodium_mg": 56
+      },
+      "nutrientDiagnostics": {
+        "calories_kcal": {
+          "sourceNutrientId": 1008,
+          "sourceNutrientNumber": "208",
+          "sourceUnit": "kcal",
+          "sourceValue": 128,
+          "normalizedValue": 128
+        },
+        "protein_g": {
+          "sourceNutrientId": 1003,
+          "sourceNutrientNumber": "203",
+          "sourceUnit": "g",
+          "sourceValue": 26.15,
+          "normalizedValue": 26.15
+        },
+        "carbohydrate_g": {
+          "sourceNutrientId": 1005,
+          "sourceNutrientNumber": "205",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "fat_g": {
+          "sourceNutrientId": 1004,
+          "sourceNutrientNumber": "204",
+          "sourceUnit": "g",
+          "sourceValue": 2.65,
+          "normalizedValue": 2.65
+        },
+        "fiber_g": {
+          "sourceNutrientId": 1079,
+          "sourceNutrientNumber": "291",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sugar_g": {
+          "sourceNutrientId": 2000,
+          "sourceNutrientNumber": "269",
+          "sourceUnit": "g",
+          "sourceValue": 0,
+          "normalizedValue": 0
+        },
+        "sodium_mg": {
+          "sourceNutrientId": 1093,
+          "sourceNutrientNumber": "307",
+          "sourceUnit": "mg",
+          "sourceValue": 56,
+          "normalizedValue": 56
+        }
+      },
+      "sourcePublishedDate": "4/1/2019",
+      "sourceModifiedDate": null,
+      "retrievedAt": "2026-07-20T19:45:51.169Z",
+      "sourcePortions": [
+        {
+          "quantity": 1,
+          "unit": "undetermined",
+          "description": null,
+          "modifier": "fillet",
+          "gramWeight": 87,
+          "isUsableForGramConversion": true
+        }
+      ],
+      "warnings": [],
+      "notes": "Clean generic tilapia cooked entry with complete core macros."
+    }
+  ]
+}
