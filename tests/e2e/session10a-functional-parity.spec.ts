@@ -56,7 +56,7 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
   let updatedWeekdayValue: string | null = null;
 
   try {
-    await page.goto("/training");
+    await page.goto("/training?view=program");
     await expect(page.getByRole("heading", { name: "Workout Planner" })).toBeVisible();
 
     const weekdayControl = page.locator("label").filter({ hasText: weekdayLabel }).first().locator("select");
@@ -178,7 +178,7 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
     await expect(page.getByRole("link", { name: "Add Food" })).toBeVisible();
     await expect(page.getByRole("link", { name: "View Progress" })).toBeVisible();
   } finally {
-    await page.goto("/training");
+    await page.goto("/training?view=program");
     const weekdayControl = page.locator("label").filter({ hasText: weekdayLabel }).first().locator("select");
     if (originalWeekdayValue !== null) {
       const options = await weekdayControl.locator("option").evaluateAll((nodes) =>
