@@ -120,9 +120,8 @@ test("session 10a planner + progress + dashboard workflows", async ({ page }) =>
 
     await page.goto("/progress");
     await expect(page.getByRole("heading", { name: "Live Strength System" })).toBeVisible();
-    const thirtyDayFilter = page.getByRole("button", { name: "30D" });
-    const emptyWeightState = page.getByText("No weight data available.");
-    await expect(thirtyDayFilter.or(emptyWeightState)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Progress Snapshot" })).toBeVisible();
+    await expect(page.getByText("Open Weight Chart + History")).toBeVisible();
 
     await page.getByRole("tab", { name: "Photos" }).click();
     const photoForm = page.locator("form").first();

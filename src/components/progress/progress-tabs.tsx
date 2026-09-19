@@ -13,13 +13,14 @@ interface ProgressTabsProps {
   photos: React.ReactNode;
   measurements: React.ReactNode;
   journal: React.ReactNode;
+  initialTab?: ExtendedProgressTab;
 }
 
 const TAB_OPTIONS: ExtendedProgressTab[] = ["Overview", "Photos", "Measurements", "Journal"];
 const TAB_CONTROL_OPTIONS = TAB_OPTIONS.map((option) => ({ value: option, label: option }));
 
-export function ProgressTabs({ overview, photos, measurements, journal }: ProgressTabsProps) {
-  const [tab, setTab] = useState<ExtendedProgressTab>("Overview");
+export function ProgressTabs({ overview, photos, measurements, journal, initialTab = "Overview" }: ProgressTabsProps) {
+  const [tab, setTab] = useState<ExtendedProgressTab>(initialTab);
 
   const content = useMemo(() => {
     if (tab === "Overview") {
