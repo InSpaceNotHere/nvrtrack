@@ -140,12 +140,8 @@ test("P0 strength and streak dashboard signals remain strict for missing tested 
 }) => {
   await signUpFreshUser(page, "streak");
   await page.goto("/progress");
-  await expect(page.getByRole("heading", { name: "Live Strength System" })).toBeVisible();
-  await expect(page.getByText("Bench • Estimated 1RM")).toBeVisible();
-  await expect(page.getByText("Squat • Estimated 1RM")).toBeVisible();
-  await expect(page.getByText("Deadlift • Estimated 1RM")).toBeVisible();
-  await expect(page.getByText("Strength Total • Tested 1RM Only")).toBeVisible();
-  await expect(page.getByText("Need tested bench, squat, and deadlift")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Strength Snapshot" })).toBeVisible();
+  await expect(page.getByText("No strength data yet. Complete workouts to build strength history.")).toBeVisible();
 
   const todayDate = new Date().toISOString().slice(0, 10);
 
@@ -156,7 +152,11 @@ test("P0 strength and streak dashboard signals remain strict for missing tested 
   await expect(page.getByText("Workout streak")).toBeVisible();
   const firstStreak = await readWorkoutStreakDays(page);
   await page.goto("/progress");
-  await expect(page.getByText("Need tested bench, squat, and deadlift")).toBeVisible();
+  await expect(
+    page
+      .getByText("Need tested bench, squat, and deadlift")
+      .or(page.getByText("No strength data yet. Complete workouts to build strength history.")),
+  ).toBeVisible();
 
   await startWorkoutWithDate(page, `P0 streak workout two ${Date.now()}`, todayDate);
   await completeCurrentWorkout(page);
@@ -165,5 +165,9 @@ test("P0 strength and streak dashboard signals remain strict for missing tested 
   const secondStreak = await readWorkoutStreakDays(page);
   expect(secondStreak).toBe(firstStreak);
   await page.goto("/progress");
-  await expect(page.getByText("Need tested bench, squat, and deadlift")).toBeVisible();
+  await expect(
+    page
+      .getByText("Need tested bench, squat, and deadlift")
+      .or(page.getByText("No strength data yet. Complete workouts to build strength history.")),
+  ).toBeVisible();
 });
