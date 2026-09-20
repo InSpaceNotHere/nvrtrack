@@ -786,30 +786,30 @@ export function NutritionLogView({
   }
 
   return (
-    <div className="space-y-4">
-      <section className="grid gap-3 lg:grid-cols-[1fr_1.45fr]">
+    <div className="space-y-3">
+      <section className="grid gap-2.5 lg:grid-cols-[1fr_1.45fr]">
         <Card title="Date" variant="tertiary">
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div>
               <p className="text-lg font-semibold text-white">{formatDateForDisplay(selectedDate)}</p>
-              {dateWasFallback ? <p className="text-xs text-zinc-500">Invalid date query reset to today.</p> : null}
+              {dateWasFallback ? <p className="mt-0.5 text-[11px] text-zinc-500">Invalid date reset to today.</p> : null}
             </div>
             <div className="grid grid-cols-3 gap-2">
               <Link
                 href={`/nutrition?date=${previousDate}`}
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+                className="inline-flex h-8 items-center justify-center rounded-lg border border-white/15 px-2 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/10"
               >
                 Previous
               </Link>
               <Link
                 href={`/nutrition?date=${todayDate}`}
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+                className="inline-flex h-8 items-center justify-center rounded-lg border border-white/15 px-2 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/10"
               >
                 Today
               </Link>
               <Link
                 href={`/nutrition?date=${nextDate}`}
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+                className="inline-flex h-8 items-center justify-center rounded-lg border border-white/15 px-2 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/10"
               >
                 Next
               </Link>
@@ -817,35 +817,35 @@ export function NutritionLogView({
           </div>
         </Card>
 
-        <Card title="Daily Summary" subtitle="Calories and macros" variant="primary">
+        <Card title="Daily Summary" variant="primary">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[2rem] font-semibold leading-none tracking-tight text-white sm:text-[2.2rem]">
+              <p className="text-[1.8rem] font-semibold leading-none tracking-tight text-white sm:text-[2rem]">
                 {roundNutritionValue(dailyTotals.calories, 1).toLocaleString()}
               </p>
-              <p className="mt-1 text-sm text-zinc-400">
+              <p className="mt-0.5 text-sm text-zinc-400">
                 of {calorieGoal !== null ? calorieGoal.toLocaleString() : "--"} kcal
               </p>
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mt-0.5 text-[11px] text-zinc-500">
                 Remaining: {caloriesRemaining !== null ? `${caloriesRemaining} kcal` : "--"}
               </p>
             </div>
             {calorieGoal !== null && calorieGoal > 0 ? (
-              <CalorieRing consumed={dailyTotals.calories} goal={calorieGoal} size={84} />
+              <CalorieRing consumed={dailyTotals.calories} goal={calorieGoal} size={72} />
             ) : (
-              <div className="flex h-[84px] w-[84px] items-center justify-center rounded-full border border-white/10 text-[10px] uppercase tracking-[0.08em] text-zinc-500">
+              <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/10 text-[10px] uppercase tracking-[0.08em] text-zinc-500">
                 Goal not set
               </div>
             )}
           </div>
-          <div className="mt-2">
+          <div className="mt-1.5">
             {calorieGoal !== null && calorieGoal > 0 ? (
               <ProgressBar value={dailyTotals.calories} max={calorieGoal} compact />
             ) : (
               <div className="h-1.5 w-full rounded-full bg-white/8" aria-hidden="true" />
             )}
           </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="mt-2.5 grid gap-1.5 sm:grid-cols-[1.15fr_1fr]">
             <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
               <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Protein</p>
               <p className="text-base font-semibold text-zinc-100">
@@ -853,7 +853,7 @@ export function NutritionLogView({
               </p>
               <p className="text-[11px] text-zinc-500">Remaining: {proteinRemaining !== null ? `${proteinRemaining} g` : "--"}</p>
             </div>
-            <div className="space-y-1 rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
+            <div className="space-y-0.5 rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
               {[
                 { label: "Carbs", consumed: dailyTotals.carbohydrate_g, goal: carbohydrateGoal },
                 { label: "Fat", consumed: dailyTotals.fat_g, goal: fatGoal },
@@ -869,6 +869,11 @@ export function NutritionLogView({
               ))}
             </div>
           </div>
+          <div className="mt-2">
+            <Button type="button" onClick={() => openComposer("breakfast")} variant="primary" size="sm" className="h-8 rounded-lg px-3 text-xs">
+              Add Food
+            </Button>
+          </div>
         </Card>
       </section>
 
@@ -882,13 +887,7 @@ export function NutritionLogView({
         </Card>
       ) : null}
 
-      <Card title="Food Log" subtitle="Meals and entries" variant="secondary">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-xs text-zinc-500">Scan meals, then add foods quickly.</p>
-          <Button type="button" onClick={() => openComposer("breakfast")} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
-            Add Food
-          </Button>
-        </div>
+      <Card title="Food Log" variant="secondary">
 
         {composerOpen ? (
           <div className="mb-4 space-y-3 rounded-xl border border-white/10 bg-black/20 p-3.5">
