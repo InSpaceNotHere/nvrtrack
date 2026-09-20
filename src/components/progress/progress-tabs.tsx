@@ -49,7 +49,6 @@ export function ProgressTabs({ overview, weight, photos, measurements, journal, 
 
   return (
     <section className="space-y-4">
-      <p className="text-xs text-zinc-500">Use tabs for weight details, photos, measurements, and journal check-ins.</p>
       <Tabs value={tab} options={TAB_CONTROL_OPTIONS} onChange={setTab} ariaLabel="Progress views" />
       <div>{content}</div>
     </section>

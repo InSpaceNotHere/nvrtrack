@@ -105,14 +105,14 @@ function ProgressOverview({
               </div>
             </div>
             {hasTrend ? (
-              <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
-                <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">Weight Trend</p>
-                <div className="mt-1">
-                  <TrendSparkline points={trendPoints} unit={displayUnit} />
-                </div>
-                <div className="mt-0.5 flex items-center justify-between text-[10px] text-zinc-500">
-                  <span>{trendPoints[0]?.label}</span>
-                  <span>{trendPoints[trendPoints.length - 1]?.label}</span>
+              <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1">
+                <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">Trend</p>
+                <div className="mt-1 flex items-center gap-1.5 text-[10px] text-zinc-500">
+                  <span className="min-w-[2.25rem]">{trendPoints[0]?.label}</span>
+                  <div className="h-6 flex-1">
+                    <TrendSparkline points={trendPoints} unit={displayUnit} />
+                  </div>
+                  <span className="min-w-[2.25rem] text-right">{trendPoints[trendPoints.length - 1]?.label}</span>
                 </div>
               </div>
             ) : (
@@ -130,13 +130,10 @@ function ProgressOverview({
         </Card>
 
         <Card title="Strength Snapshot" variant="secondary">
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            <StateChip state="estimated" label="Estimated 1RM" />
-            <StateChip state="tested" label="Tested total tracked separately" />
-          </div>
+          <p className="mb-2 text-[11px] text-zinc-500">Estimated 1RM shown per lift. Tested total tracked separately.</p>
           {hasStrengthData ? (
             <>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                 <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
                   <p className="text-[10px] text-zinc-500">Bench</p>
                   <p className="text-sm font-semibold text-zinc-100">
@@ -155,18 +152,18 @@ function ProgressOverview({
                     {strengthSummary.deadlift.current_estimated_one_rep_max?.toFixed(1) ?? "--"}
                   </p>
                 </div>
-              </div>
-              <div className="mt-2 rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
-                <p className="text-[10px] text-zinc-500">Tested Total • 1000 LB Club</p>
-                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+                  <p className="text-[10px] text-zinc-500">Tested Total • 1000 LB Club</p>
                   <p className="text-sm font-semibold text-zinc-100">
                     {strengthSummary.total_tested?.toFixed(1) ?? "--"} {displayUnit}
                   </p>
-                  {strengthSummary.thousand_club_progress_percent !== null ? (
-                    <Chip tone="success">{`1000 LB Club ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`}</Chip>
-                  ) : (
-                    <StateChip state="missing" label="Need tested bench, squat, and deadlift" />
-                  )}
+                  <div className="mt-1">
+                    {strengthSummary.thousand_club_progress_percent !== null ? (
+                      <Chip tone="success">{`1000 LB Club ${strengthSummary.thousand_club_progress_percent.toFixed(0)}%`}</Chip>
+                    ) : (
+                      <StateChip state="missing" label="Need tested bench, squat, and deadlift" />
+                    )}
+                  </div>
                 </div>
               </div>
             </>
