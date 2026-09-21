@@ -217,20 +217,11 @@ export function WorkoutPlanner({
     if (!todayPlan?.template_id) {
       return;
     }
-    const exercises = (templateExercises ?? [])
-      .filter((exercise) => exercise.template_id === todayPlan.template_id)
-      .map((exercise) => ({
-        exercise_id: exercise.exercise_id ?? null,
-        catalog_exercise_id: exercise.catalog_exercise_id ?? null,
-        exercise_name: exercise.exercise_name,
-        notes: exercise.notes ?? null,
-      }));
     startTransition(async () => {
       const result = await quickStartWorkoutFromTemplateAction({
         templateId: todayPlan.template_id!,
         templateName: todayPlan.template_name ?? "Workout",
         workoutDate: todayPlan.date,
-        exercises,
       });
       if (result.status === "success" && result.workoutId) {
         setFeedback(result.message, "success");

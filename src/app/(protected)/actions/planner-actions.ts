@@ -6,6 +6,7 @@ import {
   clearScheduleOverride,
   createWorkoutTemplate,
   duplicateWorkoutTemplate,
+  getMyWorkoutTemplateExercises,
   initializePlannerDefaults,
   replaceWorkoutTemplateExercises,
   setScheduleOverride,
@@ -253,13 +254,27 @@ export async function quickStartWorkoutFromTemplateAction(input: {
   templateId: string;
   templateName: string;
   workoutDate?: string;
-  exercises: Array<{
-    exercise_id: string | null;
-    catalog_exercise_id: string | null;
-    exercise_name: string;
-    notes?: string | null;
-  }>;
 }): Promise<{ status: "success" | "error"; message: string; workoutId: string | null }> {
+  const templateExercisesResult = await getMyWorkoutTemplateExercises([input.templateId]);
+  if (templateExercisesResult.error) {
+    return {
+      status: "error",
+      message: templateExercisesResult.error.message,
+      workoutId: null,
+    };
+  }
+  const templateExercises = templateExercisesResult.data
+    .filter((exercise) => exercise.template_id === input.templateId)
+    .sort((left, right) => left.position - right.position);
+
+  if (templateExercises.length === 0) {
+    return {
+      status: "error",
+      message: "Template has no exercises. Add exercises before starting this workout.",
+      workoutId: null,
+    };
+  }
+
   const profileResult = await getMyProfile();
   const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
   const createResult = await createMyWorkout({
@@ -277,7 +292,7 @@ export async function quickStartWorkoutFromTemplateAction(input: {
     };
   }
 
-  for (const exercise of input.exercises) {
+  for (const exercise of templateExercises) {
     const addResult = await addExerciseToWorkout(createResult.data.id, {
       exercise_id: exercise.exercise_id,
       catalog_exercise_id: exercise.catalog_exercise_id,

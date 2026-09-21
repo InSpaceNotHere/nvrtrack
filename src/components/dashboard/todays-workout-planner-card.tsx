@@ -10,14 +10,13 @@ import { Card } from "@/components/ui/card";
 import { MetricValue } from "@/components/ui/metric-value";
 import { StateChip } from "@/components/ui/state-chip";
 import { Toast } from "@/components/ui/toast";
-import type { PlannerDayPlan, PlannerTemplateExercise } from "@/lib/training/planner";
+import type { PlannerDayPlan } from "@/lib/training/planner";
 
 interface TodaysWorkoutPlannerCardProps {
   todayPlan: PlannerDayPlan | null;
-  templateExercises: PlannerTemplateExercise[];
 }
 
-export function TodaysWorkoutPlannerCard({ todayPlan, templateExercises }: TodaysWorkoutPlannerCardProps) {
+export function TodaysWorkoutPlannerCard({ todayPlan }: TodaysWorkoutPlannerCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
@@ -27,19 +26,11 @@ export function TodaysWorkoutPlannerCard({ todayPlan, templateExercises }: Today
     if (!todayPlan?.template_id) {
       return;
     }
-    const exercises = templateExercises
-      .filter((exercise) => exercise.template_id === todayPlan.template_id)
-      .map((exercise) => ({
-        exercise_id: exercise.exercise_id ?? null,
-        catalog_exercise_id: exercise.catalog_exercise_id ?? null,
-        exercise_name: exercise.exercise_name,
-      }));
     startTransition(async () => {
       const result = await quickStartWorkoutFromTemplateAction({
         templateId: todayPlan.template_id!,
         templateName: todayPlan.template_name ?? "Workout",
         workoutDate: todayPlan.date,
-        exercises,
       });
       if (result.status === "success" && result.workoutId) {
         setMessage(result.message);
