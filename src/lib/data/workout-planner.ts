@@ -127,6 +127,18 @@ function isValidDateString(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`));
 }
 
+function isMissingColumnError(message: string | undefined): boolean {
+  if (!message) {
+    return false;
+  }
+  const normalized = message.toLowerCase();
+  return (
+    (normalized.includes("column") && normalized.includes("does not exist")) ||
+    (normalized.includes("could not find the") && normalized.includes("column")) ||
+    normalized.includes("schema cache")
+  );
+}
+
 function defaultWeekdayRows(userId: string): Array<Pick<WorkoutWeekdayScheduleRow, "user_id" | "weekday" | "template_id" | "is_rest_day">> {
   return Array.from({ length: 7 }, (_, weekday) => ({
     user_id: userId,
@@ -522,18 +534,40 @@ export async function replaceWorkoutTemplateExercises(
     movement_pattern: exercise.movement_pattern ?? null,
   }));
 
-  const created = await supabase
+  let { data, error } = await supabase
     .from("workout_template_exercises")
     .insert(insertRows)
     .select("*");
-  if (created.error) {
+  if (error && isMissingColumnError(error.message)) {
+    const legacyRows = insertRows.map((row) => ({
+      user_id: row.user_id,
+      template_id: row.template_id,
+      exercise_id: row.exercise_id,
+      catalog_exercise_id: row.catalog_exercise_id,
+      exercise_name: row.exercise_name,
+      position: row.position,
+      notes: row.notes,
+      primary_muscles: row.primary_muscles,
+      secondary_muscles: row.secondary_muscles,
+      body_region: row.body_region,
+      movement_pattern: row.movement_pattern,
+    }));
+    const legacyRetry = await supabase
+      .from("workout_template_exercises")
+      .insert(legacyRows)
+      .select("*");
+    data = legacyRetry.data;
+    error = legacyRetry.error;
+  }
+
+  if (error) {
     return fail({
       code: "DB_ERROR",
       message: "Failed to save template exercises.",
-      cause: created.error.message,
+      cause: error.message,
     });
   }
-  return ok(asRows<WorkoutTemplateExerciseRow>(created.data));
+  return ok(asRows<WorkoutTemplateExerciseRow>(data));
 }
 
 export async function duplicateWorkoutTemplate(templateId: string): Promise<DataAccessResult<WorkoutTemplateRow>> {
