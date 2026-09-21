@@ -131,7 +131,7 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
 
   await page.getByRole("button").filter({ hasText: "Full Body Basics" }).first().click();
   await expect(page.getByText("Proposed weekly schedule")).toBeVisible();
-  await expect(page.getByText(/2 x 8-12 reps; rest 2-3 min/)).toBeVisible();
+  await expect(page.getByText(/2 x 8-12 reps; rest 2-3 min/).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Save Templates Only" }).click();
   await expect(page.getByRole("status").filter({ hasText: "templates saved" })).toBeVisible();
