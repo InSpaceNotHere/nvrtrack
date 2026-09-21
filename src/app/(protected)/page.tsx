@@ -2,9 +2,16 @@ import Link from "next/link";
 import { Activity, Droplets, Flame, Scale, Zap } from "lucide-react";
 
 import { WorkoutCard } from "@/components/dashboard/workout-card";
+import type { WorkoutCardPrimaryAction } from "@/components/dashboard/workout-card-primary-action";
 import { Card } from "@/components/ui/card";
 import { StateChip } from "@/components/ui/state-chip";
 import { getMyFoodEntriesForDate } from "@/lib/data/nutrition";
+import {
+  getMyScheduleOverridesForRange,
+  getMyWeekdaySchedule,
+  getMyWorkoutTemplateExercises,
+  getMyWorkoutTemplates,
+} from "@/lib/data/workout-planner";
 import { getMyProfile } from "@/lib/data/profile";
 import {
   getMyActiveWorkout,
@@ -17,6 +24,9 @@ import { getWeightEntries } from "@/lib/data/weight";
 import { calculateDailyTotals } from "@/lib/nutrition/calculations";
 import { getTodayDateString } from "@/lib/nutrition/date";
 import { normalizeTimeZone } from "@/lib/timezone";
+import { resolveHomeTodayWorkout, formatTodayWorkoutHeadline } from "@/lib/training/home-today-workout";
+import { buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
+import { buildPlannerWeek, buildWeekDates, findPlannerDayForDate } from "@/lib/training/planner";
 import { buildWorkoutSummaryStats, groupSetsByWorkoutExerciseId } from "@/lib/training/session";
 import { computeWorkoutDayStreak } from "@/lib/training/streaks";
 import { buildStrengthDashboardSummaryFromHistoryRows } from "@/lib/training/strength";
@@ -28,22 +38,73 @@ function getDisplayUnit(preferredWeightUnit: string | null | undefined): WeightU
   return preferredWeightUnit === "kg" ? "kg" : "lb";
 }
 
+function formatMuscleFocusSummary(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.replace(/^Primary focus:\s*/i, "");
+  if (!trimmed) {
+    return null;
+  }
+  return trimmed
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => entry.charAt(0).toUpperCase() + entry.slice(1))
+    .join(" • ");
+}
+
 export default async function HomePage() {
   const profileResult = await getMyProfile();
   const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
   const todayDate = getTodayDateString(profileTimeZone);
   const referenceDate = new Date(`${todayDate}T12:00:00.000Z`);
-  const [weightEntriesResult, nutritionEntriesResult, completedWorkoutsResult, activeWorkoutResult, strengthRowsResult] = await Promise.all([
+  const weekDates = buildWeekDates(referenceDate);
+  const todayWeekStart = weekDates[0];
+  const todayWeekEnd = weekDates[weekDates.length - 1];
+  const tomorrowReferenceDate = new Date(referenceDate);
+  tomorrowReferenceDate.setUTCDate(referenceDate.getUTCDate() + 1);
+  const tomorrowDate = tomorrowReferenceDate.toISOString().slice(0, 10);
+  const tomorrowWeekDates = buildWeekDates(tomorrowReferenceDate);
+  const plannerRangeStart = todayWeekStart < tomorrowWeekDates[0] ? todayWeekStart : tomorrowWeekDates[0];
+  const plannerRangeEnd =
+    todayWeekEnd > tomorrowWeekDates[tomorrowWeekDates.length - 1]
+      ? todayWeekEnd
+      : tomorrowWeekDates[tomorrowWeekDates.length - 1];
+
+  const [
+    weightEntriesResult,
+    nutritionEntriesResult,
+    completedWorkoutsResult,
+    activeWorkoutResult,
+    strengthRowsResult,
+    templatesResult,
+    templateExercisesResult,
+    weekdayScheduleResult,
+    scheduleOverridesResult,
+  ] = await Promise.all([
     getWeightEntries(),
     getMyFoodEntriesForDate(todayDate),
     getMyCompletedWorkouts(),
     getMyActiveWorkout(),
     getMyStrengthHistorySetRows(),
+    getMyWorkoutTemplates(),
+    getMyWorkoutTemplateExercises(),
+    getMyWeekdaySchedule(),
+    getMyScheduleOverridesForRange(plannerRangeStart, plannerRangeEnd),
   ]);
   const profileLoadError = profileResult.error?.message ?? null;
   const weightLoadError = weightEntriesResult.error?.message ?? null;
   const nutritionLoadError = nutritionEntriesResult.error?.message ?? null;
-  const workoutLoadError = completedWorkoutsResult.error?.message ?? activeWorkoutResult.error?.message ?? strengthRowsResult.error?.message ?? null;
+  let workoutLoadError =
+    completedWorkoutsResult.error?.message ??
+    activeWorkoutResult.error?.message ??
+    strengthRowsResult.error?.message ??
+    templatesResult.error?.message ??
+    templateExercisesResult.error?.message ??
+    weekdayScheduleResult.error?.message ??
+    scheduleOverridesResult.error?.message ??
+    null;
 
   const displayUnit = getDisplayUnit(profileResult.data?.preferred_weight_unit);
   const weightEntries = weightEntriesResult.data ?? [];
@@ -69,21 +130,82 @@ export default async function HomePage() {
   const todaysCompletedWorkout = [...completedWorkouts]
     .filter((workout) => workout.workout_date === todayDate && workout.completed_at !== null)
     .sort((a, b) => Date.parse(b.completed_at ?? b.created_at) - Date.parse(a.completed_at ?? a.created_at))[0];
-  const workoutCardTarget = activeWorkout ?? todaysCompletedWorkout ?? null;
+  const completedPlannerRangeWorkouts = completedWorkouts
+    .filter((workout) => workout.completed_at !== null)
+    .filter((workout) => workout.workout_date >= plannerRangeStart && workout.workout_date <= plannerRangeEnd)
+    .map((workout) => ({
+      id: workout.id,
+      workout_date: workout.workout_date,
+      name: workout.name,
+    }));
+  const plannerWeek = buildPlannerWeek({
+    templates: templatesResult.data ?? [],
+    templateExercises: templateExercisesResult.data ?? [],
+    weekdayScheduleRows: weekdayScheduleResult.data ?? [],
+    scheduleOverrideRows: scheduleOverridesResult.data ?? [],
+    completedWorkouts: completedPlannerRangeWorkouts,
+    referenceDate,
+  });
+  const tomorrowPlannerWeek = buildPlannerWeek({
+    templates: templatesResult.data ?? [],
+    templateExercises: templateExercisesResult.data ?? [],
+    weekdayScheduleRows: weekdayScheduleResult.data ?? [],
+    scheduleOverrideRows: scheduleOverridesResult.data ?? [],
+    completedWorkouts: completedPlannerRangeWorkouts,
+    referenceDate: tomorrowReferenceDate,
+  });
 
-  let workoutCardName = "No workout logged today";
-  let workoutCardStatus = "Start a workout to begin today’s training.";
-  let workoutCardActionLabel = "Start Workout";
-  let workoutCardActionHref = "/training/start";
+  const todayPlan = findPlannerDayForDate(plannerWeek, todayDate);
+  const tomorrowPlan = findPlannerDayForDate(tomorrowPlannerWeek, tomorrowDate);
+  const plannerUninitialized = (templatesResult.data ?? []).length === 0 && plannerWeek.every((day) => day.status === "none");
+  const weekdayLabel = todayPlan?.weekday_label ?? new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(referenceDate);
+  const resolvedTodayWorkout = resolveHomeTodayWorkout({
+    todayDate,
+    weekdayLabel,
+    todayPlan,
+    activeWorkout: activeWorkout
+      ? {
+          id: activeWorkout.id,
+          name: activeWorkout.name,
+          workout_date: activeWorkout.workout_date,
+        }
+      : null,
+    todaysCompletedWorkout: todaysCompletedWorkout
+      ? {
+          id: todaysCompletedWorkout.id,
+          name: todaysCompletedWorkout.name,
+          workout_date: todaysCompletedWorkout.workout_date,
+        }
+      : null,
+    plannerUninitialized,
+  });
+
+  let workoutCardTarget: typeof activeWorkout | typeof todaysCompletedWorkout | null = null;
+  if (resolvedTodayWorkout.state === "active" && activeWorkout && resolvedTodayWorkout.workoutId === activeWorkout.id) {
+    workoutCardTarget = activeWorkout;
+  } else if (resolvedTodayWorkout.state === "completed" && todaysCompletedWorkout && resolvedTodayWorkout.workoutId === todaysCompletedWorkout.id) {
+    workoutCardTarget = todaysCompletedWorkout;
+  }
+
+  const workoutCardName = formatTodayWorkoutHeadline(resolvedTodayWorkout);
+  let workoutCardStatus = "Open your program to plan today.";
+  let workoutCardPrimaryAction: WorkoutCardPrimaryAction | null = {
+    kind: "link",
+    label: "View Program",
+    href: "/training?view=program",
+  };
+  let workoutCardSecondaryActionLabel: string | undefined = "Program";
+  let workoutCardSecondaryActionHref: string | undefined = "/training?view=program";
   let workoutCardExercises: number | null = null;
   let workoutCardSets: number | null = null;
   let workoutCardDurationMinutes: number | null = null;
-  let workoutCardState: "active" | "completed" | "planned" | "neutral" = "planned";
+  let workoutCardState: "active" | "completed" | "planned" | "neutral" = "neutral";
 
   if (workoutCardTarget) {
     const workoutExercisesResult = await getMyWorkoutExercises(workoutCardTarget.id);
     const workoutExerciseIds = (workoutExercisesResult.data ?? []).map((exercise) => exercise.id);
     const workoutSetsResult = await getWorkoutSetsForWorkoutExerciseIds(workoutExerciseIds);
+    workoutLoadError = workoutLoadError ?? workoutExercisesResult.error?.message ?? workoutSetsResult.error?.message ?? null;
     const summary = buildWorkoutSummaryStats({
       workout: workoutCardTarget,
       exercises: workoutExercisesResult.data ?? [],
@@ -93,20 +215,67 @@ export default async function HomePage() {
     workoutCardExercises = summary.exerciseCount;
     workoutCardSets = summary.totalSetCount;
     workoutCardDurationMinutes = summary.durationMinutes;
+  }
 
-    if (workoutCardTarget.completed_at) {
-      workoutCardName = workoutCardTarget.name;
-      workoutCardStatus = "Completed today";
-      workoutCardState = "completed";
-      workoutCardActionLabel = "Start Workout";
-      workoutCardActionHref = "/training/start";
-    } else {
-      workoutCardName = workoutCardTarget.name;
-      workoutCardStatus = "Workout in progress";
-      workoutCardState = "active";
-      workoutCardActionLabel = "Continue Workout";
-      workoutCardActionHref = `/training/workouts/${workoutCardTarget.id}`;
+  if (resolvedTodayWorkout.state === "scheduled") {
+    const focus = formatMuscleFocusSummary(todayPlan ? buildPrimaryFocusLabel(todayPlan.muscle_targeting, 3) : null);
+    workoutCardStatus = focus ?? "Scheduled for today";
+    workoutCardState = "planned";
+    workoutCardExercises = todayPlan?.exercise_count ?? null;
+    workoutCardSets = null;
+    workoutCardDurationMinutes = todayPlan?.estimated_duration_minutes ?? null;
+    workoutCardPrimaryAction = todayPlan?.template_id
+      ? {
+          kind: "start-scheduled",
+          label: "Start Workout",
+        }
+      : {
+          kind: "link",
+          label: "View Program",
+          href: "/training?view=program",
+        };
+  } else if (resolvedTodayWorkout.state === "active") {
+    workoutCardStatus = "Workout in progress";
+    workoutCardState = "active";
+    if (resolvedTodayWorkout.workoutId) {
+      workoutCardPrimaryAction = {
+        kind: "link",
+        label: "Resume Workout",
+        href: `/training/workouts/${resolvedTodayWorkout.workoutId}`,
+      };
     }
+  } else if (resolvedTodayWorkout.state === "completed") {
+    workoutCardStatus = "Completed ✓";
+    workoutCardState = "completed";
+    workoutCardPrimaryAction = resolvedTodayWorkout.workoutId
+      ? {
+          kind: "link",
+          label: "View Summary",
+          href: `/training/workouts/${resolvedTodayWorkout.workoutId}`,
+        }
+      : {
+          kind: "link",
+          label: "View History",
+          href: "/training?view=history",
+        };
+  } else if (resolvedTodayWorkout.state === "rest") {
+    const nextScheduled = tomorrowPlan?.status === "scheduled" && tomorrowPlan.template_name ? `Next: ${tomorrowPlan.template_name} tomorrow` : null;
+    workoutCardStatus = nextScheduled ? `Recovery day • ${nextScheduled}` : "Recovery day";
+  } else if (resolvedTodayWorkout.state === "skipped") {
+    workoutCardStatus = "Skipped for today";
+  } else if (resolvedTodayWorkout.state === "moved") {
+    workoutCardStatus = "Moved to another day";
+  } else if (resolvedTodayWorkout.state === "no_program") {
+    workoutCardStatus = "Choose a plan to populate your schedule.";
+    workoutCardPrimaryAction = {
+      kind: "link",
+      label: "Choose a Plan",
+      href: "/training?view=plans",
+    };
+    workoutCardSecondaryActionLabel = undefined;
+    workoutCardSecondaryActionHref = undefined;
+  } else {
+    workoutCardStatus = "No workout scheduled for today.";
   }
   const workoutStreak = computeWorkoutDayStreak(completedWorkouts, {
     timeZone: profileTimeZone,
@@ -152,10 +321,9 @@ export default async function HomePage() {
         exercises={workoutCardExercises}
         totalSets={workoutCardSets}
         durationMinutes={workoutCardDurationMinutes}
-        actionLabel={workoutCardActionLabel}
-        actionHref={workoutCardActionHref}
-        secondaryActionLabel="Program"
-        secondaryActionHref="/training?view=program"
+        primaryAction={workoutCardPrimaryAction}
+        secondaryActionLabel={workoutCardSecondaryActionLabel}
+        secondaryActionHref={workoutCardSecondaryActionHref}
       />
 
       <section>

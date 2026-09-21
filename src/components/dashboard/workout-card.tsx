@@ -4,6 +4,7 @@ import { Dumbbell } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { MetricValue } from "@/components/ui/metric-value";
 import { StateChip } from "@/components/ui/state-chip";
+import { WorkoutCardPrimaryActionButton, type WorkoutCardPrimaryAction } from "@/components/dashboard/workout-card-primary-action";
 
 interface WorkoutCardProps {
   workoutName: string;
@@ -12,8 +13,7 @@ interface WorkoutCardProps {
   exercises: number | null;
   totalSets: number | null;
   durationMinutes?: number | null;
-  actionLabel?: string;
-  actionHref?: string;
+  primaryAction?: WorkoutCardPrimaryAction | null;
   secondaryActionLabel?: string;
   secondaryActionHref?: string;
 }
@@ -25,8 +25,7 @@ export function WorkoutCard({
   exercises,
   totalSets,
   durationMinutes = null,
-  actionLabel,
-  actionHref,
+  primaryAction = null,
   secondaryActionLabel,
   secondaryActionHref,
 }: WorkoutCardProps) {
@@ -56,14 +55,9 @@ export function WorkoutCard({
           ) : null}
         </div>
       </div>
-      {actionLabel && actionHref ? (
+      {primaryAction ? (
         <div className="mt-2">
-          <Link
-            href={actionHref}
-            className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
-          >
-            {actionLabel}
-          </Link>
+          <WorkoutCardPrimaryActionButton action={primaryAction} />
           {secondaryActionLabel && secondaryActionHref ? (
             <div className="mt-1.5 text-right">
               <Link

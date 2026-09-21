@@ -6,7 +6,10 @@ import {
   clearScheduleOverride,
   createWorkoutTemplate,
   duplicateWorkoutTemplate,
+  getMyScheduleOverridesForRange,
+  getMyWeekdaySchedule,
   getMyWorkoutTemplateExercises,
+  getMyWorkoutTemplates,
   initializePlannerDefaults,
   replaceWorkoutTemplateExercises,
   setScheduleOverride,
@@ -15,10 +18,18 @@ import {
 } from "@/lib/data/workout-planner";
 import { importReadyMadePreset } from "@/lib/data/ready-made-presets";
 import { getMyProfile } from "@/lib/data/profile";
-import { addExerciseToWorkout, createMyWorkout } from "@/lib/data/workouts";
+import {
+  addExerciseToWorkout,
+  createMyWorkout,
+  getMyActiveWorkout,
+  getMyCompletedWorkouts,
+  getMyWorkouts,
+} from "@/lib/data/workouts";
 import { getTodayDateString } from "@/lib/nutrition/date";
 import { normalizeTimeZone } from "@/lib/timezone";
 import type { ReadyMadePresetId } from "@/lib/training/ready-made-presets";
+import { buildPlannerWeek, buildWeekDates, findPlannerDayForDate } from "@/lib/training/planner";
+import { resolveHomeTodayWorkout } from "@/lib/training/home-today-workout";
 
 export interface PlannerActionResult {
   status: "success" | "error";
@@ -314,6 +325,153 @@ export async function quickStartWorkoutFromTemplateAction(input: {
     message: "Workout started from template.",
     workoutId: createResult.data.id,
   };
+}
+
+export async function startOrResumeTodayScheduledWorkoutAction(): Promise<{
+  status: "success" | "error";
+  message: string;
+  workoutId: string | null;
+}> {
+  const profileResult = await getMyProfile();
+  const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
+  const todayDate = getTodayDateString(profileTimeZone);
+  const referenceDate = new Date(`${todayDate}T12:00:00.000Z`);
+  const weekDates = buildWeekDates(referenceDate);
+  const weekStart = weekDates[0];
+  const weekEnd = weekDates[weekDates.length - 1];
+
+  const [
+    activeWorkoutResult,
+    completedWorkoutsResult,
+    templatesResult,
+    templateExercisesResult,
+    weekdayScheduleResult,
+    scheduleOverridesResult,
+  ] = await Promise.all([
+    getMyActiveWorkout(),
+    getMyCompletedWorkouts({ startDate: weekStart, endDate: weekEnd }),
+    getMyWorkoutTemplates(),
+    getMyWorkoutTemplateExercises(),
+    getMyWeekdaySchedule(),
+    getMyScheduleOverridesForRange(weekStart, weekEnd),
+  ]);
+
+  const dataError =
+    activeWorkoutResult.error?.message ??
+    completedWorkoutsResult.error?.message ??
+    templatesResult.error?.message ??
+    templateExercisesResult.error?.message ??
+    weekdayScheduleResult.error?.message ??
+    scheduleOverridesResult.error?.message ??
+    null;
+  if (dataError) {
+    return {
+      status: "error",
+      message: dataError,
+      workoutId: null,
+    };
+  }
+
+  const plannerWeek = buildPlannerWeek({
+    templates: templatesResult.data ?? [],
+    templateExercises: templateExercisesResult.data ?? [],
+    weekdayScheduleRows: weekdayScheduleResult.data ?? [],
+    scheduleOverrideRows: scheduleOverridesResult.data ?? [],
+    completedWorkouts: (completedWorkoutsResult.data ?? []).map((workout) => ({
+      id: workout.id,
+      workout_date: workout.workout_date,
+      name: workout.name,
+    })),
+    referenceDate,
+  });
+  const todayPlan = findPlannerDayForDate(plannerWeek, todayDate);
+  const plannerUninitialized = (templatesResult.data ?? []).length === 0 && plannerWeek.every((day) => day.status === "none");
+
+  const todaysCompletedWorkout = [...(completedWorkoutsResult.data ?? [])]
+    .filter((workout) => workout.workout_date === todayDate && workout.completed_at !== null)
+    .sort((left, right) => Date.parse(right.completed_at ?? right.created_at) - Date.parse(left.completed_at ?? left.created_at))[0] ?? null;
+
+  const resolved = resolveHomeTodayWorkout({
+    todayDate,
+    weekdayLabel: todayPlan?.weekday_label ?? referenceDate.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" }),
+    todayPlan,
+    activeWorkout: activeWorkoutResult.data
+      ? {
+          id: activeWorkoutResult.data.id,
+          name: activeWorkoutResult.data.name,
+          workout_date: activeWorkoutResult.data.workout_date,
+        }
+      : null,
+    todaysCompletedWorkout: todaysCompletedWorkout
+      ? {
+          id: todaysCompletedWorkout.id,
+          name: todaysCompletedWorkout.name,
+          workout_date: todaysCompletedWorkout.workout_date,
+        }
+      : null,
+    plannerUninitialized,
+  });
+
+  if (resolved.state === "active" && resolved.workoutId) {
+    return {
+      status: "success",
+      message: "Resuming today’s scheduled workout.",
+      workoutId: resolved.workoutId,
+    };
+  }
+
+  if (resolved.state === "completed") {
+    return {
+      status: "error",
+      message: "Today’s scheduled workout is already completed.",
+      workoutId: null,
+    };
+  }
+
+  if (resolved.state !== "scheduled" || !resolved.templateId || !todayPlan?.template_name) {
+    return {
+      status: "error",
+      message:
+        resolved.state === "no_program"
+          ? "No program is configured yet. Choose a plan first."
+          : "No scheduled workout is available to start for today.",
+      workoutId: null,
+    };
+  }
+
+  const todayWorkoutsResult = await getMyWorkouts({
+    startDate: todayDate,
+    endDate: todayDate,
+  });
+  if (todayWorkoutsResult.error) {
+    return {
+      status: "error",
+      message: todayWorkoutsResult.error.message,
+      workoutId: null,
+    };
+  }
+
+  const resumedExistingWorkout = [...(todayWorkoutsResult.data ?? [])]
+    .filter(
+      (workout) =>
+        workout.completed_at === null &&
+        workout.name.trim().toLowerCase() === todayPlan.template_name!.trim().toLowerCase(),
+    )
+    .sort((left, right) => Date.parse(right.started_at ?? right.created_at) - Date.parse(left.started_at ?? left.created_at))[0];
+
+  if (resumedExistingWorkout) {
+    return {
+      status: "success",
+      message: "Resuming today’s scheduled workout.",
+      workoutId: resumedExistingWorkout.id,
+    };
+  }
+
+  return quickStartWorkoutFromTemplateAction({
+    templateId: resolved.templateId,
+    templateName: todayPlan.template_name,
+    workoutDate: todayDate,
+  });
 }
 
 export async function saveReadyMadePresetAction(
