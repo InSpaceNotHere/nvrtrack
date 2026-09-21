@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ReadyMadePlansLibrary } from "@/components/training/ready-made-plans-library";
 import { WorkoutPlanner } from "@/components/training/workout-planner";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -330,6 +331,7 @@ function applyFixturePresentation(
 export default async function TrainingPage({ searchParams }: TrainingPageProps) {
   const resolvedSearchParams = (await Promise.resolve(searchParams)) ?? {};
   const view = asSingleParam(resolvedSearchParams.view);
+  const presetParam = asSingleParam(resolvedSearchParams.preset);
   const fixtureParam = asSingleParam(resolvedSearchParams.fixture);
   const allowFixturePreview = process.env.NODE_ENV !== "production";
   const fixture = allowFixturePreview && isFixture(fixtureParam) ? fixtureParam : null;
@@ -419,6 +421,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
     })),
   ];
   const readyMadeResolution = buildReadyMadePresetResolution(catalogResult.data ?? []);
+  const initialPlanPresetId = readyMadeResolution.presets.find((preset) => preset.id === presetParam)?.id ?? null;
+  const isPlanDetailView = initialPlanPresetId !== null;
 
   const dataErrorMessage =
     activeWorkoutResult.error?.message ??
@@ -570,8 +574,13 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
 
   const tools = [
     {
-      title: "Program / Planner",
-      description: "Build schedule",
+      title: "Choose a Plan",
+      description: "Preset library",
+      href: "/training?view=plans",
+    },
+    {
+      title: "Manage Program",
+      description: "Planner + templates",
       href: "/training?view=program",
     },
     {
@@ -583,11 +592,6 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       title: "Exercise Library",
       description: "Catalog + custom",
       href: "/training/exercises",
-    },
-    {
-      title: "Templates",
-      description: "Create + duplicate",
-      href: "/training?view=program#templates",
     },
   ] as const;
 
@@ -628,10 +632,35 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   : null
               }
               completedThisWeek={completedThisWeek}
-              readyMadePresets={readyMadeResolution.presets}
-              readyMadeMissingExercises={readyMadeResolution.missingExercises}
             />
           </section>
+        </>
+      ) : view === "plans" ? (
+        <>
+          {!isPlanDetailView ? (
+            <Card variant="tertiary">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-zinc-300">Choose a ready-made plan.</p>
+                <Link
+                  href="/training"
+                  className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+                >
+                  Back to Training
+                </Link>
+              </div>
+            </Card>
+          ) : null}
+          <Card
+            title={isPlanDetailView ? undefined : "Ready-Made Plan Library"}
+            subtitle={isPlanDetailView ? undefined : "Five options optimized for quick mobile scanning"}
+            variant="primary"
+          >
+            <ReadyMadePlansLibrary
+              presets={readyMadeResolution.presets}
+              missingExercises={readyMadeResolution.missingExercises}
+              initialPresetId={initialPlanPresetId}
+            />
+          </Card>
         </>
       ) : view === "history" ? (
         <>
@@ -845,10 +874,10 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                     Create Starter Schedule
                   </Link>
                   <Link
-                    href="/training?view=program#ready-made-plans"
+                    href="/training?view=plans"
                     className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
                   >
-                    Choose a Ready-Made Plan
+                    Choose a Plan
                   </Link>
                 </div>
               </div>

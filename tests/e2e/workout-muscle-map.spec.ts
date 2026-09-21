@@ -36,7 +36,8 @@ async function addCatalogExercise(page: Page, searchTerm: string, optionName: Re
   await panel.getByLabel("Search catalog").fill(searchTerm);
   await panel.getByRole("button", { name: optionName }).first().click();
   await panel.getByRole("button", { name: "Add Catalog Exercise" }).click();
-  await expect(page.getByRole("heading", { name: optionName }).first()).toBeVisible();
+  const switcher = page.getByTestId("exercise-switcher");
+  await expect(switcher.getByRole("button", { name: optionName }).first()).toBeVisible();
   const closeButton = panel.getByRole("button", { name: /^Close$/ });
   if ((await closeButton.count()) > 0) {
     await closeButton.click();
@@ -44,13 +45,27 @@ async function addCatalogExercise(page: Page, searchTerm: string, optionName: Re
   await expect(panel.getByRole("button", { name: /^Open$/ })).toBeVisible();
 }
 
-async function removeExerciseCardByName(page: Page, name: string) {
-  const card = page
-    .locator("article")
-    .filter({ has: page.getByRole("heading", { name }) })
-    .first();
-  await card.getByRole("button", { name: "Remove Exercise" }).click();
-  await card.getByRole("button", { name: "Confirm Remove" }).click();
+async function selectExerciseInSwitcher(page: Page, name: string) {
+  const switcher = page.getByTestId("exercise-switcher");
+  const chip = switcher.getByRole("button").filter({ hasText: name }).first();
+  await chip.click();
+  await expect(page.getByRole("heading", { name }).first()).toBeVisible();
+}
+
+async function removeExerciseByName(page: Page, name: string) {
+  await selectExerciseInSwitcher(page, name);
+  await page.getByText("Exercise actions").first().click();
+  await page.getByRole("button", { name: "Remove Exercise" }).first().click();
+  await page.getByRole("button", { name: "Confirm Remove Exercise" }).first().click();
+}
+
+async function ensureMuscleCoverageOpen(page: Page) {
+  const rankedList = page.getByTestId("workout-muscle-ranked-list");
+  if (await rankedList.isVisible()) {
+    return;
+  }
+  await page.getByText("Workout Muscle Coverage").first().click();
+  await expect(rankedList).toBeVisible();
 }
 
 async function completeWorkout(page: Page) {
@@ -119,6 +134,7 @@ test("workout muscle map updates live and persists to summary", async ({ page })
     await addCatalogExercise(page, "bench", /^Barbell Bench Press\b/i);
     await addCatalogExercise(page, "pushdown", /^Triceps Pushdown\b/i);
 
+    await ensureMuscleCoverageOpen(page);
     const rankedList = page.getByTestId("workout-muscle-ranked-list");
     await expect(rankedList).toContainText("Chest");
     await expect(rankedList).toContainText("Triceps");
@@ -126,15 +142,17 @@ test("workout muscle map updates live and persists to summary", async ({ page })
     await addCatalogExercise(page, "pull-up", /^Pull-Up\b/i);
     await expect(rankedList).toContainText("Upper back");
 
-    await removeExerciseCardByName(page, "Pull-Up");
+    await removeExerciseByName(page, "Pull-Up");
     await expect(rankedList).not.toContainText("Upper back");
 
     await page.reload();
+    await ensureMuscleCoverageOpen(page);
     await expect(rankedList).toContainText("Chest");
     await expect(rankedList).toContainText("Triceps");
     await expect(rankedList).not.toContainText("Upper back");
 
     await completeWorkout(page);
+    await ensureMuscleCoverageOpen(page);
     await expect(page.getByTestId("workout-muscle-map")).toBeVisible();
     await expect(page.getByText(/Derived from exercise muscle metadata snapshots/i)).toBeVisible();
 
@@ -145,7 +163,7 @@ test("workout muscle map updates live and persists to summary", async ({ page })
     await panel.getByRole("button", { name: "Custom Fallback" }).click();
     await panel.getByLabel("Use existing custom exercise (optional)").selectOption({ label: customExerciseName });
     await panel.getByRole("button", { name: "Add Custom Exercise" }).click();
-    await expect(page.getByRole("heading", { name: customExerciseName }).first()).toBeVisible();
+    await selectExerciseInSwitcher(page, customExerciseName);
 
     await expect(rankedList).toContainText("Chest");
   } finally {

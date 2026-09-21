@@ -34,7 +34,6 @@ import type { ExerciseCatalogRow } from "@/lib/data/exercise-catalog";
 import { filterCatalogExercises, buildCatalogFacets } from "@/lib/training/catalog";
 import { aggregateWorkoutMuscles, buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
 import {
-  calculateExerciseVolume,
   evaluatePersonalRecordCandidate,
   estimateSetOneRepMax,
 } from "@/lib/training/calculations";
@@ -230,6 +229,7 @@ export function WorkoutLogger({
   const [customBodyRegion, setCustomBodyRegion] = useState("");
   const [customMovementPattern, setCustomMovementPattern] = useState("");
   const [customCanonicalLift, setCustomCanonicalLift] = useState<CanonicalLift | "">("");
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(exercises[0]?.id ?? null);
 
   const isCompletedWorkout = Boolean(workout.completedAt);
   useEffect(() => {
@@ -292,6 +292,20 @@ export function WorkoutLogger({
       .filter((exercise) => !optimisticRemovedExerciseIds.includes(exercise.id))
       .sort((a, b) => a.position - b.position);
   }, [exercises, optimisticExercises, optimisticRemovedExerciseIds]);
+  const currentExerciseId = useMemo(() => {
+    if (!displayExercises.length) {
+      return null;
+    }
+    if (selectedExerciseId && displayExercises.some((exercise) => exercise.id === selectedExerciseId)) {
+      return selectedExerciseId;
+    }
+    return displayExercises[0]?.id ?? null;
+  }, [displayExercises, selectedExerciseId]);
+  const currentExerciseIndex = useMemo(
+    () => Math.max(0, displayExercises.findIndex((exercise) => exercise.id === currentExerciseId)),
+    [displayExercises, currentExerciseId],
+  );
+  const currentExercise = displayExercises[currentExerciseIndex] ?? null;
   const workoutTargeting = useMemo(
     () =>
       aggregateWorkoutMuscles(
@@ -644,10 +658,11 @@ export function WorkoutLogger({
 
     setMessage(null);
     startTransition(async () => {
+      const effectiveWeightUnit = draft.weight_unit || preferredWeightUnit;
       const result = await updateWorkoutSetAction(workout.id, setId, {
         set_type: draft.set_type,
         weight: draft.weight,
-        weight_unit: draft.weight.trim() ? draft.weight_unit : "",
+        weight_unit: draft.weight.trim() ? effectiveWeightUnit : "",
         reps: draft.reps,
         rpe: draft.rpe,
         notes: draft.notes,
@@ -673,10 +688,11 @@ export function WorkoutLogger({
 
     setMessage(null);
     startTransition(async () => {
+      const effectiveWeightUnit = draft.weight_unit || preferredWeightUnit;
       const result = await updateWorkoutSetAction(workout.id, set.id, {
         set_type: draft.set_type,
         weight: draft.weight,
-        weight_unit: draft.weight.trim() ? draft.weight_unit : "",
+        weight_unit: draft.weight.trim() ? effectiveWeightUnit : "",
         reps: draft.reps,
         rpe: draft.rpe,
         notes: draft.notes,
@@ -814,49 +830,405 @@ export function WorkoutLogger({
               {isCompletedWorkout ? "Workout Summary" : "Active Workout"}
             </p>
             <h1 className="mt-1 text-lg font-semibold text-white">{workout.name}</h1>
-            <div className="mt-1">
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <StateChip state={isCompletedWorkout ? "completed" : "active"} />
+              <p className="text-xs text-zinc-500">
+                {summary.completedSetCount}/{summary.totalSetCount} sets complete
+              </p>
             </div>
             <p className="mt-0.5 text-xs text-zinc-500">
               {formatDate(workout.workoutDate)} • Started {formatDateTime(workout.startedAt, profileTimeZone)}
             </p>
             {!isCompletedWorkout ? <p className="mt-0.5 text-xs text-zinc-500">{liveDurationLabel}</p> : null}
           </div>
-          <div className="rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-right">
+          {!isCompletedWorkout ? (
+            !needsCompleteConfirm ? (
+              <Button type="button" onClick={() => completeWorkout(false)} disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
+                {isPending ? "Completing..." : "Complete Workout"}
+              </Button>
+            ) : (
+              <Button type="button" onClick={() => completeWorkout(true)} disabled={isPending} variant="secondary" size="sm" className="h-9 rounded-lg border-amber-300/40 px-3 text-xs text-amber-100 hover:bg-amber-500/15">
+                Confirm Complete Without Sets
+              </Button>
+            )
+          ) : null}
+        </div>
+
+        {currentExercise ? (
+          <div className="mt-3 rounded-xl bg-black/20 p-3">
+            <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
+              {isCompletedWorkout ? "Exercise" : `Current Exercise • ${currentExerciseIndex + 1} of ${displayExercises.length}`}
+            </p>
+            <p className="mt-1 text-base font-semibold text-zinc-100">{currentExercise.exerciseName}</p>
+            <p className="mt-1 text-xs text-zinc-400">
+              {currentExercise.sets.length} sets • {currentExercise.sets.filter((set) => set.is_completed).length} complete
+            </p>
+            {currentExercise.notes ? <p className="mt-1 text-xs text-zinc-500">{currentExercise.notes}</p> : null}
+            <p className="mt-1 text-xs text-zinc-500">
+              {currentExercise.previousPerformance.latestCompletedSets.length
+                ? `Previous: ${currentExercise.previousPerformance.latestCompletedSets
+                    .slice(0, 1)
+                    .map((set) => formatSetLine(set))
+                    .join("")}`
+                : "No previous performance"}
+            </p>
+            {!isCompletedWorkout ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  onClick={() => setSelectedExerciseId(displayExercises[Math.max(0, currentExerciseIndex - 1)]?.id ?? currentExercise.id)}
+                  disabled={currentExerciseIndex === 0}
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 rounded-md px-2.5 text-xs"
+                >
+                  Previous Exercise
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setSelectedExerciseId(displayExercises[Math.min(displayExercises.length - 1, currentExerciseIndex + 1)]?.id ?? currentExercise.id)}
+                  disabled={currentExerciseIndex >= displayExercises.length - 1}
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 rounded-md px-2.5 text-xs"
+                >
+                  Next Exercise
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="mt-3 rounded-xl border border-dashed border-white/15 bg-black/20 p-3">
+            <p className="text-sm font-medium text-zinc-200">No exercises in this workout yet.</p>
+            <p className="mt-1 text-sm text-zinc-500">Open Add / Manage Exercises to search the catalog or add a custom fallback.</p>
+          </div>
+        )}
+
+        {displayExercises.length ? (
+          <div className="mt-3">
+            <p className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">Exercise switcher</p>
+            <div data-testid="exercise-switcher" className="mt-1 flex gap-1.5 overflow-x-auto pb-1">
+              {displayExercises.map((exercise) => {
+                const isActive = exercise.id === currentExercise?.id;
+                const completed = exercise.sets.filter((set) => set.is_completed).length;
+                return (
+                  <button
+                    key={`switch-${exercise.id}`}
+                    data-testid={`exercise-switch-item-${exercise.id}`}
+                    type="button"
+                    onClick={() => setSelectedExerciseId(exercise.id)}
+                    className={`shrink-0 rounded-md border px-2.5 py-1 text-left text-xs ${
+                      isActive
+                        ? "border-white bg-white text-black"
+                        : "border-white/15 bg-black/30 text-zinc-200"
+                    }`}
+                    aria-pressed={isActive}
+                  >
+                    <span className="block font-medium">{exercise.exerciseName}</span>
+                    <span className="block text-[10px] opacity-75">{completed}/{exercise.sets.length} sets</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {currentExercise ? (
+          <div className="mt-3 rounded-xl bg-[#0f141d] p-3 ring-1 ring-[#87a3ff]/35">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Set Logger</p>
+                <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">{currentExercise.exerciseName}</h2>
+                <p className="mt-0.5 text-xs text-zinc-500">{currentExercise.notes ?? "No prescription guidance recorded."}</p>
+              </div>
+              {!isCompletedWorkout ? (
+                <Button type="button" onClick={() => addSet(currentExercise.id)} disabled={isPending} variant="primary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
+                  {isPending ? "Adding..." : "+ Add Set"}
+                </Button>
+              ) : null}
+            </div>
+
+            <div className="mt-2 space-y-2">
+              {currentExercise.sets.length ? (
+                currentExercise.sets.map((set, setIndex) => {
+                  const draft = getDraft(set);
+                  const previousSet = currentExercise.previousPerformance.latestCompletedSets[setIndex] ?? null;
+                  const effectiveWeightUnit = draft.weight_unit || preferredWeightUnit;
+                  const estimated = estimateSetOneRepMax(
+                    {
+                      ...set,
+                      weight: draft.weight === "" ? null : Number(draft.weight),
+                      weight_unit: draft.weight_unit || null,
+                      reps: draft.reps === "" ? null : Number(draft.reps),
+                      set_type: draft.set_type,
+                      is_completed: draft.is_completed,
+                      notes: draft.notes || null,
+                      catalog_exercise_id: currentExercise.catalogExerciseId,
+                      exercise_id: currentExercise.exerciseId,
+                      exercise_name: currentExercise.exerciseName,
+                    },
+                    displayUnit,
+                  );
+                  const prCandidate = evaluatePersonalRecordCandidate(
+                    {
+                      ...set,
+                      weight: draft.weight === "" ? null : Number(draft.weight),
+                      weight_unit: draft.weight_unit || null,
+                      reps: draft.reps === "" ? null : Number(draft.reps),
+                      set_type: draft.set_type,
+                      is_completed: draft.is_completed,
+                      notes: draft.notes || null,
+                      catalog_exercise_id: currentExercise.catalogExerciseId,
+                      exercise_id: currentExercise.exerciseId,
+                      exercise_name: currentExercise.exerciseName,
+                    },
+                    currentExercise.previousPerformance.comparableHistoricalSets,
+                    displayUnit,
+                  );
+                  const showPr =
+                    draft.is_completed &&
+                    prCandidate.isPr &&
+                    prCandidate.previousBestEstimatedOneRepMax !== null;
+
+                  return (
+                    <div
+                      key={set.id}
+                      className={`rounded-lg p-2.5 ring-1 ${
+                        draft.is_completed ? "bg-[#87a3ff]/10 ring-[#87a3ff]/45" : "bg-black/25 ring-white/10"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-semibold text-zinc-100">Set {set.position + 1}</p>
+                          <p className="text-[11px] text-zinc-500">
+                            Previous: {previousSet ? formatSetLine(previousSet) : "—"}
+                          </p>
+                        </div>
+                        <StateChip
+                          state={toSetState(draft.set_type, draft.is_completed)}
+                          label={draft.is_completed ? "Done" : "Open"}
+                          className="text-[10px]"
+                        />
+                      </div>
+
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <label className="space-y-1 text-[11px] text-zinc-300">
+                          <span>Weight ({effectiveWeightUnit})</span>
+                          <input
+                            value={draft.weight}
+                            onChange={(event) => updateSetDraft(set.id, { weight: event.target.value })}
+                            inputMode="decimal"
+                            className="app-input h-10 text-sm"
+                            disabled={isCompletedWorkout}
+                          />
+                        </label>
+                        <label className="space-y-1 text-[11px] text-zinc-300">
+                          <span>Reps</span>
+                          <input
+                            value={draft.reps}
+                            onChange={(event) => updateSetDraft(set.id, { reps: event.target.value })}
+                            inputMode="numeric"
+                            className="app-input h-10 text-sm"
+                            disabled={isCompletedWorkout}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {!isCompletedWorkout ? (
+                          <>
+                            <Button
+                              type="button"
+                              onClick={() => toggleSetCompleted(set, !draft.is_completed)}
+                              disabled={isPending}
+                              variant={draft.is_completed ? "secondary" : "primary"}
+                              size="sm"
+                              className="h-8 rounded-md px-2.5 text-xs"
+                            >
+                              {draft.is_completed ? "Mark Incomplete" : "Mark Complete"}
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => saveSet(set.id)}
+                              disabled={isPending}
+                              variant="secondary"
+                              size="sm"
+                              className="h-8 rounded-md px-2.5 text-xs"
+                            >
+                              {isPending ? "Saving..." : "Save Set"}
+                            </Button>
+                          </>
+                        ) : null}
+                        {estimated ? (
+                          <span className="text-[11px] text-zinc-500">
+                            Est. 1RM {estimated.estimatedOneRepMax.toLocaleString()} {displayUnit}
+                          </span>
+                        ) : null}
+                        {showPr ? <StateChip state="pr" label="Potential estimated PR" className="text-[10px]" /> : null}
+                      </div>
+
+                      {!isCompletedWorkout ? (
+                        <details className="mt-2 rounded-md border border-white/10 bg-black/30 px-2 py-1.5">
+                          <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+                            Set details
+                          </summary>
+                          <div className="mt-2 grid gap-2">
+                            <div className="grid gap-2 sm:grid-cols-3">
+                              <label className="space-y-1 text-[11px] text-zinc-300">
+                                <span>Type</span>
+                                <select
+                                  value={draft.set_type}
+                                  onChange={(event) => updateSetDraft(set.id, { set_type: event.target.value })}
+                                  className="app-input h-9 text-sm"
+                                  disabled={isCompletedWorkout}
+                                >
+                                  <option value="warmup">Warmup</option>
+                                  <option value="working">Working</option>
+                                  <option value="top">Top</option>
+                                  <option value="backoff">Backoff</option>
+                                  <option value="drop">Drop</option>
+                                  <option value="failure">Failure</option>
+                                </select>
+                              </label>
+                              <label className="space-y-1 text-[11px] text-zinc-300">
+                                <span>Unit override</span>
+                                <select
+                                  value={draft.weight_unit}
+                                  onChange={(event) => updateSetDraft(set.id, { weight_unit: event.target.value })}
+                                  className="app-input h-9 text-sm"
+                                  disabled={isCompletedWorkout}
+                                >
+                                  <option value={preferredWeightUnit}>Use profile ({preferredWeightUnit})</option>
+                                  <option value="lb">lb</option>
+                                  <option value="kg">kg</option>
+                                </select>
+                              </label>
+                              <label className="space-y-1 text-[11px] text-zinc-300">
+                                <span>RPE</span>
+                                <input
+                                  value={draft.rpe}
+                                  onChange={(event) => updateSetDraft(set.id, { rpe: event.target.value })}
+                                  inputMode="decimal"
+                                  className="app-input h-9 text-sm"
+                                  disabled={isCompletedWorkout}
+                                />
+                              </label>
+                            </div>
+                            <label className="space-y-1 text-[11px] text-zinc-300">
+                              <span>Notes</span>
+                              <input
+                                value={draft.notes}
+                                onChange={(event) => updateSetDraft(set.id, { notes: event.target.value })}
+                                className="app-input h-9 text-sm"
+                                disabled={isCompletedWorkout}
+                              />
+                            </label>
+
+                            <div className="flex flex-wrap gap-2">
+                              <Button type="button" onClick={() => duplicateSet(currentExercise.id, set.id)} disabled={isPending} variant="secondary" size="sm" className="h-7 rounded-md px-2 text-xs">
+                                Duplicate
+                              </Button>
+                              <Button type="button" onClick={() => moveSet(currentExercise.id, set.id, "up")} disabled={isPending || setIndex === 0} variant="secondary" size="sm" className="h-7 rounded-md px-2 text-xs">
+                                Up
+                              </Button>
+                              <Button type="button" onClick={() => moveSet(currentExercise.id, set.id, "down")} disabled={isPending || setIndex === currentExercise.sets.length - 1} variant="secondary" size="sm" className="h-7 rounded-md px-2 text-xs">
+                                Down
+                              </Button>
+                              {deleteSetConfirmId === set.id ? (
+                                <>
+                                  <Button type="button" onClick={() => deleteSet(currentExercise.id, set.id)} disabled={isPending} variant="danger" size="sm" className="h-7 rounded-md px-2 text-xs">
+                                    Confirm Delete
+                                  </Button>
+                                  <Button type="button" onClick={() => setDeleteSetConfirmId(null)} variant="secondary" size="sm" className="h-7 rounded-md px-2 text-xs">
+                                    Cancel
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button type="button" onClick={() => setDeleteSetConfirmId(set.id)} variant="danger" size="sm" className="h-7 rounded-md px-2 text-xs">
+                                  Delete
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </details>
+                      ) : null}
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="rounded-lg border border-dashed border-white/15 bg-black/20 p-2.5 text-xs text-zinc-500">
+                  No sets logged yet for this exercise.
+                </p>
+              )}
+            </div>
+
+            {!isCompletedWorkout ? (
+              <details className="mt-2 rounded-md border border-white/10 bg-black/30 px-2 py-1.5">
+                <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+                  Exercise actions
+                </summary>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button type="button" onClick={() => moveExercise(currentExercise.id, "up")} disabled={isPending || currentExerciseIndex === 0} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
+                    Move Up
+                  </Button>
+                  <Button type="button" onClick={() => moveExercise(currentExercise.id, "down")} disabled={isPending || currentExerciseIndex === displayExercises.length - 1} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
+                    Move Down
+                  </Button>
+                  {deleteExerciseConfirmId === currentExercise.id ? (
+                    <>
+                      <Button type="button" onClick={() => removeExercise(currentExercise.id)} disabled={isPending} variant="danger" size="sm" className="h-8 rounded-md px-2 text-xs">
+                        Confirm Remove Exercise
+                      </Button>
+                      <Button type="button" onClick={() => setDeleteExerciseConfirmId(null)} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button type="button" onClick={() => setDeleteExerciseConfirmId(currentExercise.id)} variant="danger" size="sm" className="h-8 rounded-md px-2 text-xs">
+                      Remove Exercise
+                    </Button>
+                  )}
+                </div>
+              </details>
+            ) : null}
+          </div>
+        ) : null}
+
+        <details className="mt-3 rounded-lg border border-white/10 bg-black/20 p-2.5">
+          <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
+            Session Insights
+          </summary>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
+              <p className="uppercase tracking-[0.08em] text-zinc-500">Exercises</p>
+              <MetricValue value={String(summary.exerciseCount)} tone="secondary" className="mt-1 text-base" />
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
+              <p className="uppercase tracking-[0.08em] text-zinc-500">Completed Sets</p>
+              <MetricValue value={String(summary.completedSetCount)} tone="secondary" className="mt-1 text-base" />
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
+              <p className="uppercase tracking-[0.08em] text-zinc-500">Best Est. 1RM</p>
+              <MetricValue
+                value={summary.bestEstimatedOneRepMax === null ? "--" : summary.bestEstimatedOneRepMax.toLocaleString()}
+                unit={displayUnit}
+                tone="secondary"
+                className="mt-1 text-base"
+              />
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
+              <p className="uppercase tracking-[0.08em] text-zinc-500">Potential PRs</p>
+              <MetricValue value={String(summary.potentialPrCount)} tone="secondary" className="mt-1 text-base" />
+              {liveDurationMinutes !== null ? <p className="mt-0.5 text-[10px] text-zinc-500">{liveDurationMinutes} min</p> : null}
+            </div>
+          </div>
+          <div className="mt-2 rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-right">
             <p className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">Volume</p>
             <MetricValue value={summary.totalVolume === null ? "--" : summary.totalVolume.toLocaleString()} unit={displayUnit} tone="secondary" className="mt-1 text-base" />
-            <p className="mt-0.5 text-[11px] text-zinc-500">
-              {summary.completedSetCount}/{summary.totalSetCount} sets complete
-            </p>
           </div>
-        </div>
+        </details>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-          <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
-            <p className="uppercase tracking-[0.08em] text-zinc-500">Exercises</p>
-            <MetricValue value={String(summary.exerciseCount)} tone="secondary" className="mt-1 text-base" />
-          </div>
-          <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
-            <p className="uppercase tracking-[0.08em] text-zinc-500">Completed Sets</p>
-            <MetricValue value={String(summary.completedSetCount)} tone="secondary" className="mt-1 text-base" />
-          </div>
-          <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
-            <p className="uppercase tracking-[0.08em] text-zinc-500">Best Est. 1RM</p>
-            <MetricValue
-              value={summary.bestEstimatedOneRepMax === null ? "--" : summary.bestEstimatedOneRepMax.toLocaleString()}
-              unit={displayUnit}
-              tone="secondary"
-              className="mt-1 text-base"
-            />
-          </div>
-          <div className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
-            <p className="uppercase tracking-[0.08em] text-zinc-500">Potential PRs</p>
-            <MetricValue value={String(summary.potentialPrCount)} tone="secondary" className="mt-1 text-base" />
-            {liveDurationMinutes !== null ? <p className="mt-0.5 text-[10px] text-zinc-500">{liveDurationMinutes} min</p> : null}
-          </div>
-        </div>
-
-        <details className="mt-3 rounded-lg border border-white/10 bg-black/20 p-2.5" open>
+        <details className="mt-2 rounded-lg border border-white/10 bg-black/20 p-2.5">
           <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
             Workout Muscle Coverage
           </summary>
@@ -897,72 +1269,67 @@ export function WorkoutLogger({
           </div>
         </details>
 
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <label className="space-y-1 text-xs text-zinc-300">
-            <span>Workout name</span>
-            <Input
-              value={workoutName}
-              onChange={(event) => setWorkoutName(event.target.value)}
-              className="app-input"
-              disabled={isPending || isCompletedWorkout}
-            />
-          </label>
-          <label className="space-y-1 text-xs text-zinc-300">
-            <span>Workout date</span>
-            <DatePicker value={workoutDate} onChange={(event) => setWorkoutDate(event.target.value)} className="app-input" disabled={isPending || isCompletedWorkout} />
-          </label>
-          <label className="space-y-1 text-xs text-zinc-300 sm:col-span-2">
-            <span>Notes</span>
-            <Textarea
-              value={workoutNotes}
-              onChange={(event) => setWorkoutNotes(event.target.value)}
-              rows={3}
-              className="text-sm"
-              disabled={isPending || isCompletedWorkout}
-            />
-          </label>
-        </div>
-
-        {!isCompletedWorkout ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button type="button" onClick={saveWorkoutMetadata} disabled={isPending} variant="secondary" size="sm" className="h-9 rounded-lg px-3 text-xs">
-              {isPending ? "Saving..." : "Save Details"}
-            </Button>
-            {!needsCompleteConfirm ? (
-              <Button type="button" onClick={() => completeWorkout(false)} disabled={isPending} variant="primary" size="sm" className="h-9 rounded-lg px-3 text-xs">
-                {isPending ? "Completing..." : "Complete Workout"}
-              </Button>
-            ) : (
-              <Button type="button" onClick={() => completeWorkout(true)} disabled={isPending} variant="secondary" size="sm" className="h-9 rounded-lg border-amber-300/40 px-3 text-xs text-amber-100 hover:bg-amber-500/15">
-                Confirm Complete Without Sets
-              </Button>
-            )}
-            {deleteWorkoutConfirm ? (
-              <>
-                <Button type="button" onClick={deleteWorkout} disabled={isPending} variant="danger" size="sm" className="h-9 rounded-lg px-3 text-xs">
-                  {isPending ? "Deleting..." : "Confirm Delete Workout"}
-                </Button>
-                <Button type="button" onClick={() => setDeleteWorkoutConfirm(false)} variant="secondary" size="sm" className="h-9 rounded-lg px-3 text-xs">
-                  Cancel
-                </Button>
-              </>
-            ) : (
-              <Button type="button" onClick={() => setDeleteWorkoutConfirm(true)} variant="danger" size="sm" className="h-9 rounded-lg px-3 text-xs">
-                Delete Workout
-              </Button>
-            )}
+        <details className="mt-2 rounded-lg border border-white/10 bg-black/20 p-2.5">
+          <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.08em] text-zinc-300">
+            Workout Details & Settings
+          </summary>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <label className="space-y-1 text-xs text-zinc-300">
+              <span>Workout name</span>
+              <Input
+                value={workoutName}
+                onChange={(event) => setWorkoutName(event.target.value)}
+                className="app-input"
+                disabled={isPending || isCompletedWorkout}
+              />
+            </label>
+            <label className="space-y-1 text-xs text-zinc-300">
+              <span>Workout date</span>
+              <DatePicker value={workoutDate} onChange={(event) => setWorkoutDate(event.target.value)} className="app-input" disabled={isPending || isCompletedWorkout} />
+            </label>
+            <label className="space-y-1 text-xs text-zinc-300 sm:col-span-2">
+              <span>Notes</span>
+              <Textarea
+                value={workoutNotes}
+                onChange={(event) => setWorkoutNotes(event.target.value)}
+                rows={3}
+                className="text-sm"
+                disabled={isPending || isCompletedWorkout}
+              />
+            </label>
           </div>
-        ) : (
-          <p className="mt-3 text-xs text-zinc-500">
-            This workout is completed and shown as a read-only summary.
-          </p>
-        )}
+          {!isCompletedWorkout ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button type="button" onClick={saveWorkoutMetadata} disabled={isPending} variant="secondary" size="sm" className="h-9 rounded-lg px-3 text-xs">
+                {isPending ? "Saving..." : "Save Details"}
+              </Button>
+              {deleteWorkoutConfirm ? (
+                <>
+                  <Button type="button" onClick={deleteWorkout} disabled={isPending} variant="danger" size="sm" className="h-9 rounded-lg px-3 text-xs">
+                    {isPending ? "Deleting..." : "Confirm Delete Workout"}
+                  </Button>
+                  <Button type="button" onClick={() => setDeleteWorkoutConfirm(false)} variant="secondary" size="sm" className="h-9 rounded-lg px-3 text-xs">
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button type="button" onClick={() => setDeleteWorkoutConfirm(true)} variant="danger" size="sm" className="h-9 rounded-lg px-3 text-xs">
+                  Delete Workout
+                </Button>
+              )}
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-zinc-500">
+              This workout is completed and shown as a read-only summary.
+            </p>
+          )}
+        </details>
       </section>
 
       {!isCompletedWorkout ? (
         <section data-testid="add-exercise-panel" className="rounded-[1.1rem] border border-white/10 bg-[#101215] p-3.5 sm:p-4">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-medium uppercase tracking-[0.09em] text-zinc-300">Add Exercise</h2>
+            <h2 className="text-sm font-medium uppercase tracking-[0.09em] text-zinc-300">Add / Manage Exercises</h2>
             <Button
               type="button"
               onClick={() => {
@@ -1273,293 +1640,6 @@ export function WorkoutLogger({
           ) : null}
         </section>
       ) : null}
-
-      <section className="space-y-3">
-        {displayExercises.length ? (
-          displayExercises.map((exercise, exerciseIndex) => {
-            const exerciseVolume = calculateExerciseVolume(exercise.sets, displayUnit);
-            const sourceLabel = exercise.catalogExerciseId
-              ? "Catalog"
-              : exercise.exerciseId
-                ? "Custom library"
-                : "Custom snapshot";
-
-            return (
-              <article key={exercise.id} className="rounded-[1.1rem] border border-white/10 bg-[#101215] p-3.5 sm:p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <h2 className="text-base font-semibold text-white">{exercise.exerciseName}</h2>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                      <StateChip state="neutral" label={sourceLabel} />
-                    </div>
-                    <p className="mt-0.5 text-xs text-zinc-500">Primary: {formatMuscleList(exercise.primaryMuscles)}</p>
-                    <p className="mt-0.5 text-xs text-zinc-500">Secondary: {formatMuscleList(exercise.secondaryMuscles)}</p>
-                    <p className="mt-0.5 text-xs text-zinc-500">
-                      {(exercise.bodyRegion ? titleCase(exercise.bodyRegion) : "Unspecified region")}
-                      {" • "}
-                      {(exercise.movementPattern ? titleCase(exercise.movementPattern) : "Unspecified pattern")}
-                    </p>
-                    {exercise.notes ? <p className="mt-1 text-xs text-zinc-500">{exercise.notes}</p> : null}
-                    <p className="mt-1 text-xs text-zinc-500">
-                      Volume: {exerciseVolume === null ? "--" : `${exerciseVolume.toLocaleString()} ${displayUnit}`}
-                    </p>
-                  </div>
-                  {!isCompletedWorkout ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      <Button type="button" onClick={() => moveExercise(exercise.id, "up")} disabled={isPending || exerciseIndex === 0} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
-                        Move Up
-                      </Button>
-                      <Button type="button" onClick={() => moveExercise(exercise.id, "down")} disabled={isPending || exerciseIndex === displayExercises.length - 1} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
-                        Move Down
-                      </Button>
-                      {deleteExerciseConfirmId === exercise.id ? (
-                        <>
-                          <Button type="button" onClick={() => removeExercise(exercise.id)} disabled={isPending} variant="danger" size="sm" className="h-8 rounded-md px-2 text-xs">
-                            {isPending ? "Removing..." : "Confirm Remove"}
-                          </Button>
-                          <Button type="button" onClick={() => setDeleteExerciseConfirmId(null)} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
-                            Cancel
-                          </Button>
-                        </>
-                      ) : (
-                        <Button type="button" onClick={() => setDeleteExerciseConfirmId(exercise.id)} variant="danger" size="sm" className="h-8 rounded-md px-2 text-xs">
-                          Remove Exercise
-                        </Button>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-2.5">
-                  <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Previous Performance</p>
-                  {exercise.previousPerformance.latestWorkoutDate ? (
-                    <div className="mt-1 space-y-1">
-                      <p className="text-xs text-zinc-400">
-                        Last workout: {formatDate(exercise.previousPerformance.latestWorkoutDate)}
-                      </p>
-                      {exercise.previousPerformance.latestCompletedSets.length ? (
-                        <p className="text-xs text-zinc-500">
-                          Last completed sets:{" "}
-                          {exercise.previousPerformance.latestCompletedSets
-                            .slice(0, 3)
-                            .map((set) => formatSetLine(set))
-                            .join(" • ")}
-                        </p>
-                      ) : null}
-                      <p className="text-xs text-zinc-500">
-                        Previous best estimated 1RM:{" "}
-                        {exercise.previousPerformance.previousBestEstimatedOneRepMax === null
-                          ? "--"
-                          : `${exercise.previousPerformance.previousBestEstimatedOneRepMax.toLocaleString()} ${displayUnit}`}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="mt-1 text-xs text-zinc-500">No prior history found for this exercise yet.</p>
-                  )}
-                </div>
-
-                {!isCompletedWorkout ? (
-                  <Button type="button" onClick={() => addSet(exercise.id)} disabled={isPending} variant="primary" size="sm" className="mt-3 h-9 rounded-lg px-3 text-xs">
-                    {isPending ? "Adding..." : "Add Set"}
-                  </Button>
-                ) : null}
-
-                <ul className="mt-3 space-y-2">
-                  {exercise.sets.length ? (
-                    exercise.sets.map((set, setIndex) => {
-                      const draft = getDraft(set);
-                      const estimated = estimateSetOneRepMax(
-                        {
-                          ...set,
-                          weight: draft.weight === "" ? null : Number(draft.weight),
-                          weight_unit: draft.weight_unit || null,
-                          reps: draft.reps === "" ? null : Number(draft.reps),
-                          set_type: draft.set_type,
-                          is_completed: draft.is_completed,
-                          notes: draft.notes || null,
-                          catalog_exercise_id: exercise.catalogExerciseId,
-                          exercise_id: exercise.exerciseId,
-                          exercise_name: exercise.exerciseName,
-                        },
-                        displayUnit,
-                      );
-                      const prCandidate = evaluatePersonalRecordCandidate(
-                        {
-                          ...set,
-                          weight: draft.weight === "" ? null : Number(draft.weight),
-                          weight_unit: draft.weight_unit || null,
-                          reps: draft.reps === "" ? null : Number(draft.reps),
-                          set_type: draft.set_type,
-                          is_completed: draft.is_completed,
-                          notes: draft.notes || null,
-                          catalog_exercise_id: exercise.catalogExerciseId,
-                          exercise_id: exercise.exerciseId,
-                          exercise_name: exercise.exerciseName,
-                        },
-                        exercise.previousPerformance.comparableHistoricalSets,
-                        displayUnit,
-                      );
-                      const showPr =
-                        draft.is_completed &&
-                        prCandidate.isPr &&
-                        prCandidate.previousBestEstimatedOneRepMax !== null;
-
-                      return (
-                        <li
-                          key={set.id}
-                          className={`rounded-lg border px-2.5 py-2 ${
-                            draft.is_completed
-                              ? "border-accent/40 bg-accent/10"
-                              : set.set_type === "warmup"
-                                ? "border-white/10 bg-black/30"
-                                : "border-white/10 bg-black/20"
-                          }`}
-                        >
-                          <div className="grid gap-2 sm:grid-cols-12">
-                            <label className="space-y-1 text-[11px] text-zinc-300 sm:col-span-2">
-                              <span>Type</span>
-                              <select
-                                value={draft.set_type}
-                                onChange={(event) => updateSetDraft(set.id, { set_type: event.target.value })}
-                                className="app-input h-10 text-sm"
-                                disabled={isCompletedWorkout}
-                              >
-                                <option value="warmup">Warmup</option>
-                                <option value="working">Working</option>
-                                <option value="top">Top</option>
-                                <option value="backoff">Backoff</option>
-                                <option value="drop">Drop</option>
-                                <option value="failure">Failure</option>
-                              </select>
-                            </label>
-                            <label className="space-y-1 text-[11px] text-zinc-300 sm:col-span-2">
-                              <span>Weight</span>
-                              <input
-                                value={draft.weight}
-                                onChange={(event) => updateSetDraft(set.id, { weight: event.target.value })}
-                                inputMode="decimal"
-                                className="app-input h-10 text-sm"
-                                disabled={isCompletedWorkout}
-                              />
-                            </label>
-                            <label className="space-y-1 text-[11px] text-zinc-300 sm:col-span-2">
-                              <span>Unit</span>
-                              <select
-                                value={draft.weight_unit}
-                                onChange={(event) => updateSetDraft(set.id, { weight_unit: event.target.value })}
-                                className="app-input h-10 text-sm"
-                                disabled={isCompletedWorkout}
-                              >
-                                <option value="">--</option>
-                                <option value="lb">lb</option>
-                                <option value="kg">kg</option>
-                              </select>
-                            </label>
-                            <label className="space-y-1 text-[11px] text-zinc-300 sm:col-span-2">
-                              <span>Reps</span>
-                              <input
-                                value={draft.reps}
-                                onChange={(event) => updateSetDraft(set.id, { reps: event.target.value })}
-                                inputMode="numeric"
-                                className="app-input h-10 text-sm"
-                                disabled={isCompletedWorkout}
-                              />
-                            </label>
-                            <label className="space-y-1 text-[11px] text-zinc-300 sm:col-span-2">
-                              <span>RPE</span>
-                              <input
-                                value={draft.rpe}
-                                onChange={(event) => updateSetDraft(set.id, { rpe: event.target.value })}
-                                inputMode="decimal"
-                                className="app-input h-10 text-sm"
-                                disabled={isCompletedWorkout}
-                              />
-                            </label>
-                            <label className="flex items-end gap-2 text-[11px] text-zinc-300 sm:col-span-2">
-                              <input
-                                type="checkbox"
-                                checked={draft.is_completed}
-                                onChange={(event) => toggleSetCompleted(set, event.target.checked)}
-                                disabled={isPending || isCompletedWorkout}
-                                className="h-4 w-4 rounded border-white/20 bg-black/40 accent-white"
-                              />
-                              <span className="text-xs">Complete</span>
-                            </label>
-                            <label className="space-y-1 text-[11px] text-zinc-300 sm:col-span-12">
-                              <span>Notes</span>
-                              <input
-                                value={draft.notes}
-                                onChange={(event) => updateSetDraft(set.id, { notes: event.target.value })}
-                                className="app-input h-10 text-sm"
-                                disabled={isCompletedWorkout}
-                              />
-                            </label>
-                          </div>
-
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                            <span>Set #{set.position + 1}</span>
-                            <StateChip
-                              state={toSetState(draft.set_type, draft.is_completed)}
-                              label={draft.is_completed ? "Completed set" : draft.set_type === "warmup" ? "Warmup set" : "Planned set"}
-                              className="text-[10px]"
-                            />
-                            {estimated ? (
-                              <span>
-                                Est. 1RM {estimated.estimatedOneRepMax.toLocaleString()} {displayUnit}
-                              </span>
-                            ) : null}
-                            {showPr ? <StateChip state="pr" label="Potential estimated PR" className="text-[10px]" /> : null}
-                          </div>
-
-                          {!isCompletedWorkout ? (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              <Button type="button" onClick={() => saveSet(set.id)} disabled={isPending} variant="primary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
-                                {isPending ? "Saving..." : "Save Set"}
-                              </Button>
-                              <Button type="button" onClick={() => duplicateSet(exercise.id, set.id)} disabled={isPending} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
-                                Duplicate
-                              </Button>
-                              <Button type="button" onClick={() => moveSet(exercise.id, set.id, "up")} disabled={isPending || setIndex === 0} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
-                                Up
-                              </Button>
-                              <Button type="button" onClick={() => moveSet(exercise.id, set.id, "down")} disabled={isPending || setIndex === exercise.sets.length - 1} variant="secondary" size="sm" className="h-8 rounded-md px-2 text-xs">
-                                Down
-                              </Button>
-                              {deleteSetConfirmId === set.id ? (
-                                <>
-                                  <Button type="button" onClick={() => deleteSet(exercise.id, set.id)} disabled={isPending} variant="danger" size="sm" className="h-8 rounded-md px-2.5 text-xs">
-                                    {isPending ? "Deleting..." : "Confirm Delete"}
-                                  </Button>
-                                  <Button type="button" onClick={() => setDeleteSetConfirmId(null)} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
-                                    Cancel
-                                  </Button>
-                                </>
-                              ) : (
-                                <Button type="button" onClick={() => setDeleteSetConfirmId(set.id)} variant="danger" size="sm" className="h-8 rounded-md px-2.5 text-xs">
-                                  Delete
-                                </Button>
-                              )}
-                            </div>
-                          ) : null}
-                        </li>
-                      );
-                    })
-                  ) : (
-                    <li className="rounded-lg border border-dashed border-white/15 bg-black/20 p-3 text-xs text-zinc-500">
-                      No sets logged yet for this exercise.
-                    </li>
-                  )}
-                </ul>
-              </article>
-            );
-          })
-        ) : (
-          <div className="rounded-xl border border-dashed border-white/15 bg-black/20 p-4">
-            <p className="text-sm font-medium text-zinc-200">No exercises in this workout yet.</p>
-            <p className="mt-1 text-sm text-zinc-500">Use Add Exercise to search the built-in catalog or add a custom fallback.</p>
-          </div>
-        )}
-      </section>
 
       {message ? <Toast tone={tone === "error" ? "error" : "success"} role={tone === "error" ? "alert" : "status"}>{message}</Toast> : null}
     </div>

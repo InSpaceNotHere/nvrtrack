@@ -21,12 +21,26 @@ async function addCatalogBenchPress(page: Page) {
   await expect(panel.getByLabel("Search catalog")).toHaveCount(0);
 }
 
+async function selectExerciseByName(page: Page, name: string, index = 0) {
+  const switcher = page.getByTestId("exercise-switcher");
+  const chip = switcher.getByRole("button").filter({ hasText: name }).nth(index);
+  await chip.click();
+  await expect(page.getByRole("heading", { name }).first()).toBeVisible();
+}
+
 async function cleanupWorkout(page: Page) {
   if (!/\/training\/workouts\/[^/?]+(?:\?.*)?$/.test(page.url())) {
     return;
   }
 
-  const deleteButton = page.getByRole("button", { name: "Delete Workout" }).first();
+  let deleteButton = page.getByRole("button", { name: "Delete Workout" }).first();
+  if ((await deleteButton.count()) === 0) {
+    const settingsToggle = page.getByText("Workout Details & Settings").first();
+    if ((await settingsToggle.count()) > 0) {
+      await settingsToggle.click();
+    }
+    deleteButton = page.getByRole("button", { name: "Delete Workout" }).first();
+  }
   if ((await deleteButton.count()) === 0) {
     return;
   }
@@ -48,27 +62,26 @@ test("remove exercise deletes exact workout_exercises row and keeps duplicates s
     await addCatalogBenchPress(page);
     await addCatalogBenchPress(page);
 
-    const benchExerciseCards = page
-      .locator("article")
-      .filter({ has: page.getByRole("heading", { name: "Barbell Bench Press" }) });
+    const benchSwitches = page.getByTestId("exercise-switcher").getByRole("button").filter({ hasText: "Barbell Bench Press" });
+    await expect(benchSwitches).toHaveCount(2);
 
-    await expect(benchExerciseCards).toHaveCount(2);
+    await selectExerciseByName(page, "Barbell Bench Press", 1);
+    await page.getByText("Exercise actions").first().click();
+    await page.getByRole("button", { name: "Remove Exercise" }).first().click();
+    await page.getByRole("button", { name: "Confirm Remove Exercise" }).first().click();
 
-    const secondCard = benchExerciseCards.nth(1);
-    await secondCard.getByRole("button", { name: "Remove Exercise" }).click();
-    await secondCard.getByRole("button", { name: "Confirm Remove" }).click();
-
-    await expect(benchExerciseCards).toHaveCount(1);
+    await expect(benchSwitches).toHaveCount(1);
     await expect(page.getByRole("alert").filter({ hasText: "Workout exercise not found." })).toHaveCount(0);
 
     await page.reload();
-    await expect(benchExerciseCards).toHaveCount(1);
+    await expect(benchSwitches).toHaveCount(1);
 
-    const finalCard = benchExerciseCards.nth(0);
-    await finalCard.getByRole("button", { name: "Remove Exercise" }).click();
-    await finalCard.getByRole("button", { name: "Confirm Remove" }).click();
+    await selectExerciseByName(page, "Barbell Bench Press", 0);
+    await page.getByText("Exercise actions").first().click();
+    await page.getByRole("button", { name: "Remove Exercise" }).first().click();
+    await page.getByRole("button", { name: "Confirm Remove Exercise" }).first().click();
 
-    await expect(benchExerciseCards).toHaveCount(0);
+    await expect(benchSwitches).toHaveCount(0);
     await expect(page.getByText("No exercises in this workout yet.")).toBeVisible();
     await expect(page.getByRole("alert").filter({ hasText: "Workout exercise not found." })).toHaveCount(0);
   } finally {
