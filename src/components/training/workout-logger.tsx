@@ -855,7 +855,7 @@ export function WorkoutLogger({
         </div>
 
         {currentExercise ? (
-          <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
+          <div className="mt-3 rounded-xl bg-black/20 p-3">
             <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
               {isCompletedWorkout ? "Exercise" : `Current Exercise • ${currentExerciseIndex + 1} of ${displayExercises.length}`}
             </p>
@@ -934,7 +934,7 @@ export function WorkoutLogger({
         ) : null}
 
         {currentExercise ? (
-          <div className="mt-3 rounded-xl border border-[#87a3ff]/45 bg-[#0f141d] p-3">
+          <div className="mt-3 rounded-xl bg-[#0f141d] p-3 ring-1 ring-[#87a3ff]/35">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">Set Logger</p>
@@ -993,8 +993,8 @@ export function WorkoutLogger({
                   return (
                     <div
                       key={set.id}
-                      className={`rounded-lg border p-2.5 ${
-                        draft.is_completed ? "border-[#87a3ff]/50 bg-[#87a3ff]/10" : "border-white/10 bg-black/25"
+                      className={`rounded-lg p-2.5 ring-1 ${
+                        draft.is_completed ? "bg-[#87a3ff]/10 ring-[#87a3ff]/45" : "bg-black/25 ring-white/10"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">

@@ -422,6 +422,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   ];
   const readyMadeResolution = buildReadyMadePresetResolution(catalogResult.data ?? []);
   const initialPlanPresetId = readyMadeResolution.presets.find((preset) => preset.id === presetParam)?.id ?? null;
+  const isPlanDetailView = initialPlanPresetId !== null;
 
   const dataErrorMessage =
     activeWorkoutResult.error?.message ??
@@ -636,18 +637,24 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         </>
       ) : view === "plans" ? (
         <>
-          <Card variant="tertiary">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm text-zinc-300">Choose a plan first, then decide whether to save templates or apply a weekly schedule.</p>
-              <Link
-                href="/training"
-                className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-              >
-                Back to Training
-              </Link>
-            </div>
-          </Card>
-          <Card title="Ready-Made Plan Library" subtitle="One primary job: choose your routine" variant="primary">
+          {!isPlanDetailView ? (
+            <Card variant="tertiary">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-zinc-300">Choose a ready-made plan.</p>
+                <Link
+                  href="/training"
+                  className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+                >
+                  Back to Training
+                </Link>
+              </div>
+            </Card>
+          ) : null}
+          <Card
+            title={isPlanDetailView ? undefined : "Ready-Made Plan Library"}
+            subtitle={isPlanDetailView ? undefined : "Five options optimized for quick mobile scanning"}
+            variant="primary"
+          >
             <ReadyMadePlansLibrary
               presets={readyMadeResolution.presets}
               missingExercises={readyMadeResolution.missingExercises}
