@@ -29,6 +29,12 @@ export interface WorkoutTemplateExerciseRow {
   exercise_name: string;
   position: number;
   notes: string | null;
+  working_sets?: number | null;
+  rep_range_min?: number | null;
+  rep_range_max?: number | null;
+  rest_seconds_min?: number | null;
+  rest_seconds_max?: number | null;
+  is_per_leg?: boolean | null;
   primary_muscles: string[];
   secondary_muscles: string[];
   body_region: string | null;
@@ -75,6 +81,12 @@ interface UpsertTemplateExerciseInput {
   exercise_name: string;
   position: number;
   notes?: string | null;
+  working_sets?: number | null;
+  rep_range_min?: number | null;
+  rep_range_max?: number | null;
+  rest_seconds_min?: number | null;
+  rest_seconds_max?: number | null;
+  is_per_leg?: boolean | null;
   primary_muscles?: string[] | null;
   secondary_muscles?: string[] | null;
   body_region?: string | null;
@@ -498,6 +510,12 @@ export async function replaceWorkoutTemplateExercises(
     exercise_name: exercise.exercise_name.trim(),
     position: exercise.position ?? index,
     notes: exercise.notes?.trim() || null,
+    working_sets: exercise.working_sets ?? null,
+    rep_range_min: exercise.rep_range_min ?? null,
+    rep_range_max: exercise.rep_range_max ?? null,
+    rest_seconds_min: exercise.rest_seconds_min ?? null,
+    rest_seconds_max: exercise.rest_seconds_max ?? null,
+    is_per_leg: exercise.is_per_leg ?? false,
     primary_muscles: exercise.primary_muscles ?? [],
     secondary_muscles: exercise.secondary_muscles ?? [],
     body_region: exercise.body_region ?? null,
@@ -546,6 +564,12 @@ export async function duplicateWorkoutTemplate(templateId: string): Promise<Data
     exercise_name: exercise.exercise_name,
     position: exercise.position,
     notes: exercise.notes,
+    working_sets: exercise.working_sets ?? null,
+    rep_range_min: exercise.rep_range_min ?? null,
+    rep_range_max: exercise.rep_range_max ?? null,
+    rest_seconds_min: exercise.rest_seconds_min ?? null,
+    rest_seconds_max: exercise.rest_seconds_max ?? null,
+    is_per_leg: exercise.is_per_leg ?? false,
     primary_muscles: exercise.primary_muscles,
     secondary_muscles: exercise.secondary_muscles,
     body_region: exercise.body_region,

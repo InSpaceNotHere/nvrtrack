@@ -12,10 +12,12 @@ import {
   setWeekdaySchedule,
   type WorkoutTemplateType,
 } from "@/lib/data/workout-planner";
+import { importReadyMadePreset } from "@/lib/data/ready-made-presets";
 import { getMyProfile } from "@/lib/data/profile";
 import { addExerciseToWorkout, createMyWorkout } from "@/lib/data/workouts";
 import { getTodayDateString } from "@/lib/nutrition/date";
 import { normalizeTimeZone } from "@/lib/timezone";
+import type { ReadyMadePresetId } from "@/lib/training/ready-made-presets";
 
 export interface PlannerActionResult {
   status: "success" | "error";
@@ -52,6 +54,12 @@ export async function createWorkoutTemplateAction(input: {
     secondary_muscles?: string[];
     body_region?: string | null;
     movement_pattern?: string | null;
+    working_sets?: number | null;
+    rep_range_min?: number | null;
+    rep_range_max?: number | null;
+    rest_seconds_min?: number | null;
+    rest_seconds_max?: number | null;
+    is_per_leg?: boolean | null;
   }>;
 }): Promise<PlannerActionResult> {
   const created = await createWorkoutTemplate({
@@ -245,7 +253,12 @@ export async function quickStartWorkoutFromTemplateAction(input: {
   templateId: string;
   templateName: string;
   workoutDate?: string;
-  exercises: Array<{ exercise_id: string | null; catalog_exercise_id: string | null; exercise_name: string }>;
+  exercises: Array<{
+    exercise_id: string | null;
+    catalog_exercise_id: string | null;
+    exercise_name: string;
+    notes?: string | null;
+  }>;
 }): Promise<{ status: "success" | "error"; message: string; workoutId: string | null }> {
   const profileResult = await getMyProfile();
   const profileTimeZone = normalizeTimeZone((profileResult.data as { timezone?: string | null } | null)?.timezone);
@@ -265,7 +278,12 @@ export async function quickStartWorkoutFromTemplateAction(input: {
   }
 
   for (const exercise of input.exercises) {
-    const addResult = await addExerciseToWorkout(createResult.data.id, exercise);
+    const addResult = await addExerciseToWorkout(createResult.data.id, {
+      exercise_id: exercise.exercise_id,
+      catalog_exercise_id: exercise.catalog_exercise_id,
+      exercise_name: exercise.exercise_name,
+      notes: exercise.notes ?? null,
+    });
     if (addResult.error) {
       return {
         status: "error",
@@ -280,5 +298,69 @@ export async function quickStartWorkoutFromTemplateAction(input: {
     status: "success",
     message: "Workout started from template.",
     workoutId: createResult.data.id,
+  };
+}
+
+export async function saveReadyMadePresetAction(
+  presetId: ReadyMadePresetId,
+): Promise<PlannerActionResult> {
+  const result = await importReadyMadePreset({
+    presetId,
+    applySchedule: false,
+    confirmScheduleReplace: false,
+  });
+  if (result.error) {
+    return {
+      status: "error",
+      message: result.error.message,
+    };
+  }
+
+  revalidatePlannerViews();
+  if (result.data.kind === "focused_workout") {
+    return {
+      status: "success",
+      message: `${result.data.presetTitle} saved to your templates.`,
+    };
+  }
+
+  return {
+    status: "success",
+    message: `${result.data.presetTitle} templates saved. Apply the weekly schedule when you are ready.`,
+  };
+}
+
+export async function applyReadyMadePresetAction(input: {
+  presetId: ReadyMadePresetId;
+  confirmScheduleReplace: boolean;
+}): Promise<{
+  status: "success" | "error" | "confirm";
+  message: string;
+}> {
+  const result = await importReadyMadePreset({
+    presetId: input.presetId,
+    applySchedule: true,
+    confirmScheduleReplace: input.confirmScheduleReplace,
+  });
+  if (result.error) {
+    return {
+      status: "error",
+      message: result.error.message,
+    };
+  }
+
+  if (result.data.requiresScheduleConfirmation) {
+    return {
+      status: "confirm",
+      message: "Applying this program replaces your current weekday assignments. Confirm to continue.",
+    };
+  }
+
+  revalidatePlannerViews();
+  return {
+    status: "success",
+    message: result.data.appliedSchedule
+      ? `${result.data.presetTitle} applied to your weekly planner.`
+      : `${result.data.presetTitle} is already applied.`,
   };
 }

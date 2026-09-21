@@ -28,6 +28,13 @@ export interface PlannerTemplateExercise {
   catalog_exercise_id: string | null;
   exercise_name: string;
   position: number;
+  notes: string | null;
+  working_sets?: number | null;
+  rep_range_min?: number | null;
+  rep_range_max?: number | null;
+  rest_seconds_min?: number | null;
+  rest_seconds_max?: number | null;
+  is_per_leg?: boolean | null;
   primary_muscles: string[];
   secondary_muscles: string[];
 }

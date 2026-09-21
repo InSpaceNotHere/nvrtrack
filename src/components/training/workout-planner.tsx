@@ -15,6 +15,7 @@ import {
   skipScheduledWorkoutAction,
 } from "@/app/(protected)/actions/planner-actions";
 import { MuscleMap } from "@/components/training/muscle-map";
+import { ReadyMadePlansLibrary } from "@/components/training/ready-made-plans-library";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -23,6 +24,10 @@ import { Select } from "@/components/ui/select";
 import { StateChip } from "@/components/ui/state-chip";
 import { Toast } from "@/components/ui/toast";
 import type { PlannerDayPlan, PlannerTemplate, PlannerTemplateExercise } from "@/lib/training/planner";
+import type {
+  ReadyMadePresetMissingExercise,
+  ReadyMadePresetResolvedDefinition,
+} from "@/lib/training/ready-made-presets";
 
 interface ExerciseOption {
   id: string;
@@ -43,6 +48,8 @@ interface WorkoutPlannerProps {
   exerciseOptions: ExerciseOption[];
   activeWorkout: { id: string; name: string; workout_date: string } | null;
   completedThisWeek: number;
+  readyMadePresets: ReadyMadePresetResolvedDefinition[];
+  readyMadeMissingExercises: ReadyMadePresetMissingExercise[];
 }
 
 const WEEKDAYS: Array<{ value: PlannerDayPlan["weekday"]; label: string }> = [
@@ -93,6 +100,8 @@ export function WorkoutPlanner({
   exerciseOptions,
   activeWorkout,
   completedThisWeek,
+  readyMadePresets,
+  readyMadeMissingExercises,
 }: WorkoutPlannerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -214,6 +223,7 @@ export function WorkoutPlanner({
         exercise_id: exercise.exercise_id ?? null,
         catalog_exercise_id: exercise.catalog_exercise_id ?? null,
         exercise_name: exercise.exercise_name,
+        notes: exercise.notes ?? null,
       }));
     startTransition(async () => {
       const result = await quickStartWorkoutFromTemplateAction({
@@ -323,9 +333,17 @@ export function WorkoutPlanner({
               <div className="space-y-2">
                 <p className="text-xs text-zinc-500">No workout template assigned for today.</p>
                 {isPlannerUninitialized ? (
-                  <Button type="button" onClick={handleInitializePlanner} disabled={isPending} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
-                    {isPending ? "Setting up..." : "Create Starter Schedule"}
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" onClick={handleInitializePlanner} disabled={isPending} variant="secondary" size="sm" className="h-8 rounded-md px-2.5 text-xs">
+                      {isPending ? "Setting up..." : "Create Starter Schedule"}
+                    </Button>
+                    <Link
+                      href="/training?view=program#ready-made-plans"
+                      className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+                    >
+                      Choose a Ready-Made Plan
+                    </Link>
+                  </div>
                 ) : null}
               </div>
             )}
@@ -417,6 +435,17 @@ export function WorkoutPlanner({
             </li>
           ))}
         </ul>
+      </Card>
+
+      <Card
+        title="Ready-Made Plans & Workouts"
+        subtitle="Browse five starter choices, preview details, then save or apply"
+        variant="tertiary"
+      >
+        <ReadyMadePlansLibrary
+          presets={readyMadePresets}
+          missingExercises={readyMadeMissingExercises}
+        />
       </Card>
 
       <Card title="Program Management" subtitle="Templates and split configuration" variant="tertiary">

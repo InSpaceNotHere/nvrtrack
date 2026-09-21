@@ -23,6 +23,7 @@ import {
 import { sortWorkoutsForHistory } from "@/lib/training/calculations";
 import { buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
 import { buildWeekDates, buildPlannerWeek, findPlannerDayForDate } from "@/lib/training/planner";
+import { buildReadyMadePresetResolution } from "@/lib/training/ready-made-presets";
 import { formatCalendarDate, getDateStringInTimeZone, normalizeTimeZone } from "@/lib/timezone";
 import {
   buildWorkoutSummaryStats,
@@ -417,6 +418,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       movement_pattern: exercise.movement_pattern ?? null,
     })),
   ];
+  const readyMadeResolution = buildReadyMadePresetResolution(catalogResult.data ?? []);
 
   const dataErrorMessage =
     activeWorkoutResult.error?.message ??
@@ -626,6 +628,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   : null
               }
               completedThisWeek={completedThisWeek}
+              readyMadePresets={readyMadeResolution.presets}
+              readyMadeMissingExercises={readyMadeResolution.missingExercises}
             />
           </section>
         </>
@@ -833,12 +837,20 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             <Card variant="tertiary">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm text-zinc-300">Planner isn&apos;t configured yet.</p>
-                <Link
-                  href="/training?view=program"
-                  className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                >
-                  Create Starter Schedule
-                </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href="/training?view=program"
+                    className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+                  >
+                    Create Starter Schedule
+                  </Link>
+                  <Link
+                    href="/training?view=program#ready-made-plans"
+                    className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+                  >
+                    Choose a Ready-Made Plan
+                  </Link>
+                </div>
               </div>
             </Card>
           ) : null}

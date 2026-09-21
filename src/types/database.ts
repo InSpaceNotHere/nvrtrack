@@ -942,14 +942,20 @@ export type Database = {
           exercise_id: string | null
           exercise_name: string
           id: string
+          is_per_leg: boolean
           movement_pattern: string | null
           notes: string | null
           position: number
+          rep_range_max: number | null
+          rep_range_min: number | null
+          rest_seconds_max: number | null
+          rest_seconds_min: number | null
           primary_muscles: string[]
           secondary_muscles: string[]
           template_id: string
           updated_at: string
           user_id: string
+          working_sets: number | null
         }
         Insert: {
           body_region?: string | null
@@ -958,14 +964,20 @@ export type Database = {
           exercise_id?: string | null
           exercise_name: string
           id?: string
+          is_per_leg?: boolean
           movement_pattern?: string | null
           notes?: string | null
           position: number
+          rep_range_max?: number | null
+          rep_range_min?: number | null
+          rest_seconds_max?: number | null
+          rest_seconds_min?: number | null
           primary_muscles?: string[]
           secondary_muscles?: string[]
           template_id: string
           updated_at?: string
           user_id: string
+          working_sets?: number | null
         }
         Update: {
           body_region?: string | null
@@ -974,14 +986,20 @@ export type Database = {
           exercise_id?: string | null
           exercise_name?: string
           id?: string
+          is_per_leg?: boolean
           movement_pattern?: string | null
           notes?: string | null
           position?: number
+          rep_range_max?: number | null
+          rep_range_min?: number | null
+          rest_seconds_max?: number | null
+          rest_seconds_min?: number | null
           primary_muscles?: string[]
           secondary_muscles?: string[]
           template_id?: string
           updated_at?: string
           user_id?: string
+          working_sets?: number | null
         }
         Relationships: [
           {
