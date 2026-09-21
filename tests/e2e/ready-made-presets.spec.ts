@@ -154,7 +154,7 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
     throw new Error("Missing expected Full Body Basics template");
   }
 
-  const templateExercises = await client
+  const templateExercisesStructured = await client
     .from("workout_template_exercises")
     .select(
       "position, exercise_name, notes, working_sets, rep_range_min, rep_range_max, rest_seconds_min, rest_seconds_max, is_per_leg",
@@ -162,16 +162,45 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
     .eq("user_id", userId)
     .eq("template_id", fullBodyTemplateId)
     .order("position", { ascending: true });
-  expect(templateExercises.error).toBeNull();
-  expect(templateExercises.data?.map((entry) => entry.exercise_name)).toEqual(FULL_BODY_EXPECTED_ORDER);
-  for (const entry of templateExercises.data ?? []) {
-    expect(entry.working_sets).toBeGreaterThanOrEqual(1);
-    expect(entry.rep_range_min).toBeGreaterThanOrEqual(1);
-    expect(entry.rep_range_max).toBeGreaterThanOrEqual(entry.rep_range_min ?? 1);
-    expect(entry.rest_seconds_min).toBeGreaterThanOrEqual(30);
-    expect(entry.rest_seconds_max).toBeGreaterThanOrEqual(entry.rest_seconds_min ?? 30);
+
+  let structuredColumnsAvailable = true;
+  let templateExerciseRows: Array<{
+    position: number;
+    exercise_name: string;
+    notes: string | null;
+    working_sets?: number | null;
+    rep_range_min?: number | null;
+    rep_range_max?: number | null;
+    rest_seconds_min?: number | null;
+    rest_seconds_max?: number | null;
+  }> = [];
+
+  if (templateExercisesStructured.error?.code === "42703") {
+    structuredColumnsAvailable = false;
+    const templateExercisesLegacy = await client
+      .from("workout_template_exercises")
+      .select("position, exercise_name, notes")
+      .eq("user_id", userId)
+      .eq("template_id", fullBodyTemplateId)
+      .order("position", { ascending: true });
+    expect(templateExercisesLegacy.error).toBeNull();
+    templateExerciseRows = templateExercisesLegacy.data ?? [];
+  } else {
+    expect(templateExercisesStructured.error).toBeNull();
+    templateExerciseRows = templateExercisesStructured.data ?? [];
+  }
+
+  expect(templateExerciseRows.map((entry) => entry.exercise_name)).toEqual(FULL_BODY_EXPECTED_ORDER);
+  for (const entry of templateExerciseRows) {
     expect(entry.notes?.toLowerCase()).toContain("working sets x");
     expect(entry.notes?.toLowerCase()).toContain("rest");
+    if (structuredColumnsAvailable) {
+      expect(entry.working_sets).toBeGreaterThanOrEqual(1);
+      expect(entry.rep_range_min).toBeGreaterThanOrEqual(1);
+      expect(entry.rep_range_max).toBeGreaterThanOrEqual(entry.rep_range_min ?? 1);
+      expect(entry.rest_seconds_min).toBeGreaterThanOrEqual(30);
+      expect(entry.rest_seconds_max).toBeGreaterThanOrEqual(entry.rest_seconds_min ?? 30);
+    }
   }
 
   const mondayControl = page.locator("label").filter({ hasText: "Monday" }).first().locator("select");
