@@ -9,6 +9,7 @@ import { WorkoutCardPrimaryActionButton, type WorkoutCardPrimaryAction } from "@
 interface WorkoutCardProps {
   workoutName: string;
   statusText: string;
+  contextText?: string | null;
   statusState?: "active" | "completed" | "planned" | "neutral";
   exercises: number | null;
   totalSets: number | null;
@@ -21,6 +22,7 @@ interface WorkoutCardProps {
 export function WorkoutCard({
   workoutName,
   statusText,
+  contextText = null,
   statusState = "neutral",
   exercises,
   totalSets,
@@ -41,6 +43,11 @@ export function WorkoutCard({
             <StateChip state={statusState} className="text-[10px]" />
             <p data-testid="home-workout-status" className="text-xs text-zinc-400">{statusText}</p>
           </div>
+          {contextText ? (
+            <p data-testid="home-workout-context" className="mt-0.5 text-xs text-zinc-500">
+              {contextText}
+            </p>
+          ) : null}
           {exercises !== null ? (
             <div data-testid="home-workout-summary" className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
               <MetricValue value={String(exercises)} unit="exercises" tone="secondary" className="text-sm" />

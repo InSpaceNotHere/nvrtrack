@@ -73,9 +73,10 @@ describe("resolveHomeTodayWorkout", () => {
     expect(resolved.state).toBe("active");
     expect(resolved.workoutId).toBe("workout-active");
     expect(resolved.isActiveWorkoutSameAsPlanned).toBe(true);
+    expect(resolved.scheduledContextName).toBeNull();
   });
 
-  it("keeps scheduled state when a different workout is active", () => {
+  it("prioritizes active workout when a different workout is in progress", () => {
     const resolved = resolveHomeTodayWorkout(
       buildInput({
         todayPlan: buildPlan({ template_name: "Push Day" }),
@@ -87,8 +88,11 @@ describe("resolveHomeTodayWorkout", () => {
       }),
     );
 
-    expect(resolved.state).toBe("scheduled");
+    expect(resolved.state).toBe("active");
+    expect(resolved.workoutName).toBe("Hotel Pump");
+    expect(formatTodayWorkoutHeadline(resolved)).toBe("Hotel Pump");
     expect(resolved.isActiveWorkoutSameAsPlanned).toBe(false);
+    expect(resolved.scheduledContextName).toBe("Push Day");
   });
 
   it("returns completed state when today's scheduled workout is completed", () => {
@@ -105,6 +109,7 @@ describe("resolveHomeTodayWorkout", () => {
 
     expect(resolved.state).toBe("completed");
     expect(resolved.workoutId).toBe("workout-complete");
+    expect(resolved.scheduledContextName).toBeNull();
   });
 
   it("returns rest state for resolved rest days", () => {
@@ -121,6 +126,7 @@ describe("resolveHomeTodayWorkout", () => {
 
     expect(resolved.state).toBe("rest");
     expect(formatTodayWorkoutHeadline(resolved)).toBe("Monday — Rest Day");
+    expect(resolved.scheduledContextName).toBeNull();
   });
 
   it("returns skipped state for explicit skipped overrides", () => {
@@ -159,5 +165,18 @@ describe("resolveHomeTodayWorkout", () => {
 
     expect(resolved.state).toBe("no_program");
     expect(formatTodayWorkoutHeadline(resolved)).toBe("No workout planned today");
+  });
+
+  it("returns to scheduled state once an unrelated active workout is gone", () => {
+    const resolved = resolveHomeTodayWorkout(
+      buildInput({
+        todayPlan: buildPlan({ template_name: "Push Day" }),
+        activeWorkout: null,
+      }),
+    );
+
+    expect(resolved.state).toBe("scheduled");
+    expect(formatTodayWorkoutHeadline(resolved)).toBe("Monday — Push Day");
+    expect(resolved.scheduledContextName).toBeNull();
   });
 });

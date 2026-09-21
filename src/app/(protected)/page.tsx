@@ -189,6 +189,7 @@ export default async function HomePage() {
 
   const workoutCardName = formatTodayWorkoutHeadline(resolvedTodayWorkout);
   let workoutCardStatus = "Open your program to plan today.";
+  let workoutCardContext: string | null = null;
   let workoutCardPrimaryAction: WorkoutCardPrimaryAction | null = {
     kind: "link",
     label: "View Program",
@@ -236,6 +237,9 @@ export default async function HomePage() {
         };
   } else if (resolvedTodayWorkout.state === "active") {
     workoutCardStatus = "Workout in progress";
+    workoutCardContext = resolvedTodayWorkout.scheduledContextName
+      ? `Scheduled today: ${resolvedTodayWorkout.scheduledContextName}`
+      : null;
     workoutCardState = "active";
     if (resolvedTodayWorkout.workoutId) {
       workoutCardPrimaryAction = {
@@ -317,6 +321,7 @@ export default async function HomePage() {
       <WorkoutCard
         workoutName={workoutCardName}
         statusText={workoutCardStatus}
+        contextText={workoutCardContext}
         statusState={workoutCardState}
         exercises={workoutCardExercises}
         totalSets={workoutCardSets}

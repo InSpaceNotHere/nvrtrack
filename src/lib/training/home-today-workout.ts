@@ -32,6 +32,7 @@ export interface HomeTodayWorkoutResolution {
   templateId: string | null;
   workoutId: string | null;
   isActiveWorkoutSameAsPlanned: boolean;
+  scheduledContextName: string | null;
 }
 
 export function isActiveWorkoutSameAsTodayPlan(input: {
@@ -89,17 +90,19 @@ export function resolveHomeTodayWorkout(input: ResolveHomeTodayWorkoutInput): Ho
       templateId: null,
       workoutId: null,
       isActiveWorkoutSameAsPlanned: false,
+      scheduledContextName: null,
     };
   }
 
-  if (activeMatchesPlan && activeWorkout) {
+  if (activeWorkout) {
     return {
       state: "active",
       weekdayLabel: todayPlan?.weekday_label ?? weekdayLabel,
-      workoutName: todayPlan?.template_name ?? activeWorkout.name,
+      workoutName: activeMatchesPlan ? (todayPlan?.template_name ?? activeWorkout.name) : activeWorkout.name,
       templateId: todayPlan?.template_id ?? null,
       workoutId: activeWorkout.id,
-      isActiveWorkoutSameAsPlanned: true,
+      isActiveWorkoutSameAsPlanned: activeMatchesPlan,
+      scheduledContextName: !activeMatchesPlan && planStatus === "scheduled" ? todayPlan?.template_name ?? null : null,
     };
   }
 
@@ -111,6 +114,7 @@ export function resolveHomeTodayWorkout(input: ResolveHomeTodayWorkoutInput): Ho
       templateId: todayPlan?.template_id ?? null,
       workoutId: todaysCompletedWorkout?.id ?? todayPlan?.workout_id ?? null,
       isActiveWorkoutSameAsPlanned: false,
+      scheduledContextName: null,
     };
   }
 
@@ -122,6 +126,7 @@ export function resolveHomeTodayWorkout(input: ResolveHomeTodayWorkoutInput): Ho
       templateId: null,
       workoutId: null,
       isActiveWorkoutSameAsPlanned: false,
+      scheduledContextName: null,
     };
   }
 
@@ -133,6 +138,7 @@ export function resolveHomeTodayWorkout(input: ResolveHomeTodayWorkoutInput): Ho
       templateId: todayPlan?.template_id ?? null,
       workoutId: null,
       isActiveWorkoutSameAsPlanned: false,
+      scheduledContextName: null,
     };
   }
 
@@ -144,6 +150,7 @@ export function resolveHomeTodayWorkout(input: ResolveHomeTodayWorkoutInput): Ho
       templateId: todayPlan?.template_id ?? null,
       workoutId: null,
       isActiveWorkoutSameAsPlanned: false,
+      scheduledContextName: null,
     };
   }
 
@@ -155,6 +162,7 @@ export function resolveHomeTodayWorkout(input: ResolveHomeTodayWorkoutInput): Ho
       templateId: todayPlan?.template_id ?? null,
       workoutId: null,
       isActiveWorkoutSameAsPlanned: false,
+      scheduledContextName: null,
     };
   }
 
@@ -165,11 +173,15 @@ export function resolveHomeTodayWorkout(input: ResolveHomeTodayWorkoutInput): Ho
     templateId: null,
     workoutId: null,
     isActiveWorkoutSameAsPlanned: false,
+    scheduledContextName: null,
   };
 }
 
 export function formatTodayWorkoutHeadline(resolved: HomeTodayWorkoutResolution): string {
   if (resolved.state === "no_program") {
+    return resolved.workoutName;
+  }
+  if (resolved.state === "active" && !resolved.isActiveWorkoutSameAsPlanned) {
     return resolved.workoutName;
   }
   return `${resolved.weekdayLabel} — ${resolved.workoutName}`;

@@ -372,6 +372,15 @@ export async function startOrResumeTodayScheduledWorkoutAction(): Promise<{
     };
   }
 
+  const existingActiveWorkout = activeWorkoutResult.data ?? null;
+  if (existingActiveWorkout) {
+    return {
+      status: "success",
+      message: "Workout already in progress. Resuming it.",
+      workoutId: existingActiveWorkout.id,
+    };
+  }
+
   const plannerWeek = buildPlannerWeek({
     templates: templatesResult.data ?? [],
     templateExercises: templateExercisesResult.data ?? [],
@@ -395,13 +404,7 @@ export async function startOrResumeTodayScheduledWorkoutAction(): Promise<{
     todayDate,
     weekdayLabel: todayPlan?.weekday_label ?? referenceDate.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" }),
     todayPlan,
-    activeWorkout: activeWorkoutResult.data
-      ? {
-          id: activeWorkoutResult.data.id,
-          name: activeWorkoutResult.data.name,
-          workout_date: activeWorkoutResult.data.workout_date,
-        }
-      : null,
+    activeWorkout: null,
     todaysCompletedWorkout: todaysCompletedWorkout
       ? {
           id: todaysCompletedWorkout.id,
@@ -411,14 +414,6 @@ export async function startOrResumeTodayScheduledWorkoutAction(): Promise<{
       : null,
     plannerUninitialized,
   });
-
-  if (resolved.state === "active" && resolved.workoutId) {
-    return {
-      status: "success",
-      message: "Resuming today’s scheduled workout.",
-      workoutId: resolved.workoutId,
-    };
-  }
 
   if (resolved.state === "completed") {
     return {
