@@ -26,7 +26,14 @@ async function cleanupWorkout(page: Page) {
     return;
   }
 
-  const deleteButton = page.getByRole("button", { name: "Delete Workout" }).first();
+  let deleteButton = page.getByRole("button", { name: "Delete Workout" }).first();
+  if ((await deleteButton.count()) === 0) {
+    const settingsToggle = page.getByText("Workout Details & Settings").first();
+    if ((await settingsToggle.count()) > 0) {
+      await settingsToggle.click();
+    }
+    deleteButton = page.getByRole("button", { name: "Delete Workout" }).first();
+  }
   if ((await deleteButton.count()) === 0) {
     return;
   }
@@ -55,6 +62,10 @@ test("remove exercise deletes exact workout_exercises row and keeps duplicates s
     await expect(benchExerciseCards).toHaveCount(2);
 
     const secondCard = benchExerciseCards.nth(1);
+    const switchSecond = secondCard.getByRole("button", { name: "Switch to Exercise" });
+    if ((await switchSecond.count()) > 0) {
+      await switchSecond.click();
+    }
     await secondCard.getByRole("button", { name: "Remove Exercise" }).click();
     await secondCard.getByRole("button", { name: "Confirm Remove" }).click();
 
@@ -65,6 +76,10 @@ test("remove exercise deletes exact workout_exercises row and keeps duplicates s
     await expect(benchExerciseCards).toHaveCount(1);
 
     const finalCard = benchExerciseCards.nth(0);
+    const switchFinal = finalCard.getByRole("button", { name: "Switch to Exercise" });
+    if ((await switchFinal.count()) > 0) {
+      await switchFinal.click();
+    }
     await finalCard.getByRole("button", { name: "Remove Exercise" }).click();
     await finalCard.getByRole("button", { name: "Confirm Remove" }).click();
 

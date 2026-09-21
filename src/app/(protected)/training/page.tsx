@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ReadyMadePlansLibrary } from "@/components/training/ready-made-plans-library";
 import { WorkoutPlanner } from "@/components/training/workout-planner";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -570,8 +571,13 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
 
   const tools = [
     {
-      title: "Program / Planner",
-      description: "Build schedule",
+      title: "Choose a Plan",
+      description: "Preset library",
+      href: "/training?view=plans",
+    },
+    {
+      title: "Manage Program",
+      description: "Planner + templates",
       href: "/training?view=program",
     },
     {
@@ -583,11 +589,6 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       title: "Exercise Library",
       description: "Catalog + custom",
       href: "/training/exercises",
-    },
-    {
-      title: "Templates",
-      description: "Create + duplicate",
-      href: "/training?view=program#templates",
     },
   ] as const;
 
@@ -628,10 +629,28 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   : null
               }
               completedThisWeek={completedThisWeek}
-              readyMadePresets={readyMadeResolution.presets}
-              readyMadeMissingExercises={readyMadeResolution.missingExercises}
             />
           </section>
+        </>
+      ) : view === "plans" ? (
+        <>
+          <Card variant="tertiary">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-zinc-300">Choose a plan first, then decide whether to save templates or apply a weekly schedule.</p>
+              <Link
+                href="/training"
+                className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
+              >
+                Back to Training
+              </Link>
+            </div>
+          </Card>
+          <Card title="Ready-Made Plan Library" subtitle="One primary job: choose your routine" variant="primary">
+            <ReadyMadePlansLibrary
+              presets={readyMadeResolution.presets}
+              missingExercises={readyMadeResolution.missingExercises}
+            />
+          </Card>
         </>
       ) : view === "history" ? (
         <>
@@ -845,10 +864,10 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                     Create Starter Schedule
                   </Link>
                   <Link
-                    href="/training?view=program#ready-made-plans"
+                    href="/training?view=plans"
                     className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
                   >
-                    Choose a Ready-Made Plan
+                    Choose a Plan
                   </Link>
                 </div>
               </div>

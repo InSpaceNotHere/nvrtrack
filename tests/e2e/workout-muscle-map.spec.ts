@@ -49,8 +49,21 @@ async function removeExerciseCardByName(page: Page, name: string) {
     .locator("article")
     .filter({ has: page.getByRole("heading", { name }) })
     .first();
+  const switchButton = card.getByRole("button", { name: "Switch to Exercise" });
+  if ((await switchButton.count()) > 0) {
+    await switchButton.click();
+  }
   await card.getByRole("button", { name: "Remove Exercise" }).click();
   await card.getByRole("button", { name: "Confirm Remove" }).click();
+}
+
+async function ensureMuscleCoverageOpen(page: Page) {
+  const rankedList = page.getByTestId("workout-muscle-ranked-list");
+  if (await rankedList.isVisible()) {
+    return;
+  }
+  await page.getByText("Workout Muscle Coverage").first().click();
+  await expect(rankedList).toBeVisible();
 }
 
 async function completeWorkout(page: Page) {
@@ -119,6 +132,7 @@ test("workout muscle map updates live and persists to summary", async ({ page })
     await addCatalogExercise(page, "bench", /^Barbell Bench Press\b/i);
     await addCatalogExercise(page, "pushdown", /^Triceps Pushdown\b/i);
 
+    await ensureMuscleCoverageOpen(page);
     const rankedList = page.getByTestId("workout-muscle-ranked-list");
     await expect(rankedList).toContainText("Chest");
     await expect(rankedList).toContainText("Triceps");
@@ -130,11 +144,13 @@ test("workout muscle map updates live and persists to summary", async ({ page })
     await expect(rankedList).not.toContainText("Upper back");
 
     await page.reload();
+    await ensureMuscleCoverageOpen(page);
     await expect(rankedList).toContainText("Chest");
     await expect(rankedList).toContainText("Triceps");
     await expect(rankedList).not.toContainText("Upper back");
 
     await completeWorkout(page);
+    await ensureMuscleCoverageOpen(page);
     await expect(page.getByTestId("workout-muscle-map")).toBeVisible();
     await expect(page.getByText(/Derived from exercise muscle metadata snapshots/i)).toBeVisible();
 

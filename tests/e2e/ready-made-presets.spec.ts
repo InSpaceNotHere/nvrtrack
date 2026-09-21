@@ -108,19 +108,24 @@ async function getScheduleAssignments(
   return response.data ?? [];
 }
 
+async function previewPreset(page: Page, title: string): Promise<void> {
+  const card = page.locator("article").filter({ hasText: title }).first();
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: /Preview|Previewing/ }).first().click();
+}
+
 test("ready-made presets preserve no-write browse, safe scheduling, and structured prescriptions", async ({ page }) => {
   const account = await signUpFreshUser(page, "flow");
   const { client, userId } = await createAuthedClient(account.email, account.password);
 
-  await page.goto("/training?view=program#ready-made-plans");
-  await expect(page.getByText("Ready-Made Plans & Workouts")).toBeVisible();
+  await page.goto("/training?view=plans#ready-made-plans");
+  await expect(page.getByText("Ready-Made Plan Library")).toBeVisible();
 
   const countsBeforeBrowse = await getUserCounts(client, userId);
   const scheduleBeforeBrowse = await getScheduleAssignments(client, userId);
 
   for (const title of PRESET_TITLES) {
-    const card = page.getByRole("button").filter({ hasText: title }).first();
-    await card.click();
+    await previewPreset(page, title);
     await expect(page.getByText(title).first()).toBeVisible();
   }
 
@@ -129,7 +134,7 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
   expect(countsAfterBrowse).toEqual(countsBeforeBrowse);
   expect(scheduleAfterBrowse).toEqual(scheduleBeforeBrowse);
 
-  await page.getByRole("button").filter({ hasText: "Full Body Basics" }).first().click();
+  await previewPreset(page, "Full Body Basics");
   await expect(page.getByText("Proposed weekly schedule")).toBeVisible();
   await expect(page.getByText(/2 x 8-12 reps; rest 2-3 min/).first()).toBeVisible();
 
@@ -203,6 +208,7 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
     }
   }
 
+  await page.goto("/training?view=program");
   const mondayControl = page.locator("label").filter({ hasText: "Monday" }).first().locator("select");
   await mondayControl.selectOption({ label: "Full Body Basics - Full Body" });
   await expect
@@ -211,6 +217,9 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
       return !!monday?.template_id && monday.is_rest_day === false;
     })
     .toBe(true);
+
+  await page.goto("/training?view=plans#ready-made-plans");
+  await previewPreset(page, "Full Body Basics");
 
   await page.getByRole("button", { name: "Use Plan" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "replaces your current weekday assignments" })).toBeVisible();
@@ -244,17 +253,18 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
     }
   }
 
-  await page.getByRole("button").filter({ hasText: "Glute Killer" }).first().click();
+  await previewPreset(page, "Glute Killer");
   await page.getByRole("button", { name: "Save Workout" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Glute Killer saved to your templates." })).toBeVisible();
 
-  await page.getByRole("button").filter({ hasText: "Arms Killer" }).first().click();
+  await previewPreset(page, "Arms Killer");
   await page.getByRole("button", { name: "Save Workout" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Arms Killer saved to your templates." })).toBeVisible();
 
   const scheduleAfterFocusedSaves = await getScheduleAssignments(client, userId);
   expect(scheduleAfterFocusedSaves).toEqual(scheduleAfterApply);
 
+  await page.goto("/training?view=program");
   await page.getByRole("button", { name: "Quick Start" }).click();
   await page.waitForURL(/\/training\/workouts\/[^/?]+(?:\?.*)?$/);
 
@@ -263,7 +273,8 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
     throw new Error(`Failed to parse workout id from URL: ${page.url()}`);
   }
 
-  await expect(page.getByText(/6 Exercises/i)).toBeVisible();
+  await expect(page.getByText(/Current Exercise/i)).toBeVisible();
+  await expect(page.getByText(/1 of 6/i)).toBeVisible();
   await expect(page.getByText(/working sets x 8-12 reps; rest 2-3 min\./i).first()).toBeVisible();
   await expect(page.getByText(/potential estimated pr/i)).toHaveCount(0);
 
