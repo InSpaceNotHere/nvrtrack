@@ -22,6 +22,7 @@ import {
 interface ReadyMadePlansLibraryProps {
   presets: ReadyMadePresetResolvedDefinition[];
   missingExercises: ReadyMadePresetMissingExercise[];
+  initialPresetId?: ReadyMadePresetId | null;
 }
 
 function formatSessionDurationLabel(preset: ReadyMadePresetResolvedDefinition): string {
@@ -41,11 +42,13 @@ function hasMissingMappings(
 export function ReadyMadePlansLibrary({
   presets,
   missingExercises,
+  initialPresetId = null,
 }: ReadyMadePlansLibraryProps) {
   const router = useRouter();
   const [selectedPresetId, setSelectedPresetId] = useState<ReadyMadePresetId>(
-    presets[0]?.id ?? "full-body-basics",
+    initialPresetId ?? presets[0]?.id ?? "full-body-basics",
   );
+  const [isDetailOpen, setIsDetailOpen] = useState<boolean>(Boolean(initialPresetId));
   const [confirmApplyPresetId, setConfirmApplyPresetId] =
     useState<ReadyMadePresetId | null>(null);
   const [feedback, setFeedback] = useState<{
@@ -94,6 +97,19 @@ export function ReadyMadePlansLibrary({
     });
   }
 
+  function openPresetDetail(presetId: ReadyMadePresetId) {
+    setSelectedPresetId(presetId);
+    setConfirmApplyPresetId(null);
+    setIsDetailOpen(true);
+    router.replace(`/training?view=plans&preset=${presetId}#ready-made-plans`, { scroll: false });
+  }
+
+  function closePresetDetail() {
+    setConfirmApplyPresetId(null);
+    setIsDetailOpen(false);
+    router.replace("/training?view=plans#ready-made-plans", { scroll: false });
+  }
+
   function handleApplyPreset(
     presetId: ReadyMadePresetId,
     confirmScheduleReplace: boolean,
@@ -129,64 +145,68 @@ export function ReadyMadePlansLibrary({
 
   return (
     <div id="ready-made-plans" className="space-y-4">
-      <div className="grid gap-2 sm:grid-cols-2">
-        {presets.map((preset) => {
-          const selected = preset.id === selectedPresetId;
-          const missing = hasMissingMappings(preset.id, missingExercises);
-          const dayCount = preset.schedule.filter((entry) => entry.sessionKey !== null).length;
-          return (
-            <article
-              key={preset.id}
-              className={`rounded-xl border p-3 transition-colors ${
-                selected
-                  ? "border-white/40 bg-white/10"
-                  : "border-white/10 bg-black/20"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="text-sm font-semibold text-zinc-100">{preset.title}</p>
-                    <StateChip
-                      state={preset.kind === "weekly_program" ? "planned" : "warning"}
-                      label={preset.kind === "weekly_program" ? "Weekly program" : "Focused workout"}
-                      className="text-[10px]"
-                    />
+      {!isDetailOpen ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {presets.map((preset) => {
+            const missing = hasMissingMappings(preset.id, missingExercises);
+            const dayCount = preset.schedule.filter((entry) => entry.sessionKey !== null).length;
+            return (
+              <article
+                key={preset.id}
+                className="rounded-xl border border-white/10 bg-black/20 p-3 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="text-sm font-semibold text-zinc-100">{preset.title}</p>
+                      <StateChip
+                        state={preset.kind === "weekly_program" ? "planned" : "warning"}
+                        label={preset.kind === "weekly_program" ? "Weekly program" : "Focused workout"}
+                        className="text-[10px]"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-400">{preset.subtitle}</p>
+                    <p className="mt-1 text-[11px] text-zinc-500">
+                      {preset.kind === "weekly_program" ? `${dayCount} days/week` : "Single session"}
+                      {" • "}
+                      {formatSessionDurationLabel(preset)}
+                    </p>
+                    {preset.startHereHint ? (
+                      <p className="mt-1 text-xs text-emerald-300">{preset.startHereHint}</p>
+                    ) : null}
                   </div>
-                  <p className="mt-1 text-xs text-zinc-400">{preset.subtitle}</p>
-                  <p className="mt-1 text-[11px] text-zinc-500">
-                    {preset.kind === "weekly_program" ? `${dayCount} days/week` : "Single session"}
-                    {" • "}
-                    {formatSessionDurationLabel(preset)}
-                  </p>
-                  {preset.startHereHint ? (
-                    <p className="mt-1 text-xs text-emerald-300">{preset.startHereHint}</p>
-                  ) : null}
+                  <Button
+                    type="button"
+                    onClick={() => openPresetDetail(preset.id)}
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 rounded-md px-2.5 text-xs"
+                  >
+                    Preview
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPresetId(preset.id);
-                    setConfirmApplyPresetId(null);
-                  }}
-                  variant={selected ? "primary" : "secondary"}
-                  size="sm"
-                  className="h-8 rounded-md px-2.5 text-xs"
-                >
-                  {selected ? "Previewing" : "Preview"}
-                </Button>
-              </div>
-              {missing ? (
-                <div className="mt-2">
-                  <StateChip state="warning" label="Needs mapping review" className="text-[10px]" />
-                </div>
-              ) : null}
-            </article>
-          );
-        })}
-      </div>
+                {missing ? (
+                  <div className="mt-2">
+                    <StateChip state="warning" label="Needs mapping review" className="text-[10px]" />
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
+      ) : null}
 
-      <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+      {isDetailOpen ? (
+        <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+          <Button
+            type="button"
+            onClick={closePresetDetail}
+            variant="secondary"
+            size="sm"
+            className="mb-2 h-8 rounded-md px-2.5 text-xs"
+          >
+            Back to Plans
+          </Button>
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold text-zinc-100">{selectedPreset.title}</h3>
           <StateChip
@@ -389,7 +409,8 @@ export function ReadyMadePlansLibrary({
             )}
           </div>
         </div>
-      </div>
+        </div>
+      ) : null}
 
       {feedback ? (
         <Toast tone={feedback.tone} role={feedback.tone === "error" ? "alert" : "status"}>

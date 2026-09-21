@@ -109,9 +109,14 @@ async function getScheduleAssignments(
 }
 
 async function previewPreset(page: Page, title: string): Promise<void> {
+  const backToPlans = page.getByRole("button", { name: "Back to Plans" });
+  if ((await backToPlans.count()) > 0) {
+    await backToPlans.click();
+  }
   const card = page.locator("article").filter({ hasText: title }).first();
   await expect(card).toBeVisible();
   await card.getByRole("button", { name: /Preview|Previewing/ }).first().click();
+  await expect(page.getByRole("button", { name: "Back to Plans" })).toBeVisible();
 }
 
 test("ready-made presets preserve no-write browse, safe scheduling, and structured prescriptions", async ({ page }) => {
@@ -136,6 +141,7 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
 
   await previewPreset(page, "Full Body Basics");
   await expect(page.getByText("Proposed weekly schedule")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Preview$/ })).toHaveCount(0);
   await expect(page.getByText(/2 x 8-12 reps; rest 2-3 min/).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Save Templates Only" }).click();

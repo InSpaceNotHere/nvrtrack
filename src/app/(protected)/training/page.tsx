@@ -331,6 +331,7 @@ function applyFixturePresentation(
 export default async function TrainingPage({ searchParams }: TrainingPageProps) {
   const resolvedSearchParams = (await Promise.resolve(searchParams)) ?? {};
   const view = asSingleParam(resolvedSearchParams.view);
+  const presetParam = asSingleParam(resolvedSearchParams.preset);
   const fixtureParam = asSingleParam(resolvedSearchParams.fixture);
   const allowFixturePreview = process.env.NODE_ENV !== "production";
   const fixture = allowFixturePreview && isFixture(fixtureParam) ? fixtureParam : null;
@@ -420,6 +421,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
     })),
   ];
   const readyMadeResolution = buildReadyMadePresetResolution(catalogResult.data ?? []);
+  const initialPlanPresetId = readyMadeResolution.presets.find((preset) => preset.id === presetParam)?.id ?? null;
 
   const dataErrorMessage =
     activeWorkoutResult.error?.message ??
@@ -649,6 +651,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             <ReadyMadePlansLibrary
               presets={readyMadeResolution.presets}
               missingExercises={readyMadeResolution.missingExercises}
+              initialPresetId={initialPlanPresetId}
             />
           </Card>
         </>
