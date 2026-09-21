@@ -204,11 +204,11 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
   }
 
   const mondayControl = page.locator("label").filter({ hasText: "Monday" }).first().locator("select");
-  await mondayControl.selectOption("__rest__");
+  await mondayControl.selectOption({ label: "Full Body Basics - Full Body" });
   await expect
     .poll(async () => {
       const monday = (await getScheduleAssignments(client, userId)).find((entry) => entry.weekday === 1);
-      return monday?.is_rest_day ?? false;
+      return !!monday?.template_id && monday.is_rest_day === false;
     })
     .toBe(true);
 
@@ -217,7 +217,8 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
 
   const scheduleAfterConfirmPrompt = await getScheduleAssignments(client, userId);
   const mondayBeforeConfirm = scheduleAfterConfirmPrompt.find((entry) => entry.weekday === 1);
-  expect(mondayBeforeConfirm?.is_rest_day).toBe(true);
+  expect(mondayBeforeConfirm?.template_id).toBeTruthy();
+  expect(mondayBeforeConfirm?.is_rest_day).toBe(false);
 
   await page.getByRole("button", { name: "Confirm Replace and Use Plan" }).click();
   await expect(page.getByRole("status").filter({ hasText: "applied to your weekly planner" })).toBeVisible();
