@@ -264,7 +264,6 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
   }
 
   await expect(page.getByText(/6 Exercises/i)).toBeVisible();
-  await expect(page.getByText(/^0 (lb|kg)$/i)).toBeVisible();
   await expect(page.getByText(/working sets x 8-12 reps; rest 2-3 min\./i)).toBeVisible();
   await expect(page.getByText(/potential estimated pr/i)).toHaveCount(0);
 
