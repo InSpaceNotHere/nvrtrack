@@ -44,6 +44,11 @@ interface FixtureState {
   scheduleWriteCount: number;
 }
 
+interface PlannerMockOptions {
+  failReplaceForTemplateNamesOnce?: Set<string>;
+  failWeekdayScheduleForOnce?: Set<number>;
+}
+
 function makeCatalogRow(input: {
   id: string;
   name: string;
@@ -83,7 +88,36 @@ function setupFixtureState(): FixtureState {
   };
 }
 
-function installPlannerMocks(state: FixtureState) {
+function buildReadyMadeCoverageCatalog(): ExerciseCatalogRow[] {
+  return [
+    makeCatalogRow({ id: "1", name: "Dumbbell Goblet Squat" }),
+    makeCatalogRow({ id: "2", name: "Dumbbell Bench Press" }),
+    makeCatalogRow({ id: "3", name: "Lat Pulldown" }),
+    makeCatalogRow({ id: "4", name: "Dumbbell Romanian Deadlift" }),
+    makeCatalogRow({ id: "5", name: "Seated Cable Row" }),
+    makeCatalogRow({ id: "6", name: "Crunch" }),
+    makeCatalogRow({ id: "7", name: "Barbell Bench Press" }),
+    makeCatalogRow({ id: "8", name: "Incline Dumbbell Bench Press" }),
+    makeCatalogRow({ id: "9", name: "Dumbbell Shoulder Press" }),
+    makeCatalogRow({ id: "10", name: "Dumbbell Lateral Raise" }),
+    makeCatalogRow({ id: "11", name: "Triceps Pushdown" }),
+    makeCatalogRow({ id: "12", name: "Reverse Fly" }),
+    makeCatalogRow({ id: "13", name: "Dumbbell Curl" }),
+    makeCatalogRow({ id: "14", name: "Hammer Curl" }),
+    makeCatalogRow({ id: "15", name: "Back Squat" }),
+    makeCatalogRow({ id: "16", name: "Romanian Deadlift" }),
+    makeCatalogRow({ id: "17", name: "Seated Leg Curl" }),
+    makeCatalogRow({ id: "18", name: "Leg Extension" }),
+    makeCatalogRow({ id: "19", name: "Standing Calf Raise" }),
+    makeCatalogRow({ id: "20", name: "Leg Press" }),
+    makeCatalogRow({ id: "21", name: "Hip Thrust" }),
+    makeCatalogRow({ id: "22", name: "Reverse Lunge" }),
+    makeCatalogRow({ id: "23", name: "Hip Abduction" }),
+    makeCatalogRow({ id: "24", name: "Overhead Triceps Extension" }),
+  ];
+}
+
+function installPlannerMocks(state: FixtureState, options?: PlannerMockOptions) {
   getMyWorkoutTemplatesMock.mockImplementation(async () => ({
     error: null,
     data: state.templates,
@@ -128,6 +162,11 @@ function installPlannerMocks(state: FixtureState) {
       templateId: string,
       exercises: Array<{ position: number; exercise_name: string }>,
     ) => {
+      const templateName = state.templates.find((template) => template.id === templateId)?.name ?? null;
+      if (templateName && options?.failReplaceForTemplateNamesOnce?.has(templateName)) {
+        options.failReplaceForTemplateNamesOnce.delete(templateName);
+        return { error: { code: "DB_ERROR", message: `intentional replace failure for ${templateName}` } };
+      }
       state.templateExercises = state.templateExercises.filter(
         (exercise) => exercise.template_id !== templateId,
       );
@@ -154,6 +193,10 @@ function installPlannerMocks(state: FixtureState) {
       weekday: number,
       payload: { template_id: string | null; is_rest_day: boolean },
     ) => {
+      if (options?.failWeekdayScheduleForOnce?.has(weekday)) {
+        options.failWeekdayScheduleForOnce.delete(weekday);
+        return { error: { code: "DB_ERROR", message: `intentional weekday failure for ${weekday}` } };
+      }
       state.scheduleWriteCount += 1;
       const existing = state.weekdaySchedule.find((entry) => entry.weekday === weekday);
       if (existing) {
@@ -193,14 +236,7 @@ describe("importReadyMadePreset", () => {
     installPlannerMocks(state);
     getExerciseCatalogMock.mockResolvedValue({
       error: null,
-      data: [
-        makeCatalogRow({ id: "1", name: "Dumbbell Goblet Squat" }),
-        makeCatalogRow({ id: "2", name: "Dumbbell Bench Press" }),
-        makeCatalogRow({ id: "3", name: "Lat Pulldown" }),
-        makeCatalogRow({ id: "4", name: "Dumbbell Romanian Deadlift" }),
-        makeCatalogRow({ id: "5", name: "Seated Cable Row" }),
-        makeCatalogRow({ id: "6", name: "Crunch" }),
-      ],
+      data: buildReadyMadeCoverageCatalog(),
     });
 
     const presetModule = await import("./ready-made-presets");
@@ -238,14 +274,7 @@ describe("importReadyMadePreset", () => {
     ];
     getExerciseCatalogMock.mockResolvedValue({
       error: null,
-      data: [
-        makeCatalogRow({ id: "1", name: "Dumbbell Goblet Squat" }),
-        makeCatalogRow({ id: "2", name: "Dumbbell Bench Press" }),
-        makeCatalogRow({ id: "3", name: "Lat Pulldown" }),
-        makeCatalogRow({ id: "4", name: "Dumbbell Romanian Deadlift" }),
-        makeCatalogRow({ id: "5", name: "Seated Cable Row" }),
-        makeCatalogRow({ id: "6", name: "Crunch" }),
-      ],
+      data: buildReadyMadeCoverageCatalog(),
     });
 
     const presetModule = await import("./ready-made-presets");
@@ -281,5 +310,151 @@ describe("importReadyMadePreset", () => {
     expect(wednesday?.template_id).toBeTruthy();
     expect(friday?.template_id).toBeTruthy();
     expect(sunday?.is_rest_day).toBe(true);
+  });
+
+  it("handles concurrent save/apply attempts without duplicating preset templates", async () => {
+    const state = setupFixtureState();
+    installPlannerMocks(state);
+    getExerciseCatalogMock.mockResolvedValue({
+      error: null,
+      data: buildReadyMadeCoverageCatalog(),
+    });
+
+    const presetModule = await import("./ready-made-presets");
+    const [left, right] = await Promise.all([
+      presetModule.importReadyMadePreset({
+        presetId: "full-body-basics",
+        applySchedule: true,
+        confirmScheduleReplace: true,
+      }),
+      presetModule.importReadyMadePreset({
+        presetId: "full-body-basics",
+        applySchedule: true,
+        confirmScheduleReplace: true,
+      }),
+    ]);
+
+    expect(left.error).toBeNull();
+    expect(right.error).toBeNull();
+    expect(state.templates.filter((template) => template.name === "Full Body Basics - Full Body")).toHaveLength(1);
+    expect(state.templateExercises.filter((exercise) => exercise.template_id === state.templates[0]?.id)).toHaveLength(6);
+  });
+
+  it("supports retry after interrupted template import and avoids false success", async () => {
+    const state = setupFixtureState();
+    installPlannerMocks(state, {
+      failReplaceForTemplateNamesOnce: new Set(["Classic PPL - Pull"]),
+    });
+    getExerciseCatalogMock.mockResolvedValue({
+      error: null,
+      data: buildReadyMadeCoverageCatalog(),
+    });
+
+    const presetModule = await import("./ready-made-presets");
+    const first = await presetModule.importReadyMadePreset({
+      presetId: "classic-ppl",
+      applySchedule: false,
+      confirmScheduleReplace: false,
+    });
+    expect(first.error).not.toBeNull();
+    expect(first.error?.message).toContain("intentional replace failure");
+
+    const second = await presetModule.importReadyMadePreset({
+      presetId: "classic-ppl",
+      applySchedule: false,
+      confirmScheduleReplace: false,
+    });
+    expect(second.error).toBeNull();
+
+    expect(state.templates.map((template) => template.name).sort()).toEqual([
+      "Classic PPL - Legs",
+      "Classic PPL - Pull",
+      "Classic PPL - Push",
+    ]);
+    for (const template of state.templates) {
+      const count = state.templateExercises.filter((exercise) => exercise.template_id === template.id).length;
+      expect(count).toBeGreaterThan(0);
+    }
+  });
+
+  it("recovers from partial weekday assignment failure on retry", async () => {
+    const state = setupFixtureState();
+    installPlannerMocks(state, {
+      failWeekdayScheduleForOnce: new Set([3]),
+    });
+    getExerciseCatalogMock.mockResolvedValue({
+      error: null,
+      data: buildReadyMadeCoverageCatalog(),
+    });
+
+    const presetModule = await import("./ready-made-presets");
+    const first = await presetModule.importReadyMadePreset({
+      presetId: "full-body-basics",
+      applySchedule: true,
+      confirmScheduleReplace: true,
+    });
+    expect(first.error).not.toBeNull();
+    expect(first.error?.message).toContain("intentional weekday failure");
+    expect(state.scheduleWriteCount).toBeGreaterThan(0);
+    expect(state.scheduleWriteCount).toBeLessThan(7);
+
+    const second = await presetModule.importReadyMadePreset({
+      presetId: "full-body-basics",
+      applySchedule: true,
+      confirmScheduleReplace: true,
+    });
+    expect(second.error).toBeNull();
+
+    const byWeekday = new Map(state.weekdaySchedule.map((entry) => [entry.weekday, entry]));
+    expect(byWeekday.get(1)?.template_id).toBeTruthy();
+    expect(byWeekday.get(3)?.template_id).toBeTruthy();
+    expect(byWeekday.get(5)?.template_id).toBeTruthy();
+    expect(byWeekday.get(0)?.is_rest_day).toBe(true);
+  });
+
+  it("does not modify existing customized templates while importing presets", async () => {
+    const state = setupFixtureState();
+    const customTemplate: WorkoutTemplateRow = {
+      id: "custom-1",
+      user_id: "user-1",
+      name: "My Custom Template",
+      template_type: "custom",
+      estimated_duration_minutes: 45,
+      notes: "user customized",
+      is_archived: false,
+      created_at: "2026-09-21T00:00:00.000Z",
+      updated_at: "2026-09-21T00:00:00.000Z",
+    };
+    state.templates.push(customTemplate);
+    state.templateExercises.push({
+      id: "custom-ex-1",
+      template_id: customTemplate.id,
+      user_id: "user-1",
+      position: 0,
+      exercise_name: "User Exercise",
+    });
+
+    installPlannerMocks(state);
+    getExerciseCatalogMock.mockResolvedValue({
+      error: null,
+      data: buildReadyMadeCoverageCatalog(),
+    });
+
+    const presetModule = await import("./ready-made-presets");
+    const result = await presetModule.importReadyMadePreset({
+      presetId: "full-body-basics",
+      applySchedule: false,
+      confirmScheduleReplace: false,
+    });
+    expect(result.error).toBeNull();
+
+    expect(
+      replaceWorkoutTemplateExercisesMock.mock.calls.some(
+        ([templateId]: [string]) => templateId === customTemplate.id,
+      ),
+    ).toBe(false);
+    expect(state.templateExercises.find((exercise) => exercise.id === "custom-ex-1")?.exercise_name).toBe(
+      "User Exercise",
+    );
   });
 });

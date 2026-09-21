@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 type E2EEnvName = "E2E_TEST_EMAIL" | "E2E_TEST_PASSWORD";
+type AppEnvName = "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY";
 
 let cachedEnv: Record<string, string> | null = null;
 
@@ -55,4 +56,18 @@ export function requiredE2EEnv(name: E2EEnvName): string {
   }
 
   throw new Error(`${name} is required for e2e tests (env or .env.local).`);
+}
+
+export function requiredAppEnv(name: AppEnvName): string {
+  const directValue = process.env[name];
+  if (directValue) {
+    return directValue;
+  }
+
+  const envLocalValue = readEnvLocal()[name];
+  if (envLocalValue) {
+    return envLocalValue;
+  }
+
+  throw new Error(`${name} is required for e2e app setup (env or .env.local).`);
 }
