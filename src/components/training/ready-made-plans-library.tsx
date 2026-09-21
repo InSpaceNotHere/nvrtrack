@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -62,7 +62,6 @@ export function ReadyMadePlansLibrary({
     message: string;
   } | null>(null);
   const [isPending, startTransition] = useTransition();
-  const detailOpenedFromListRef = useRef(false);
 
   const selectedPreset = useMemo(
     () => presets.find((preset) => preset.id === selectedPresetId) ?? null,
@@ -108,7 +107,6 @@ export function ReadyMadePlansLibrary({
   }
 
   function openPresetDetail(presetId: ReadyMadePresetId) {
-    detailOpenedFromListRef.current = true;
     setSelectedPresetId(presetId);
     setConfirmApplyPresetId(null);
     setIsDetailOpen(true);
@@ -117,11 +115,6 @@ export function ReadyMadePlansLibrary({
 
   function closePresetDetail() {
     setConfirmApplyPresetId(null);
-    if (detailOpenedFromListRef.current) {
-      detailOpenedFromListRef.current = false;
-      router.back();
-      return;
-    }
     setIsDetailOpen(false);
     router.replace("/training?view=plans#ready-made-plans", { scroll: false });
   }
