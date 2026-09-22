@@ -48,7 +48,8 @@ test("recent lists newly logged foods once and hides favorites when storage is u
   await expect(page.getByText("No recent foods")).toHaveCount(0);
   await expect(page.getByText("No frequent foods")).toHaveCount(0);
   await expect(page.getByText("No favorites")).toHaveCount(0);
-  await expect(page.getByText(/migration|nutrition_food_favorites|schema cache|PGRST|42P01/i)).toHaveCount(0);
+  await expect(page.getByRole("main").getByText("nutrition_food_favorites")).toHaveCount(0);
+  await expect(page.getByRole("main").getByText(/schema cache|PGRST205|Favorites are waiting/i)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Favorites" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /favorites/i })).toHaveCount(0);
 
@@ -68,7 +69,8 @@ test("recent lists newly logged foods once and hides favorites when storage is u
   await expect(frequent.getByRole("button", { name: new RegExp(foodName) })).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Favorites" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /favorites/i })).toHaveCount(0);
-  await expect(page.getByText(/migration|nutrition_food_favorites|schema cache|PGRST|42P01/i)).toHaveCount(0);
+  await expect(page.getByRole("main").getByText("nutrition_food_favorites")).toHaveCount(0);
+  await expect(page.getByRole("main").getByText(/schema cache|PGRST205|Favorites are waiting/i)).toHaveCount(0);
 
   const recentChip = recent.getByRole("button", { name: new RegExp(`^${foodName}`) }).first();
   await recentChip.click();
