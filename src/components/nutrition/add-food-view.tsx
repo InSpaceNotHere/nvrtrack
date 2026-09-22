@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -144,16 +144,18 @@ export function AddFoodView({
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<AddFoodTab>(initialSavedFoodId ? "mine" : "common");
-  const [target, setTarget] = useState<PortionTarget | null>(null);
-  const [amountValue, setAmountValue] = useState("100");
-  const [amountUnit, setAmountUnit] = useState<PortionUnit>("g");
+  const initialFood = initialSavedFoodId ? foods.find((item) => item.id === initialSavedFoodId) ?? null : null;
+  const [target, setTarget] = useState<PortionTarget | null>(() =>
+    initialFood ? { kind: "saved", food: initialFood, name: initialFood.name } : null,
+  );
+  const [amountValue, setAmountValue] = useState(initialFood ? "1" : "100");
+  const [amountUnit, setAmountUnit] = useState<PortionUnit>(initialFood ? "servings" : "g");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [variantByGroup, setVariantByGroup] = useState<Record<string, string>>({});
   const [favoriteKeys, setFavoriteKeys] = useState(() => new Set(favoriteIdentities.map((identity) => identity.key)));
   const [favoriteItems, setFavoriteItems] = useState(favoriteFoods);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [openedInitialSavedId, setOpenedInitialSavedId] = useState<string | null>(null);
 
   const mealLabel = MEAL_LABELS[mealType];
   const searching = query.trim().length > 0;
@@ -164,21 +166,6 @@ export function AddFoodView({
   );
 
   const savedMatches = useMemo(() => searchSavedFoods(foods, query), [foods, query]);
-
-  useEffect(() => {
-    if (!initialSavedFoodId || openedInitialSavedId === initialSavedFoodId) {
-      return;
-    }
-    const food = foods.find((item) => item.id === initialSavedFoodId);
-    if (!food) {
-      return;
-    }
-    setErrorMessage(null);
-    setTarget({ kind: "saved", food, name: food.name });
-    setAmountValue("1");
-    setAmountUnit("servings");
-    setOpenedInitialSavedId(initialSavedFoodId);
-  }, [initialSavedFoodId, foods, openedInitialSavedId]);
 
   function openCatalog(food: FoodCatalogRow) {
     setErrorMessage(null);

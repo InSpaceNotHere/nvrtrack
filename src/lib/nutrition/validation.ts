@@ -109,14 +109,22 @@ function parseNumber(
   fieldLabel: string,
   options: { required: boolean; min: number; max: number; allowZero?: boolean },
 ): { value: number | null; error: string | null } {
-  if (value === null || value === undefined || value === "") {
+  if (value === null || value === undefined) {
     if (!options.required) {
       return { value: null, error: null };
     }
     return { value: null, error: `${fieldLabel} is required.` };
   }
 
-  const numeric = typeof value === "number" ? value : Number(String(value).trim());
+  const raw = typeof value === "number" ? String(value) : String(value).trim();
+  if (raw === "") {
+    if (!options.required) {
+      return { value: null, error: null };
+    }
+    return { value: null, error: `${fieldLabel} is required.` };
+  }
+
+  const numeric = typeof value === "number" ? value : Number(raw);
   if (!Number.isFinite(numeric)) {
     return { value: null, error: `${fieldLabel} must be a number.` };
   }
