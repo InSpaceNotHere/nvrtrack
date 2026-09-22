@@ -19,7 +19,19 @@ async function login(page: Page) {
   await completeOnboardingIfNeeded(page);
 }
 
-test("recent lists newly logged foods and omits empty personal sections", async ({ page }) => {
+async function logCustomFood(page: Page, foodName: string) {
+  await page.getByRole("tab", { name: "Custom" }).click();
+  await page.getByLabel("Food name").fill(foodName);
+  await page.getByLabel("Serving size").fill("1");
+  await page.getByLabel("Serving unit").fill("serving");
+  await page.getByLabel("Calories/serving").fill("111");
+  await page.getByLabel("Protein g").fill("9");
+  await page.getByLabel("Carbohydrates g").fill("7");
+  await page.getByLabel("Fat g").fill("3");
+  await page.getByRole("button", { name: "Add to Breakfast" }).click();
+}
+
+test("recent lists newly logged foods once and hides favorites when storage is unavailable", async ({ page }) => {
   await login(page);
   const usdaRequests: string[] = [];
   page.on("request", (request) => {
@@ -36,44 +48,53 @@ test("recent lists newly logged foods and omits empty personal sections", async 
   await expect(page.getByText("No recent foods")).toHaveCount(0);
   await expect(page.getByText("No frequent foods")).toHaveCount(0);
   await expect(page.getByText("No favorites")).toHaveCount(0);
+  await expect(page.getByRole("main").getByText("nutrition_food_favorites")).toHaveCount(0);
+  await expect(page.getByRole("main").getByText(/schema cache|PGRST205|Favorites are waiting/i)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Favorites" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /favorites/i })).toHaveCount(0);
 
-  await page.getByRole("tab", { name: "Custom" }).click();
-  await page.getByLabel("Food name").fill(foodName);
-  await page.getByLabel("Serving size").fill("1");
-  await page.getByLabel("Serving unit").fill("serving");
-  await page.getByLabel("Calories/serving").fill("111");
-  await page.getByLabel("Protein g").fill("9");
-  await page.getByLabel("Carbohydrates g").fill("7");
-  await page.getByLabel("Fat g").fill("3");
-  await page.getByRole("button", { name: "Add to Breakfast" }).click();
+  await logCustomFood(page, foodName);
   await expect(page.locator("li").filter({ hasText: foodName })).toBeVisible();
 
   await page.getByRole("link", { name: "Add Food to Breakfast" }).click();
+  await logCustomFood(page, foodName);
+  await expect(page.locator("li").filter({ hasText: foodName })).toHaveCount(2);
+
+  await page.getByRole("link", { name: "Add Food to Breakfast" }).click();
   await expect(page.getByRole("heading", { name: "Recent" })).toBeVisible();
-  const recentChip = page.getByRole("button", { name: new RegExp(`^${foodName}`) }).first();
-  await expect(recentChip).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Frequent" })).toBeVisible();
+  const recent = page.locator("section").filter({ has: page.getByRole("heading", { name: "Recent" }) });
+  const frequent = page.locator("section").filter({ has: page.getByRole("heading", { name: "Frequent" }) });
+  await expect(recent.getByRole("button", { name: new RegExp(foodName) })).toHaveCount(1);
+  await expect(frequent.getByRole("button", { name: new RegExp(foodName) })).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "Favorites" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /favorites/i })).toHaveCount(0);
+  await expect(page.getByRole("main").getByText("nutrition_food_favorites")).toHaveCount(0);
+  await expect(page.getByRole("main").getByText(/schema cache|PGRST205|Favorites are waiting/i)).toHaveCount(0);
+
+  const recentChip = recent.getByRole("button", { name: new RegExp(`^${foodName}`) }).first();
   await recentChip.click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("button", { name: /favorites/i })).toHaveCount(0);
   await page.getByRole("button", { name: "Close", exact: true }).click();
 
   await page.getByLabel("Search foods").fill("chicken breast");
   await expect(page.getByRole("button", { name: /^Chicken Breast/i }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Recent" })).toHaveCount(0);
-
-  await page.getByRole("button", { name: /Add Chicken Breast to favorites/i }).click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /favorites/i })).toHaveCount(0);
 
   expect(usdaRequests).toEqual([]);
 });
 
-test("star tap on a result does not open the portion sheet", async ({ page }) => {
+test("search results stay usable without favorite stars when storage is unavailable", async ({ page }) => {
   await login(page);
   const date = uniqueTestDate();
   await page.goto(`/nutrition/add?meal=lunch&date=${date}`);
   await page.getByLabel("Search foods").fill("white rice");
   const row = page.getByRole("button", { name: /White Rice/i }).first();
   await expect(row).toBeVisible();
-  const star = page.getByRole("button", { name: /White Rice.*favorites/i }).first();
-  await star.click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /favorites/i })).toHaveCount(0);
+  await row.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("button", { name: /favorites/i })).toHaveCount(0);
 });

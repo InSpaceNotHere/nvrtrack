@@ -34,7 +34,7 @@ export async function toggleNutritionFoodFavoriteAction(
   if (!identity) {
     return {
       status: "error",
-      message: "Favorite identity is invalid.",
+      message: "Couldn't update favorites.",
       favorited: !nextFavorited,
     };
   }

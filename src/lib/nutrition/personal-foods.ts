@@ -6,7 +6,7 @@ import {
   perHundredGramMacros,
 } from "./food-display-name";
 import {
-  getLogicalFoodIdentity,
+  getPersonalFoodIdentity,
   identitiesMatch,
   type LogicalFoodIdentity,
 } from "./food-identity";
@@ -57,7 +57,7 @@ function compareIsoDesc(left: string, right: string): number {
 function bucketsFromEntries(entries: FoodEntryRow[]): Map<string, IdentityBucket> {
   const buckets = new Map<string, IdentityBucket>();
   for (const entry of entries) {
-    const identity = getLogicalFoodIdentity(entry);
+    const identity = getPersonalFoodIdentity(entry);
     const existing = buckets.get(identity.key);
     if (!existing) {
       buckets.set(identity.key, {
@@ -69,6 +69,11 @@ function bucketsFromEntries(entries: FoodEntryRow[]): Map<string, IdentityBucket
       continue;
     }
     existing.count += 1;
+    if (identity.catalogFoodId && !existing.identity.catalogFoodId) {
+      existing.identity = identity;
+    } else if (identity.foodId && !existing.identity.foodId) {
+      existing.identity = identity;
+    }
     if (entry.created_at > existing.lastLoggedAt) {
       existing.lastLoggedAt = entry.created_at;
       existing.latestEntry = entry;
@@ -82,33 +87,15 @@ export function uniqueRecentFoodsFromEntries(
   options: { limit?: number } = {},
 ): IdentityBucket[] {
   const limit = options.limit ?? PERSONAL_RECENT_LIMIT;
-  const seen = new Set<string>();
-  const result: IdentityBucket[] = [];
-  const sorted = [...entries].sort((left, right) => {
-    const byCreated = compareIsoDesc(left.created_at, right.created_at);
-    if (byCreated !== 0) {
-      return byCreated;
-    }
-    return left.id.localeCompare(right.id);
-  });
-
-  for (const entry of sorted) {
-    const identity = getLogicalFoodIdentity(entry);
-    if (seen.has(identity.key)) {
-      continue;
-    }
-    seen.add(identity.key);
-    result.push({
-      identity,
-      count: 1,
-      lastLoggedAt: entry.created_at,
-      latestEntry: entry,
-    });
-    if (result.length >= limit) {
-      break;
-    }
-  }
-  return result;
+  return [...bucketsFromEntries(entries).values()]
+    .sort((left, right) => {
+      const byRecency = compareIsoDesc(left.lastLoggedAt, right.lastLoggedAt);
+      if (byRecency !== 0) {
+        return byRecency;
+      }
+      return left.identity.key.localeCompare(right.identity.key);
+    })
+    .slice(0, limit);
 }
 
 export function frequentFoodsFromEntries(
@@ -234,7 +221,7 @@ export function buildFavoritePersonalFoods(
   const savedById = new Map(savedFoods.map((food) => [food.id, food]));
   const latestByIdentity = new Map<string, FoodEntryRow>();
   for (const entry of recentEntries) {
-    const identity = getLogicalFoodIdentity(entry);
+    const identity = getPersonalFoodIdentity(entry);
     const existing = latestByIdentity.get(identity.key);
     if (!existing || entry.created_at > existing.created_at) {
       latestByIdentity.set(identity.key, entry);
@@ -313,7 +300,7 @@ export function isFavoriteIdentity(favorites: LogicalFoodIdentity[], identity: L
 }
 
 export function personalItemFromCatalog(food: FoodCatalogRow): PersonalFoodItem {
-  const identity = getLogicalFoodIdentity({ catalog_food_id: food.id });
+  const identity = getPersonalFoodIdentity({ catalog_food_id: food.id, fdc_id: food.fdc_id });
   const macros = perHundredGramMacros(food);
   return {
     identity,
@@ -333,7 +320,7 @@ export function personalItemFromCatalog(food: FoodCatalogRow): PersonalFoodItem 
 }
 
 export function personalItemFromSaved(food: FoodRow): PersonalFoodItem {
-  const identity = getLogicalFoodIdentity({ food_id: food.id });
+  const identity = getPersonalFoodIdentity({ food_id: food.id });
   return {
     identity,
     kind: "saved",
