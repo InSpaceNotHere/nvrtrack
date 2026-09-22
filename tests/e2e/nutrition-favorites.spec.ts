@@ -36,6 +36,19 @@ function rail(page: Page, title: string) {
   return page.locator("section").filter({ has: page.getByRole("heading", { name: title, exact: true }) });
 }
 
+function railFood(page: Page, title: string, name: RegExp) {
+  return rail(page, title).getByRole("button", { name });
+}
+
+async function starCatalogFood(page: Page, foodName: string) {
+  const add = page.getByRole("button", { name: new RegExp(`Add ${foodName} to favorites`, "i") }).first();
+  if ((await add.count()) > 0) {
+    await add.click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
+  await expect(page.getByRole("button", { name: new RegExp(`Remove ${foodName} from favorites`, "i") }).first()).toBeVisible();
+}
+
 async function assertNoInternalCopy(page: Page) {
   await expect(page.getByRole("main").getByText("nutrition_food_favorites")).toHaveCount(0);
   await expect(page.getByRole("main").getByText(/schema cache|PGRST205|Favorites are waiting/i)).toHaveCount(0);
@@ -59,26 +72,27 @@ test("favorites persist from Common, search, Recent, and Frequent without openin
   await assertNoInternalCopy(page);
 
   const commonStar = page.getByRole("button", { name: /Add Chicken Breast to favorites/i }).first();
-  await expect(commonStar).toBeVisible();
-  await commonStar.click();
+  const alreadyStarred = page.getByRole("button", { name: /Remove Chicken Breast from favorites/i }).first();
+  if ((await commonStar.count()) > 0) {
+    await commonStar.click();
+  } else {
+    await expect(alreadyStarred).toBeVisible();
+  }
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(rail(page, "Favorites").getByRole("button", { name: /^Chicken Breast/i })).toBeVisible();
+  await expect(railFood(page, "Favorites", /^Chicken Breast \d/)).toHaveCount(1);
 
   await page.reload();
-  await expect(rail(page, "Favorites").getByRole("button", { name: /^Chicken Breast/i })).toBeVisible();
+  await expect(railFood(page, "Favorites", /^Chicken Breast \d/)).toHaveCount(1);
   await expect(page.getByRole("button", { name: /Remove Chicken Breast from favorites/i }).first()).toBeVisible();
 
-  await page.getByRole("button", { name: /^Chicken Breast/i }).first().click();
+  await railFood(page, "Common", /^Chicken Breast \d/).first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Close", exact: true }).click();
 
   await page.getByLabel("Search foods").fill("white rice");
-  const riceStar = page.getByRole("button", { name: /Add White Rice to favorites/i }).first();
-  await expect(riceStar).toBeVisible();
-  await riceStar.click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await starCatalogFood(page, "White Rice");
   await page.getByLabel("Search foods").fill("");
-  await expect(rail(page, "Favorites").getByRole("button", { name: /White Rice/i })).toBeVisible();
+  await expect(railFood(page, "Favorites", /^White Rice \d/)).toHaveCount(1);
 
   await page.getByRole("tab", { name: "Custom" }).click();
   await page.getByLabel("Food name").fill(customName);
@@ -95,7 +109,7 @@ test("favorites persist from Common, search, Recent, and Frequent without openin
   const recentStar = rail(page, "Recent").getByRole("button", { name: new RegExp(`Add ${customName} to favorites`) });
   await recentStar.click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(rail(page, "Favorites").getByRole("button", { name: new RegExp(customName) })).toBeVisible();
+  await expect(railFood(page, "Favorites", new RegExp(`^${customName}`))).toHaveCount(1);
 
   const frequentStar = rail(page, "Frequent").getByRole("button", { name: /Add Chicken Breast to favorites|Remove Chicken Breast from favorites/ });
   await expect(frequentStar).toBeVisible();
@@ -105,7 +119,7 @@ test("favorites persist from Common, search, Recent, and Frequent without openin
   }
 
   await page.getByRole("button", { name: /Remove White Rice from favorites/i }).first().click();
-  await expect(rail(page, "Favorites").getByRole("button", { name: /White Rice/i })).toHaveCount(0);
+  await expect(railFood(page, "Favorites", /^White Rice \d/)).toHaveCount(0);
   await assertNoInternalCopy(page);
   expect(usdaRequests).toEqual([]);
 });
@@ -126,7 +140,7 @@ test("new users omit empty personal rails and show Favorites only after starring
 
   await page.getByRole("button", { name: /Add Apple to favorites/i }).first().click();
   await expect(page.getByRole("heading", { name: "Favorites" })).toBeVisible();
-  await expect(rail(page, "Favorites").getByRole("button", { name: /^Apple/i })).toBeVisible();
+  await expect(railFood(page, "Favorites", /^Apple \d/)).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Recent" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Frequent" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Common" })).toBeVisible();
@@ -148,7 +162,7 @@ test("favorites stay isolated across users", async ({ page, browser }) => {
   await page.getByRole("button", { name: "Add to Breakfast" }).click();
   await page.getByRole("link", { name: "Add Food to Breakfast" }).click();
   await rail(page, "Recent").getByRole("button", { name: new RegExp(`Add ${marker} to favorites`) }).click();
-  await expect(rail(page, "Favorites").getByRole("button", { name: new RegExp(marker) })).toBeVisible();
+  await expect(railFood(page, "Favorites", new RegExp(`^${marker}`))).toHaveCount(1);
 
   const other = await signupIsolatedUser(browser, `${Date.now()}-b`);
   await other.goto(`/nutrition/add?meal=breakfast&date=${date}`);

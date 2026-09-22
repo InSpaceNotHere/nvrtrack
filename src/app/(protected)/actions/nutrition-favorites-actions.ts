@@ -13,6 +13,7 @@ export interface FavoriteIdentityInput {
   catalog_food_id?: string | null;
   food_id?: string | null;
   snapshot_key?: string | null;
+  fdc_id?: number | null;
 }
 
 export interface FavoriteActionResult {
