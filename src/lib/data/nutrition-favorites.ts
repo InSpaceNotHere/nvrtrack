@@ -42,7 +42,7 @@ function rowToFavorite(row: NutritionFoodFavoriteRow): FavoriteRecord {
   return { identity, createdAt: row.created_at };
 }
 
-function payloadFromIdentity(identity: LogicalFoodIdentity): FavoriteInsert | null {
+function payloadFromIdentity(identity: LogicalFoodIdentity): Omit<FavoriteInsert, "user_id"> | null {
   if (identity.type === "catalog" && identity.catalogFoodId) {
     return {
       identity_type: "catalog",
