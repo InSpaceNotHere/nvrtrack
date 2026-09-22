@@ -32,7 +32,7 @@ async function logCustomFood(page: Page, foodName: string, { create = true }: { 
     return;
   }
   await page.getByRole("tab", { name: "My Foods" }).click();
-  await page.getByRole("button", { name: new RegExp(`^${foodName}`) }).click();
+  await page.locator("section").filter({ has: page.getByRole("heading", { name: "My Foods" }) }).getByRole("button", { name: new RegExp(`^${foodName}`) }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Add to Breakfast" }).click();
 }

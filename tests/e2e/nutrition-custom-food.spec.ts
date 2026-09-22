@@ -123,7 +123,10 @@ test("create custom food, validate, log, favorite, edit snapshot, and delete wit
   await page.getByRole("button", { name: `Delete ${foodName}` }).click();
   await page.getByRole("button", { name: `Confirm delete ${foodName}` }).click();
   await expect(page.getByText("Food removed. Logged meals stay as they were.")).toBeVisible();
-  await expect(myFoods.getByRole("button", { name: new RegExp(`^${foodName}`) })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "My Foods" })).toBeVisible();
+  await expect(
+    page.locator("section").filter({ has: page.getByRole("heading", { name: "My Foods" }) }).getByRole("button", { name: new RegExp(`^${foodName}`) }),
+  ).toHaveCount(0);
 
   await page.goto(`/nutrition?date=${date}`);
   await expect(mealEntry(page, foodName)).toBeVisible();
@@ -144,7 +147,9 @@ test("custom foods stay isolated across users", async ({ page, browser }) => {
   });
   await page.getByRole("link", { name: "Add Food to Breakfast" }).click();
   await page.getByRole("tab", { name: "My Foods" }).click();
-  await expect(page.getByRole("button", { name: new RegExp(`^${marker}`) })).toBeVisible();
+  await expect(
+    page.locator("section").filter({ has: page.getByRole("heading", { name: "My Foods" }) }).getByRole("button", { name: new RegExp(`^${marker}`) }),
+  ).toHaveCount(1);
 
   const other = await signupIsolatedUser(browser, `${Date.now()}-c`);
   await other.goto(`/nutrition/add?meal=breakfast&date=${date}`);
