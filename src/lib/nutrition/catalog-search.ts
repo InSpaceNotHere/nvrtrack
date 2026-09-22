@@ -5,6 +5,7 @@ export interface CatalogSearchItem {
   description: string;
   aliases: string[];
   display_name?: string;
+  group_name?: string;
 }
 
 function normalizeWhitespace(value: string): string {
@@ -58,17 +59,26 @@ function baseRank(item: CatalogSearchItem, normalizedQuery: string, terms: strin
   const aliases = item.aliases.map(normalizeCatalogSearchText);
   const normalizedName = normalizeCatalogSearchText(item.normalized_name);
   const displayName = normalizeCatalogSearchText(item.display_name ?? "");
+  const groupName = normalizeCatalogSearchText(item.group_name ?? "");
 
-  if (normalizedName === normalizedQuery || displayName === normalizedQuery) {
+  if (groupName === normalizedQuery || displayName === normalizedQuery || normalizedName === normalizedQuery) {
     return 1200;
   }
   if (aliases.includes(normalizedQuery)) {
     return 1100;
   }
-  if (normalizedName.startsWith(normalizedQuery) || (displayName && displayName.startsWith(normalizedQuery))) {
+  if (
+    (groupName && groupName.startsWith(normalizedQuery)) ||
+    (displayName && displayName.startsWith(normalizedQuery)) ||
+    normalizedName.startsWith(normalizedQuery)
+  ) {
     return 1000;
   }
-  if (allTermsPresent(normalizedName, terms) || (displayName && allTermsPresent(displayName, terms))) {
+  if (
+    (groupName && allTermsPresent(groupName, terms)) ||
+    (displayName && allTermsPresent(displayName, terms)) ||
+    allTermsPresent(normalizedName, terms)
+  ) {
     return 900;
   }
   if (aliasAllTermsPresent(aliases, terms)) {
@@ -76,10 +86,13 @@ function baseRank(item: CatalogSearchItem, normalizedQuery: string, terms: strin
   }
 
   const matchedTerms = terms.filter(
-    (term) => normalizedName.includes(term) || displayName.includes(term),
+    (term) => groupName.includes(term) || displayName.includes(term) || normalizedName.includes(term),
   ).length;
+  if (matchedTerms > 0 && matchedTerms === terms.length) {
+    return 700;
+  }
   if (matchedTerms > 0) {
-    return 400 + matchedTerms * 10;
+    return 300 + matchedTerms * 10;
   }
 
   return 0;

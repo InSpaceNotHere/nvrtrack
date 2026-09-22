@@ -35,6 +35,27 @@ describe("food display names", () => {
     ).toBe("Ground Beef 85/15, raw");
   });
 
+  it("drops generic cooked from diary labels while keeping raw when it distinguishes nutrients", () => {
+    expect(
+      getFoodEntryDisplayName({
+        fdc_id: 171140,
+        food_name: "Chicken, broilers or fryers, breast, skinless, boneless, meat only, cooked, braised",
+      }),
+    ).toBe("Chicken Breast");
+    expect(
+      getFoodEntryDisplayName({
+        fdc_id: 174032,
+        food_name: "Beef, ground, 85% lean meat / 15% fat, patty, cooked, pan-broiled",
+      }),
+    ).toBe("Ground Beef 85/15");
+    expect(
+      getFoodEntryDisplayName({
+        fdc_id: 171287,
+        food_name: "Egg, whole, raw, fresh",
+      }),
+    ).toBe("Egg");
+  });
+
   it("formats search rows without database jargon", () => {
     expect(formatMacroSummary({ calories: 165.4, protein_g: 31.02, carbohydrate_g: 0, fat_g: 3.57 })).toBe(
       "165 cal · 31P · 0C · 3.6F",

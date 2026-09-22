@@ -15,8 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Tabs } from "@/components/ui/tabs";
 import { Toast } from "@/components/ui/toast";
 import type { FoodCatalogRow, FoodRow } from "@/lib/data/auth-context";
-import { normalizeCatalogSearchText, rankCatalogSearchItems } from "@/lib/nutrition/catalog-search";
-import { getCatalogDisplayName, perHundredGramMacros } from "@/lib/nutrition/food-display-name";
+import { formatVariantChipLabel, rankCatalogFoodGroups, type CatalogFoodGroup } from "@/lib/nutrition/catalog-groups";
+import { normalizeCatalogSearchText } from "@/lib/nutrition/catalog-search";
+import { getCatalogDisplayName, getEntryPresentationName, perHundredGramMacros } from "@/lib/nutrition/food-display-name";
 import { MEAL_LABELS } from "@/lib/nutrition/meals";
 import type { MealType } from "@/lib/nutrition/types";
 
@@ -42,6 +43,61 @@ function searchSavedFoods(foods: FoodRow[], query: string): FoodRow[] {
   });
 }
 
+function CatalogGroupResult({
+  group,
+  selectedFoodId,
+  onSelectVariant,
+  onOpen,
+}: {
+  group: CatalogFoodGroup;
+  selectedFoodId: string | null;
+  onSelectVariant: (foodId: string) => void;
+  onOpen: (food: FoodCatalogRow) => void;
+}) {
+  const selected = group.variants.find((variant) => variant.food.id === selectedFoodId) ?? group.preferred;
+  const macros = perHundredGramMacros(selected.food);
+  const showVariants = group.variants.length > 1;
+  const isSelected = selectedFoodId !== null && group.variants.some((variant) => variant.food.id === selectedFoodId);
+
+  return (
+    <FoodResultRow
+      name={group.name}
+      calories={macros.calories}
+      protein_g={macros.protein_g}
+      carbohydrate_g={macros.carbohydrate_g}
+      fat_g={macros.fat_g}
+      basis="100 g"
+      selected={isSelected}
+      onSelect={() => onOpen(selected.food)}
+      footer={
+        showVariants ? (
+          <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2">
+            <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-600">Other versions</span>
+            {group.variants.map((variant) => {
+              const active = variant.food.id === selected.food.id;
+              return (
+                <button
+                  key={variant.food.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onSelectVariant(variant.food.id)}
+                  className={
+                    active
+                      ? "rounded-full bg-white/12 px-2.5 py-1 text-[11px] font-medium text-white"
+                      : "rounded-full bg-white/[0.04] px-2.5 py-1 text-[11px] text-zinc-400 hover:bg-white/8 hover:text-zinc-200"
+                  }
+                >
+                  {formatVariantChipLabel(variant.variantLabel)}
+                </button>
+              );
+            })}
+          </div>
+        ) : null
+      }
+    />
+  );
+}
+
 export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErrorMessage }: AddFoodViewProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -59,34 +115,25 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
   const [customProtein, setCustomProtein] = useState("");
   const [customCarbs, setCustomCarbs] = useState("");
   const [customFat, setCustomFat] = useState("");
+  const [variantByGroup, setVariantByGroup] = useState<Record<string, string>>({});
 
   const mealLabel = MEAL_LABELS[mealType];
   const searching = query.trim().length > 0;
 
-  const rankedCatalog = useMemo(() => {
-    const ranked = rankCatalogSearchItems(
-      catalogFoods.map((food) => ({
-        id: food.id,
-        fdc_id: food.fdc_id,
-        normalized_name: food.normalized_name,
-        description: food.description,
-        aliases: food.aliases,
-        display_name: getCatalogDisplayName(food),
-      })),
-      query,
-      { limit: searching ? 40 : 167 },
-    );
-    const byId = new Map(catalogFoods.map((food) => [food.id, food]));
-    return ranked
-      .map((item) => byId.get(item.id))
-      .filter((food): food is FoodCatalogRow => food !== undefined);
-  }, [catalogFoods, query, searching]);
+  const rankedGroups = useMemo(
+    () => rankCatalogFoodGroups(catalogFoods, query, { limit: searching ? 40 : 80 }),
+    [catalogFoods, query, searching],
+  );
 
   const savedMatches = useMemo(() => searchSavedFoods(foods, query), [foods, query]);
 
   function openCatalog(food: FoodCatalogRow) {
     setErrorMessage(null);
-    setTarget({ kind: "catalog", food, name: getCatalogDisplayName(food) });
+    setTarget({
+      kind: "catalog",
+      food,
+      name: getEntryPresentationName(getCatalogDisplayName(food)),
+    });
     setAmountValue("100");
     setAmountUnit("g");
   }
@@ -209,37 +256,24 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
         />
       </label>
 
-      {!searching ? (
-        <Tabs value={tab} options={tabOptions} onChange={setTab} ariaLabel="Food source" />
-      ) : null}
+      {!searching ? <Tabs value={tab} options={tabOptions} onChange={setTab} ariaLabel="Food source" /> : null}
 
       {searching || tab === "common" ? (
         <section>
-          <div className="mb-1 flex items-baseline justify-between">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
-              {searching ? "Results" : "Common"}
-            </h2>
-          </div>
-          <div className="divide-y divide-white/6 rounded-2xl bg-black/20">
-            {(searching ? rankedCatalog : rankedCatalog.slice(0, 80)).map((food) => {
-              const macros = perHundredGramMacros(food);
-              return (
-                <FoodResultRow
-                  key={food.id}
-                  name={getCatalogDisplayName(food)}
-                  calories={macros.calories}
-                  protein_g={macros.protein_g}
-                  carbohydrate_g={macros.carbohydrate_g}
-                  fat_g={macros.fat_g}
-                  basis="100 g"
-                  selected={target?.kind === "catalog" && target.food.id === food.id}
-                  onSelect={() => openCatalog(food)}
-                />
-              );
-            })}
-            {rankedCatalog.length === 0 ? (
-              <p className="px-3 py-4 text-sm text-zinc-500">No common foods match that search.</p>
-            ) : null}
+          <h2 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
+            {searching ? "Results" : "Common"}
+          </h2>
+          <div>
+            {rankedGroups.map((group) => (
+              <CatalogGroupResult
+                key={group.key}
+                group={group}
+                selectedFoodId={variantByGroup[group.key] ?? (target?.kind === "catalog" ? target.food.id : null)}
+                onSelectVariant={(foodId) => setVariantByGroup((current) => ({ ...current, [group.key]: foodId }))}
+                onOpen={openCatalog}
+              />
+            ))}
+            {rankedGroups.length === 0 ? <p className="px-1 py-4 text-sm text-zinc-500">No common foods match that search.</p> : null}
           </div>
         </section>
       ) : null}
@@ -247,7 +281,7 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
       {searching ? (
         <section>
           <h2 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">My Foods</h2>
-          <div className="divide-y divide-white/6 rounded-2xl bg-black/20">
+          <div>
             {savedMatches.map((food) => (
               <FoodResultRow
                 key={food.id}
@@ -261,14 +295,14 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
                 onSelect={() => openSaved(food)}
               />
             ))}
-            {savedMatches.length === 0 ? <p className="px-3 py-4 text-sm text-zinc-500">No saved foods match.</p> : null}
+            {savedMatches.length === 0 ? <p className="px-1 py-4 text-sm text-zinc-500">No saved foods match.</p> : null}
           </div>
         </section>
       ) : null}
 
       {!searching && tab === "mine" ? (
         <section>
-          <div className="divide-y divide-white/6 rounded-2xl bg-black/20">
+          <div>
             {foods.map((food) => (
               <FoodResultRow
                 key={food.id}
@@ -283,7 +317,7 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
               />
             ))}
             {foods.length === 0 ? (
-              <p className="px-3 py-4 text-sm text-zinc-500">No custom foods yet. Use Custom to add one while logging.</p>
+              <p className="px-1 py-4 text-sm text-zinc-500">No custom foods yet. Use Custom to add one while logging.</p>
             ) : null}
           </div>
         </section>
