@@ -41,9 +41,26 @@ describe("catalog search ranking", () => {
     expect(ranked[0]?.id).toBe("2");
   });
 
-  it("keeps raw and cooked records separate", () => {
-    const ranked = rankCatalogSearchItems(ITEMS, "chicken breast");
+  it("ranks human display names for gym-style queries", () => {
+    const ranked = rankCatalogSearchItems(
+      [
+        {
+          ...ITEMS[0],
+          display_name: "Chicken Breast, raw",
+        },
+        {
+          ...ITEMS[1],
+          display_name: "Chicken Breast, cooked",
+        },
+        {
+          ...ITEMS[2],
+          display_name: "White Rice",
+        },
+      ],
+      "chicken breast",
+    );
     expect(ranked.map((item) => item.id)).toEqual(expect.arrayContaining(["1", "2"]));
+    expect(ranked.find((item) => item.id === "3")).toBeUndefined();
   });
 
   it("applies recent usage tie-break bonus", () => {

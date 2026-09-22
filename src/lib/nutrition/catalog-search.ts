@@ -4,6 +4,7 @@ export interface CatalogSearchItem {
   normalized_name: string;
   description: string;
   aliases: string[];
+  display_name?: string;
 }
 
 function normalizeWhitespace(value: string): string {
@@ -56,24 +57,27 @@ function baseRank(item: CatalogSearchItem, normalizedQuery: string, terms: strin
 
   const aliases = item.aliases.map(normalizeCatalogSearchText);
   const normalizedName = normalizeCatalogSearchText(item.normalized_name);
+  const displayName = normalizeCatalogSearchText(item.display_name ?? "");
 
-  if (normalizedName === normalizedQuery) {
+  if (normalizedName === normalizedQuery || displayName === normalizedQuery) {
     return 1200;
   }
   if (aliases.includes(normalizedQuery)) {
     return 1100;
   }
-  if (normalizedName.startsWith(normalizedQuery)) {
+  if (normalizedName.startsWith(normalizedQuery) || (displayName && displayName.startsWith(normalizedQuery))) {
     return 1000;
   }
-  if (allTermsPresent(normalizedName, terms)) {
+  if (allTermsPresent(normalizedName, terms) || (displayName && allTermsPresent(displayName, terms))) {
     return 900;
   }
   if (aliasAllTermsPresent(aliases, terms)) {
     return 800;
   }
 
-  const matchedTerms = terms.filter((term) => normalizedName.includes(term)).length;
+  const matchedTerms = terms.filter(
+    (term) => normalizedName.includes(term) || displayName.includes(term),
+  ).length;
   if (matchedTerms > 0) {
     return 400 + matchedTerms * 10;
   }
