@@ -111,7 +111,7 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
         </div>
       </header>
 
-      <div className="flex-1 space-y-6 pb-8">
+      <div className="flex-1 space-y-6 pb-[7.5rem]">
         <section className="space-y-3">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Food</h2>
           <Field label="Name" error={errors.name}>
