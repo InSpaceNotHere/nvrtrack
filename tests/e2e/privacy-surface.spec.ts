@@ -10,7 +10,11 @@ test("privacy page is public and linked from login, signup, onboarding, and prof
   await expect(page).toHaveURL(/\/privacy\/?$/);
   await expect(page.getByRole("heading", { name: "Privacy", exact: true })).toBeVisible();
   await expect(page.getByText("Last updated: September 22, 2026")).toBeVisible();
-  await expect(page.getByRole("link", { name: "privacy@nvrtrack.com" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "privacy@nvrtrack.com" }).first()).toHaveAttribute(
+    "href",
+    "mailto:privacy@nvrtrack.com",
+  );
+  await expect(page.getByLabel("Contact").getByRole("link", { name: "privacy@nvrtrack.com" })).toHaveAttribute(
     "href",
     "mailto:privacy@nvrtrack.com",
   );
