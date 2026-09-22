@@ -19,7 +19,10 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const isOnboardingRoute = pathname.startsWith("/onboarding");
-  const isFocusedTaskRoute = pathname.startsWith("/nutrition/add");
+  const isFocusedTaskRoute =
+    pathname.startsWith("/nutrition/add") ||
+    pathname.startsWith("/nutrition/foods/new") ||
+    /\/nutrition\/foods\/[^/]+\/edit$/.test(pathname);
   const isPublicPath = isPublicRoute(pathname);
 
   useEffect(() => {

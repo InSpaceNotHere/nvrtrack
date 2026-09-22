@@ -7,12 +7,12 @@ import { useRouter } from "next/navigation";
 import {
   createCatalogFoodEntryAction,
   createFoodEntryAction,
+  deleteSavedFoodAction,
 } from "@/app/(protected)/actions/nutrition-actions";
 import { toggleNutritionFoodFavoriteAction } from "@/app/(protected)/actions/nutrition-favorites-actions";
 import { FoodPortionSheet, type PortionTarget, type PortionUnit } from "@/components/nutrition/food-portion-sheet";
 import { FoodResultRow } from "@/components/nutrition/food-result-row";
 import { PersonalFoodRail } from "@/components/nutrition/personal-food-rail";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs } from "@/components/ui/tabs";
 import { Toast } from "@/components/ui/toast";
@@ -22,6 +22,7 @@ import { normalizeCatalogSearchText } from "@/lib/nutrition/catalog-search";
 import { getCatalogDisplayName, getEntryPresentationName, perHundredGramMacros } from "@/lib/nutrition/food-display-name";
 import { getPersonalFoodIdentity, type LogicalFoodIdentity } from "@/lib/nutrition/food-identity";
 import { sanitizeFavoritesUserMessage } from "@/lib/nutrition/user-facing-copy";
+import { customFoodCreateHref, customFoodEditHref } from "@/lib/nutrition/custom-food-routes";
 import { MEAL_LABELS } from "@/lib/nutrition/meals";
 import { personalItemFromCatalog, personalItemFromSaved, type PersonalFoodItem } from "@/lib/nutrition/personal-foods";
 import type { MealType } from "@/lib/nutrition/types";
@@ -39,6 +40,7 @@ interface AddFoodViewProps {
   favoriteIdentities: LogicalFoodIdentity[];
   favoritesEnabled?: boolean;
   loadErrorMessage?: string | null;
+  initialSavedFoodId?: string | null;
 }
 
 function searchSavedFoods(foods: FoodRow[], query: string): FoodRow[] {
@@ -136,26 +138,24 @@ export function AddFoodView({
   favoriteIdentities,
   favoritesEnabled = false,
   loadErrorMessage,
+  initialSavedFoodId = null,
 }: AddFoodViewProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<AddFoodTab>("common");
-  const [target, setTarget] = useState<PortionTarget | null>(null);
-  const [amountValue, setAmountValue] = useState("100");
-  const [amountUnit, setAmountUnit] = useState<PortionUnit>("g");
+  const [tab, setTab] = useState<AddFoodTab>(initialSavedFoodId ? "mine" : "common");
+  const initialFood = initialSavedFoodId ? foods.find((item) => item.id === initialSavedFoodId) ?? null : null;
+  const [target, setTarget] = useState<PortionTarget | null>(() =>
+    initialFood ? { kind: "saved", food: initialFood, name: initialFood.name } : null,
+  );
+  const [amountValue, setAmountValue] = useState(initialFood ? "1" : "100");
+  const [amountUnit, setAmountUnit] = useState<PortionUnit>(initialFood ? "servings" : "g");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [customName, setCustomName] = useState("");
-  const [customServingSize, setCustomServingSize] = useState("1");
-  const [customServingUnit, setCustomServingUnit] = useState("serving");
-  const [customCalories, setCustomCalories] = useState("");
-  const [customProtein, setCustomProtein] = useState("");
-  const [customCarbs, setCustomCarbs] = useState("");
-  const [customFat, setCustomFat] = useState("");
   const [variantByGroup, setVariantByGroup] = useState<Record<string, string>>({});
   const [favoriteKeys, setFavoriteKeys] = useState(() => new Set(favoriteIdentities.map((identity) => identity.key)));
   const [favoriteItems, setFavoriteItems] = useState(favoriteFoods);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const mealLabel = MEAL_LABELS[mealType];
   const searching = query.trim().length > 0;
@@ -341,26 +341,18 @@ export function AddFoodView({
     });
   }
 
-  function handleLogCustom() {
+  function handleDeleteSaved(foodId: string) {
     startTransition(async () => {
-      const result = await createFoodEntryAction({
-        mode: "custom",
-        entry_date: entryDate,
-        meal_type: mealType,
-        servings: "1",
-        food_name: customName,
-        serving_size: customServingSize,
-        serving_unit: customServingUnit,
-        calories_per_serving: customCalories,
-        protein_per_serving_g: customProtein,
-        carbohydrate_per_serving_g: customCarbs,
-        fat_per_serving_g: customFat,
-      });
+      const result = await deleteSavedFoodAction(foodId);
       if (result.status === "error") {
         setMessage(result.message);
         return;
       }
-      router.push(`/nutrition?date=${entryDate}`);
+      if (target?.kind === "saved" && target.food.id === foodId) {
+        setTarget(null);
+      }
+      setDeleteConfirmId(null);
+      setMessage("Food removed. Logged meals stay as they were.");
       router.refresh();
     });
   }
@@ -372,6 +364,63 @@ export function AddFoodView({
   ];
 
   const currentTargetIdentity = targetIdentity();
+  const mealReturn = { meal: mealType, date: entryDate };
+
+  function renderSavedFoodRow(food: FoodRow) {
+    const identity = getPersonalFoodIdentity({ food_id: food.id });
+    return (
+      <FoodResultRow
+        key={food.id}
+        name={food.name}
+        brand={food.brand}
+        calories={food.calories}
+        protein_g={food.protein_g}
+        carbohydrate_g={food.carbohydrate_g}
+        fat_g={food.fat_g}
+        basis={`${food.serving_size} ${food.serving_unit}`}
+        selected={target?.kind === "saved" && target.food.id === food.id}
+        favorited={favoriteKeys.has(identity.key)}
+        onSelect={() => openSaved(food)}
+        onToggleFavorite={favoritesEnabled ? () => toggleFavorite(identity, personalItemFromSaved(food)) : undefined}
+        footer={
+          <div className="flex gap-3 px-3 pb-2 text-[12px]">
+            <Link
+              href={customFoodEditHref(food.id, mealReturn)}
+              className="text-zinc-300 hover:text-white"
+              aria-label={`Edit ${food.name}`}
+            >
+              Edit
+            </Link>
+            {deleteConfirmId === food.id ? (
+              <>
+                <button
+                  type="button"
+                  className="text-rose-300"
+                  disabled={isPending}
+                  aria-label={`Confirm delete ${food.name}`}
+                  onClick={() => handleDeleteSaved(food.id)}
+                >
+                  Confirm delete
+                </button>
+                <button type="button" className="text-zinc-500" onClick={() => setDeleteConfirmId(null)}>
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="text-zinc-500 hover:text-zinc-300"
+                aria-label={`Delete ${food.name}`}
+                onClick={() => setDeleteConfirmId(food.id)}
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -481,26 +530,7 @@ export function AddFoodView({
         <section>
           <h2 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">My Foods</h2>
           <div>
-            {savedMatches.map((food) => {
-              const identity = getPersonalFoodIdentity({ food_id: food.id });
-              return (
-                <FoodResultRow
-                  key={food.id}
-                  name={food.name}
-                  calories={food.calories}
-                  protein_g={food.protein_g}
-                  carbohydrate_g={food.carbohydrate_g}
-                  fat_g={food.fat_g}
-                  basis={`${food.serving_size} ${food.serving_unit}`}
-                  selected={target?.kind === "saved" && target.food.id === food.id}
-                  favorited={favoriteKeys.has(identity.key)}
-                  onSelect={() => openSaved(food)}
-                  onToggleFavorite={
-                    favoritesEnabled ? () => toggleFavorite(identity, personalItemFromSaved(food)) : undefined
-                  }
-                />
-              );
-            })}
+            {savedMatches.map((food) => renderSavedFoodRow(food))}
             {savedMatches.length === 0 ? <p className="px-1 py-4 text-sm text-zinc-500">No saved foods match.</p> : null}
           </div>
         </section>
@@ -508,71 +538,33 @@ export function AddFoodView({
 
       {!searching && tab === "mine" ? (
         <section>
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">My Foods</h2>
+            <Link
+              href={customFoodCreateHref({ meal: mealType, date: entryDate })}
+              className="text-[12px] font-medium text-zinc-300 hover:text-white"
+            >
+              Create
+            </Link>
+          </div>
           <div>
-            {foods.map((food) => {
-              const identity = getPersonalFoodIdentity({ food_id: food.id });
-              return (
-                <FoodResultRow
-                  key={food.id}
-                  name={food.name}
-                  calories={food.calories}
-                  protein_g={food.protein_g}
-                  carbohydrate_g={food.carbohydrate_g}
-                  fat_g={food.fat_g}
-                  basis={`${food.serving_size} ${food.serving_unit}`}
-                  selected={target?.kind === "saved" && target.food.id === food.id}
-                  favorited={favoriteKeys.has(identity.key)}
-                  onSelect={() => openSaved(food)}
-                  onToggleFavorite={
-                    favoritesEnabled ? () => toggleFavorite(identity, personalItemFromSaved(food)) : undefined
-                  }
-                />
-              );
-            })}
+            {foods.map((food) => renderSavedFoodRow(food))}
             {foods.length === 0 ? (
-              <p className="px-1 py-4 text-sm text-zinc-500">No custom foods yet. Use Custom to add one while logging.</p>
+              <p className="px-1 py-4 text-sm text-zinc-500">No custom foods yet. Create one from a nutrition label.</p>
             ) : null}
           </div>
         </section>
       ) : null}
 
       {!searching && tab === "custom" ? (
-        <section className="space-y-3 rounded-2xl bg-black/20 p-3">
-          <label className="space-y-1 text-sm text-zinc-300">
-            <span>Name</span>
-            <Input value={customName} onChange={(event) => setCustomName(event.target.value)} aria-label="Food name" />
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="space-y-1 text-sm text-zinc-300">
-              <span>Serving amount</span>
-              <Input value={customServingSize} onChange={(event) => setCustomServingSize(event.target.value)} aria-label="Serving size" />
-            </label>
-            <label className="space-y-1 text-sm text-zinc-300">
-              <span>Unit</span>
-              <Input value={customServingUnit} onChange={(event) => setCustomServingUnit(event.target.value)} aria-label="Serving unit" />
-            </label>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="space-y-1 text-sm text-zinc-300">
-              <span>Calories</span>
-              <Input value={customCalories} onChange={(event) => setCustomCalories(event.target.value)} aria-label="Calories/serving" />
-            </label>
-            <label className="space-y-1 text-sm text-zinc-300">
-              <span>Protein</span>
-              <Input value={customProtein} onChange={(event) => setCustomProtein(event.target.value)} aria-label="Protein g" />
-            </label>
-            <label className="space-y-1 text-sm text-zinc-300">
-              <span>Carbs</span>
-              <Input value={customCarbs} onChange={(event) => setCustomCarbs(event.target.value)} aria-label="Carbohydrates g" />
-            </label>
-            <label className="space-y-1 text-sm text-zinc-300">
-              <span>Fat</span>
-              <Input value={customFat} onChange={(event) => setCustomFat(event.target.value)} aria-label="Fat g" />
-            </label>
-          </div>
-          <Button type="button" variant="primary" className="h-12 w-full rounded-2xl" disabled={isPending} onClick={handleLogCustom}>
-            {isPending ? "Saving..." : `Add to ${mealLabel}`}
-          </Button>
+        <section className="space-y-3 px-1 py-2">
+          <p className="text-sm text-zinc-400">Save a food from a nutrition label, then add it with the usual portion sheet.</p>
+          <Link
+            href={customFoodCreateHref({ meal: mealType, date: entryDate })}
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-white text-sm font-semibold text-black"
+          >
+            Create Custom Food
+          </Link>
         </section>
       ) : null}
 

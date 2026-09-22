@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { completeOnboardingIfNeeded } from "./complete-onboarding";
+import { createAndLogCustomFood } from "./custom-food";
 import { requiredE2EEnv } from "./e2e-env";
 
 function uniqueTestDate(): string {
@@ -19,15 +20,20 @@ async function login(page: Page) {
   await completeOnboardingIfNeeded(page);
 }
 
-async function logCustomFood(page: Page, foodName: string) {
-  await page.getByRole("tab", { name: "Custom" }).click();
-  await page.getByLabel("Food name").fill(foodName);
-  await page.getByLabel("Serving size").fill("1");
-  await page.getByLabel("Serving unit").fill("serving");
-  await page.getByLabel("Calories/serving").fill("111");
-  await page.getByLabel("Protein g").fill("9");
-  await page.getByLabel("Carbohydrates g").fill("7");
-  await page.getByLabel("Fat g").fill("3");
+async function logCustomFood(page: Page, foodName: string, { create = true }: { create?: boolean } = {}) {
+  if (create) {
+    await createAndLogCustomFood(page, {
+      name: foodName,
+      calories: "111",
+      protein: "9",
+      carbs: "7",
+      fat: "3",
+    });
+    return;
+  }
+  await page.getByRole("tab", { name: "My Foods" }).click();
+  await page.locator("section").filter({ has: page.getByRole("heading", { name: "My Foods" }) }).getByRole("button", { name: new RegExp(`^${foodName}`) }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Add to Breakfast" }).click();
 }
 
@@ -55,7 +61,7 @@ test("recent lists equivalent custom logs once and keeps Frequent aggregation", 
   await expect(page.locator("li").filter({ hasText: foodName })).toBeVisible();
 
   await page.getByRole("link", { name: "Add Food to Breakfast" }).click();
-  await logCustomFood(page, foodName);
+  await logCustomFood(page, foodName, { create: false });
   await expect(page.locator("li").filter({ hasText: foodName })).toHaveCount(2);
 
   await page.getByRole("link", { name: "Add Food to Breakfast" }).click();

@@ -7,6 +7,7 @@ import { formatMacroSummary } from "@/lib/nutrition/food-display-name";
 
 interface FoodResultRowProps {
   name: string;
+  brand?: string | null;
   calories: number;
   protein_g: number;
   carbohydrate_g: number;
@@ -21,6 +22,7 @@ interface FoodResultRowProps {
 
 export function FoodResultRow({
   name,
+  brand,
   calories,
   protein_g,
   carbohydrate_g,
@@ -42,6 +44,7 @@ export function FoodResultRow({
         >
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[15px] font-medium leading-5 text-white">{name}</span>
+            {brand ? <span className="mt-0.5 block truncate text-[11px] text-zinc-500">{brand}</span> : null}
             <span className="mt-0.5 block text-[12px] leading-4 text-zinc-400">
               {formatMacroSummary({ calories, protein_g, carbohydrate_g, fat_g })}
             </span>

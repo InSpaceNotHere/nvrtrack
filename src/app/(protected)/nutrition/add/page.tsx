@@ -27,6 +27,7 @@ export default async function AddFoodPage({ searchParams }: AddFoodPageProps) {
   const dateParam = Array.isArray(resolved.date) ? resolved.date[0] : resolved.date;
   const entryDate = dateParam && isValidDateString(dateParam) ? dateParam : todayDate;
   const mealType = parseMealTypeParam(resolved.meal);
+  const savedParam = Array.isArray(resolved.saved) ? resolved.saved[0] : resolved.saved;
 
   if (!dateParam || !isValidDateString(dateParam)) {
     redirect(`/nutrition/add?meal=${mealType}&date=${entryDate}`);
@@ -63,6 +64,7 @@ export default async function AddFoodPage({ searchParams }: AddFoodPageProps) {
       favoriteFoods={favoriteFoods}
       favoriteIdentities={favoriteFoods.map((item) => item.identity)}
       favoritesEnabled={favoritesAvailable}
+      initialSavedFoodId={savedParam ?? null}
       loadErrorMessage={
         catalogResult.error?.message ??
         foodsResult.error?.message ??

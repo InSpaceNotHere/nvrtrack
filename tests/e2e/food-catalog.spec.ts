@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { completeOnboardingIfNeeded } from "./complete-onboarding";
+import { createAndLogCustomFood } from "./custom-food";
 import { requiredE2EEnv } from "./e2e-env";
 
 function uniqueTestDate(): string {
@@ -103,15 +104,13 @@ test("common catalog logging flow with amount edit/delete and custom fallback", 
   await expect(page.getByRole("alert").filter({ hasText: /database|failed|stack/i })).toHaveCount(0);
 
   await page.getByRole("link", { name: "Add Food to Breakfast" }).click();
-  await page.getByRole("tab", { name: "Custom" }).click();
-  await page.getByLabel("Food name").fill(`Manual E2E ${Date.now()}`);
-  await page.getByLabel("Serving size").fill("1");
-  await page.getByLabel("Serving unit").fill("serving");
-  await page.getByLabel("Calories/serving").fill("120");
-  await page.getByLabel("Protein g").fill("10");
-  await page.getByLabel("Carbohydrates g").fill("8");
-  await page.getByLabel("Fat g").fill("4");
-  await page.getByRole("button", { name: "Add to Breakfast" }).click();
+  await createAndLogCustomFood(page, {
+    name: `Manual E2E ${Date.now()}`,
+    calories: "120",
+    protein: "10",
+    carbs: "8",
+    fat: "4",
+  });
 
   const manualEntry = page.locator("li").filter({ hasText: "Manual E2E" }).first();
   await expect(manualEntry).toBeVisible();

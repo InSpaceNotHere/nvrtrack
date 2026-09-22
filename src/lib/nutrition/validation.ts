@@ -109,14 +109,22 @@ function parseNumber(
   fieldLabel: string,
   options: { required: boolean; min: number; max: number; allowZero?: boolean },
 ): { value: number | null; error: string | null } {
-  if (value === null || value === undefined || value === "") {
+  if (value === null || value === undefined) {
     if (!options.required) {
       return { value: null, error: null };
     }
     return { value: null, error: `${fieldLabel} is required.` };
   }
 
-  const numeric = typeof value === "number" ? value : Number(String(value).trim());
+  const raw = typeof value === "number" ? String(value) : String(value).trim();
+  if (raw === "") {
+    if (!options.required) {
+      return { value: null, error: null };
+    }
+    return { value: null, error: `${fieldLabel} is required.` };
+  }
+
+  const numeric = typeof value === "number" ? value : Number(raw);
   if (!Number.isFinite(numeric)) {
     return { value: null, error: `${fieldLabel} must be a number.` };
   }
@@ -193,21 +201,21 @@ export function normalizeSavedFoodInput(input: SavedFoodInput): ValidationResult
   });
   if (calories.error) errors.calories = calories.error;
 
-  const protein = parseNumber(input.protein_g ?? 0, "Protein", {
+  const protein = parseNumber(input.protein_g, "Protein", {
     required: true,
     min: 0,
     max: MACRO_MAX,
   });
   if (protein.error) errors.protein_g = protein.error;
 
-  const carbohydrate = parseNumber(input.carbohydrate_g ?? 0, "Carbohydrates", {
+  const carbohydrate = parseNumber(input.carbohydrate_g, "Carbohydrates", {
     required: true,
     min: 0,
     max: MACRO_MAX,
   });
   if (carbohydrate.error) errors.carbohydrate_g = carbohydrate.error;
 
-  const fat = parseNumber(input.fat_g ?? 0, "Fat", {
+  const fat = parseNumber(input.fat_g, "Fat", {
     required: true,
     min: 0,
     max: MACRO_MAX,

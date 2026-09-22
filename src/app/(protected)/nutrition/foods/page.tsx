@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { SavedFoodManager } from "@/components/nutrition/saved-food-manager";
-import { PageHeader } from "@/components/ui/page-header";
 import { getMyFoods } from "@/lib/data/foods";
 
 export default async function NutritionFoodsPage() {
@@ -9,15 +8,13 @@ export default async function NutritionFoodsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Saved Foods" />
-      <div>
-        <Link
-          href="/nutrition"
-          className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
-        >
-          Back to Nutrition
+      <header>
+        <Link href="/nutrition" className="text-sm text-zinc-400 hover:text-zinc-200">
+          Back
         </Link>
-      </div>
+        <h1 className="mt-2 text-xl font-semibold tracking-tight text-white">My Foods</h1>
+        <p className="mt-1 text-sm text-zinc-500">Your custom foods from nutrition labels.</p>
+      </header>
       <SavedFoodManager foods={foodsResult.data ?? []} loadErrorMessage={foodsResult.error?.message ?? null} />
     </div>
   );

@@ -13,7 +13,10 @@ const NUTRITION_UI_FILES = [
   "src/components/nutrition/personal-food-rail.tsx",
   "src/components/nutrition/food-result-row.tsx",
   "src/components/nutrition/food-portion-sheet.tsx",
+  "src/components/nutrition/custom-food-form.tsx",
+  "src/components/nutrition/saved-food-manager.tsx",
   "src/app/(protected)/nutrition/add/page.tsx",
+  "src/app/(protected)/nutrition/foods/new/page.tsx",
   "src/app/(protected)/actions/nutrition-favorites-actions.ts",
 ];
 
