@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
@@ -36,6 +37,8 @@ interface FoodPortionSheetProps {
   onClose: () => void;
   onDelete?: () => void;
   deletePending?: boolean;
+  favorited?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 function previewFromTarget(
@@ -147,6 +150,8 @@ export function FoodPortionSheet({
   onClose,
   onDelete,
   deletePending = false,
+  favorited = false,
+  onToggleFavorite,
 }: FoodPortionSheetProps) {
   const units = availableUnits(target);
   const preview = useMemo(
@@ -222,9 +227,22 @@ export function FoodPortionSheet({
         </div>
         <div className="flex items-start justify-between gap-3 px-4 pt-3">
           <h2 className="text-lg font-semibold tracking-tight text-white">{target.name}</h2>
-          <button type="button" onClick={onClose} className="h-10 min-w-10 text-sm text-zinc-400 hover:text-white" aria-label="Close">
-            Close
-          </button>
+          <div className="flex items-center">
+            {onToggleFavorite ? (
+              <button
+                type="button"
+                onClick={onToggleFavorite}
+                aria-label={favorited ? `Remove ${target.name} from favorites` : `Add ${target.name} to favorites`}
+                aria-pressed={favorited}
+                className="flex h-10 min-w-10 items-center justify-center text-zinc-500 hover:text-zinc-200"
+              >
+                <Star className={cn("h-4 w-4", favorited ? "fill-amber-300 text-amber-300" : "fill-none")} aria-hidden="true" />
+              </button>
+            ) : null}
+            <button type="button" onClick={onClose} className="h-10 min-w-10 text-sm text-zinc-400 hover:text-white" aria-label="Close">
+              Close
+            </button>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3">

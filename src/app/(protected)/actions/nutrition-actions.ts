@@ -148,6 +148,7 @@ export interface LiveUsdaFoodEntryActionInput {
 function revalidateNutritionViews() {
   revalidatePath("/");
   revalidatePath("/nutrition");
+  revalidatePath("/nutrition/add");
   revalidatePath("/nutrition/foods");
 }
 

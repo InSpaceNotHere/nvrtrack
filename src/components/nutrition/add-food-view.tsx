@@ -8,8 +8,10 @@ import {
   createCatalogFoodEntryAction,
   createFoodEntryAction,
 } from "@/app/(protected)/actions/nutrition-actions";
+import { toggleNutritionFoodFavoriteAction } from "@/app/(protected)/actions/nutrition-favorites-actions";
 import { FoodPortionSheet, type PortionTarget, type PortionUnit } from "@/components/nutrition/food-portion-sheet";
 import { FoodResultRow } from "@/components/nutrition/food-result-row";
+import { PersonalFoodRail } from "@/components/nutrition/personal-food-rail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs } from "@/components/ui/tabs";
@@ -18,7 +20,9 @@ import type { FoodCatalogRow, FoodRow } from "@/lib/data/auth-context";
 import { formatVariantChipLabel, rankCatalogFoodGroups, type CatalogFoodGroup } from "@/lib/nutrition/catalog-groups";
 import { normalizeCatalogSearchText } from "@/lib/nutrition/catalog-search";
 import { getCatalogDisplayName, getEntryPresentationName, perHundredGramMacros } from "@/lib/nutrition/food-display-name";
+import { getLogicalFoodIdentity, type LogicalFoodIdentity } from "@/lib/nutrition/food-identity";
 import { MEAL_LABELS } from "@/lib/nutrition/meals";
+import { personalItemFromCatalog, personalItemFromSaved, type PersonalFoodItem } from "@/lib/nutrition/personal-foods";
 import type { MealType } from "@/lib/nutrition/types";
 
 type AddFoodTab = "common" | "mine" | "custom";
@@ -28,6 +32,10 @@ interface AddFoodViewProps {
   entryDate: string;
   catalogFoods: FoodCatalogRow[];
   foods: FoodRow[];
+  recentFoods: PersonalFoodItem[];
+  frequentFoods: PersonalFoodItem[];
+  favoriteFoods: PersonalFoodItem[];
+  favoriteIdentities: LogicalFoodIdentity[];
   loadErrorMessage?: string | null;
 }
 
@@ -43,16 +51,29 @@ function searchSavedFoods(foods: FoodRow[], query: string): FoodRow[] {
   });
 }
 
+function identityPayload(identity: LogicalFoodIdentity) {
+  return {
+    identity_type: identity.type,
+    catalog_food_id: identity.catalogFoodId,
+    food_id: identity.foodId,
+    snapshot_key: identity.snapshotKey,
+  };
+}
+
 function CatalogGroupResult({
   group,
   selectedFoodId,
+  favorited,
   onSelectVariant,
   onOpen,
+  onToggleFavorite,
 }: {
   group: CatalogFoodGroup;
   selectedFoodId: string | null;
+  favorited: boolean;
   onSelectVariant: (foodId: string) => void;
   onOpen: (food: FoodCatalogRow) => void;
+  onToggleFavorite: (food: FoodCatalogRow) => void;
 }) {
   const selected = group.variants.find((variant) => variant.food.id === selectedFoodId) ?? group.preferred;
   const macros = perHundredGramMacros(selected.food);
@@ -68,7 +89,9 @@ function CatalogGroupResult({
       fat_g={macros.fat_g}
       basis="100 g"
       selected={isSelected}
+      favorited={favorited}
       onSelect={() => onOpen(selected.food)}
+      onToggleFavorite={() => onToggleFavorite(selected.food)}
       footer={
         showVariants ? (
           <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2">
@@ -98,7 +121,17 @@ function CatalogGroupResult({
   );
 }
 
-export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErrorMessage }: AddFoodViewProps) {
+export function AddFoodView({
+  mealType,
+  entryDate,
+  catalogFoods,
+  foods,
+  recentFoods,
+  frequentFoods,
+  favoriteFoods,
+  favoriteIdentities,
+  loadErrorMessage,
+}: AddFoodViewProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
@@ -116,6 +149,8 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
   const [customCarbs, setCustomCarbs] = useState("");
   const [customFat, setCustomFat] = useState("");
   const [variantByGroup, setVariantByGroup] = useState<Record<string, string>>({});
+  const [favoriteKeys, setFavoriteKeys] = useState(() => new Set(favoriteIdentities.map((identity) => identity.key)));
+  const [favoriteItems, setFavoriteItems] = useState(favoriteFoods);
 
   const mealLabel = MEAL_LABELS[mealType];
   const searching = query.trim().length > 0;
@@ -143,6 +178,93 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
     setTarget({ kind: "saved", food, name: food.name });
     setAmountValue("1");
     setAmountUnit("servings");
+  }
+
+  function openPersonal(item: PersonalFoodItem) {
+    if (item.catalogFood) {
+      openCatalog(item.catalogFood);
+      return;
+    }
+    if (item.savedFood) {
+      openSaved(item.savedFood);
+      return;
+    }
+    if (item.snapshotEntry) {
+      setErrorMessage(null);
+      setTarget({
+        kind: "entry",
+        entry: item.snapshotEntry,
+        name: item.name,
+        amountBased: false,
+      });
+      setAmountValue("1");
+      setAmountUnit("servings");
+    }
+  }
+
+  function targetIdentity(): LogicalFoodIdentity | null {
+    if (!target) {
+      return null;
+    }
+    if (target.kind === "catalog") {
+      return getLogicalFoodIdentity({ catalog_food_id: target.food.id });
+    }
+    if (target.kind === "saved") {
+      return getLogicalFoodIdentity({ food_id: target.food.id });
+    }
+    return getLogicalFoodIdentity(target.entry);
+  }
+
+  function toggleFavorite(identity: LogicalFoodIdentity, item?: PersonalFoodItem) {
+    const nextFavorited = !favoriteKeys.has(identity.key);
+    setFavoriteKeys((current) => {
+      const next = new Set(current);
+      if (nextFavorited) {
+        next.add(identity.key);
+      } else {
+        next.delete(identity.key);
+      }
+      return next;
+    });
+    if (item) {
+      setFavoriteItems((current) => {
+        if (nextFavorited) {
+          if (current.some((existing) => existing.identity.key === identity.key)) {
+            return current;
+          }
+          return [item, ...current];
+        }
+        return current.filter((existing) => existing.identity.key !== identity.key);
+      });
+    } else if (!nextFavorited) {
+      setFavoriteItems((current) => current.filter((existing) => existing.identity.key !== identity.key));
+    }
+    startTransition(async () => {
+      const result = await toggleNutritionFoodFavoriteAction(identityPayload(identity), nextFavorited);
+      if (result.status === "error") {
+        setFavoriteKeys((current) => {
+          const next = new Set(current);
+          if (nextFavorited) {
+            next.delete(identity.key);
+          } else {
+            next.add(identity.key);
+          }
+          return next;
+        });
+        if (item || !nextFavorited) {
+          setFavoriteItems((current) => {
+            if (nextFavorited) {
+              return current.filter((existing) => existing.identity.key !== identity.key);
+            }
+            if (item && !current.some((existing) => existing.identity.key === identity.key)) {
+              return [item, ...current];
+            }
+            return current;
+          });
+        }
+        setMessage(result.message);
+      }
+    });
   }
 
   function handleLogSelected() {
@@ -185,7 +307,29 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
         }
         router.push(`/nutrition?date=${entryDate}`);
         router.refresh();
+        return;
       }
+
+      const result = await createFoodEntryAction({
+        mode: "custom",
+        entry_date: entryDate,
+        meal_type: mealType,
+        servings: amountValue,
+        food_name: target.entry.food_name,
+        brand_name: target.entry.brand_name ?? undefined,
+        serving_size: String(target.entry.serving_size),
+        serving_unit: target.entry.serving_unit,
+        calories_per_serving: String(target.entry.calories_per_serving),
+        protein_per_serving_g: String(target.entry.protein_per_serving_g),
+        carbohydrate_per_serving_g: String(target.entry.carbohydrate_per_serving_g),
+        fat_per_serving_g: String(target.entry.fat_per_serving_g),
+      });
+      if (result.status === "error") {
+        setErrorMessage(result.message);
+        return;
+      }
+      router.push(`/nutrition?date=${entryDate}`);
+      router.refresh();
     });
   }
 
@@ -218,6 +362,8 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
     { value: "mine", label: "My Foods" },
     { value: "custom", label: "Custom" },
   ];
+
+  const currentTargetIdentity = targetIdentity();
 
   return (
     <div className="space-y-4">
@@ -256,7 +402,32 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
         />
       </label>
 
-      {!searching ? <Tabs value={tab} options={tabOptions} onChange={setTab} ariaLabel="Food source" /> : null}
+      {!searching ? (
+        <>
+          <PersonalFoodRail
+            title="Recent"
+            items={recentFoods}
+            favoriteKeys={favoriteKeys}
+            onSelect={openPersonal}
+            onToggleFavorite={(item) => toggleFavorite(item.identity, item)}
+          />
+          <PersonalFoodRail
+            title="Frequent"
+            items={frequentFoods}
+            favoriteKeys={favoriteKeys}
+            onSelect={openPersonal}
+            onToggleFavorite={(item) => toggleFavorite(item.identity, item)}
+          />
+          <PersonalFoodRail
+            title="Favorites"
+            items={favoriteItems.filter((item) => favoriteKeys.has(item.identity.key))}
+            favoriteKeys={favoriteKeys}
+            onSelect={openPersonal}
+            onToggleFavorite={(item) => toggleFavorite(item.identity, item)}
+          />
+          <Tabs value={tab} options={tabOptions} onChange={setTab} ariaLabel="Food source" />
+        </>
+      ) : null}
 
       {searching || tab === "common" ? (
         <section>
@@ -264,15 +435,24 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
             {searching ? "Results" : "Common"}
           </h2>
           <div>
-            {rankedGroups.map((group) => (
-              <CatalogGroupResult
-                key={group.key}
-                group={group}
-                selectedFoodId={variantByGroup[group.key] ?? (target?.kind === "catalog" ? target.food.id : null)}
-                onSelectVariant={(foodId) => setVariantByGroup((current) => ({ ...current, [group.key]: foodId }))}
-                onOpen={openCatalog}
-              />
-            ))}
+            {rankedGroups.map((group) => {
+              const selectedId = variantByGroup[group.key] ?? group.preferred.food.id;
+              const selectedFood = group.variants.find((variant) => variant.food.id === selectedId)?.food ?? group.preferred.food;
+              const identity = getLogicalFoodIdentity({ catalog_food_id: selectedFood.id });
+              return (
+                <CatalogGroupResult
+                  key={group.key}
+                  group={group}
+                  selectedFoodId={variantByGroup[group.key] ?? (target?.kind === "catalog" ? target.food.id : null)}
+                  favorited={favoriteKeys.has(identity.key)}
+                  onSelectVariant={(foodId) => setVariantByGroup((current) => ({ ...current, [group.key]: foodId }))}
+                  onOpen={openCatalog}
+                  onToggleFavorite={(food) =>
+                    toggleFavorite(getLogicalFoodIdentity({ catalog_food_id: food.id }), personalItemFromCatalog(food))
+                  }
+                />
+              );
+            })}
             {rankedGroups.length === 0 ? <p className="px-1 py-4 text-sm text-zinc-500">No common foods match that search.</p> : null}
           </div>
         </section>
@@ -282,19 +462,24 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
         <section>
           <h2 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">My Foods</h2>
           <div>
-            {savedMatches.map((food) => (
-              <FoodResultRow
-                key={food.id}
-                name={food.name}
-                calories={food.calories}
-                protein_g={food.protein_g}
-                carbohydrate_g={food.carbohydrate_g}
-                fat_g={food.fat_g}
-                basis={`${food.serving_size} ${food.serving_unit}`}
-                selected={target?.kind === "saved" && target.food.id === food.id}
-                onSelect={() => openSaved(food)}
-              />
-            ))}
+            {savedMatches.map((food) => {
+              const identity = getLogicalFoodIdentity({ food_id: food.id });
+              return (
+                <FoodResultRow
+                  key={food.id}
+                  name={food.name}
+                  calories={food.calories}
+                  protein_g={food.protein_g}
+                  carbohydrate_g={food.carbohydrate_g}
+                  fat_g={food.fat_g}
+                  basis={`${food.serving_size} ${food.serving_unit}`}
+                  selected={target?.kind === "saved" && target.food.id === food.id}
+                  favorited={favoriteKeys.has(identity.key)}
+                  onSelect={() => openSaved(food)}
+                  onToggleFavorite={() => toggleFavorite(identity, personalItemFromSaved(food))}
+                />
+              );
+            })}
             {savedMatches.length === 0 ? <p className="px-1 py-4 text-sm text-zinc-500">No saved foods match.</p> : null}
           </div>
         </section>
@@ -303,19 +488,24 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
       {!searching && tab === "mine" ? (
         <section>
           <div>
-            {foods.map((food) => (
-              <FoodResultRow
-                key={food.id}
-                name={food.name}
-                calories={food.calories}
-                protein_g={food.protein_g}
-                carbohydrate_g={food.carbohydrate_g}
-                fat_g={food.fat_g}
-                basis={`${food.serving_size} ${food.serving_unit}`}
-                selected={target?.kind === "saved" && target.food.id === food.id}
-                onSelect={() => openSaved(food)}
-              />
-            ))}
+            {foods.map((food) => {
+              const identity = getLogicalFoodIdentity({ food_id: food.id });
+              return (
+                <FoodResultRow
+                  key={food.id}
+                  name={food.name}
+                  calories={food.calories}
+                  protein_g={food.protein_g}
+                  carbohydrate_g={food.carbohydrate_g}
+                  fat_g={food.fat_g}
+                  basis={`${food.serving_size} ${food.serving_unit}`}
+                  selected={target?.kind === "saved" && target.food.id === food.id}
+                  favorited={favoriteKeys.has(identity.key)}
+                  onSelect={() => openSaved(food)}
+                  onToggleFavorite={() => toggleFavorite(identity, personalItemFromSaved(food))}
+                />
+              );
+            })}
             {foods.length === 0 ? (
               <p className="px-1 py-4 text-sm text-zinc-500">No custom foods yet. Use Custom to add one while logging.</p>
             ) : null}
@@ -378,6 +568,22 @@ export function AddFoodView({ mealType, entryDate, catalogFoods, foods, loadErro
         pending={isPending}
         errorMessage={errorMessage}
         submitLabel={`Add to ${mealLabel}`}
+        favorited={currentTargetIdentity ? favoriteKeys.has(currentTargetIdentity.key) : false}
+        onToggleFavorite={
+          currentTargetIdentity
+            ? () => {
+                if (target?.kind === "catalog") {
+                  toggleFavorite(currentTargetIdentity, personalItemFromCatalog(target.food));
+                  return;
+                }
+                if (target?.kind === "saved") {
+                  toggleFavorite(currentTargetIdentity, personalItemFromSaved(target.food));
+                  return;
+                }
+                toggleFavorite(currentTargetIdentity);
+              }
+            : undefined
+        }
         onAmountChange={setAmountValue}
         onUnitChange={setAmountUnit}
         onSubmit={handleLogSelected}

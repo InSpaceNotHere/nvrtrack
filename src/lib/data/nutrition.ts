@@ -59,12 +59,12 @@ export interface CreateMyLiveUsdaFoodEntryResult {
   saveWarning: string | null;
 }
 
-function sanitizeLimit(limit: number, fallback = 20): number {
+function sanitizeLimit(limit: number, fallback = 20, max = 100): number {
   if (!Number.isInteger(limit) || limit <= 0) {
     return fallback;
   }
 
-  return Math.min(limit, 100);
+  return Math.min(limit, max);
 }
 
 function snapshotFromFood(food: FoodRow): FoodEntrySnapshotNormalized {
@@ -421,6 +421,68 @@ export async function getMyRecentFoodEntries(limit = 20): Promise<DataAccessResu
   }
 
   return ok(data);
+}
+
+export async function getMyLatestLoggedFoodEntries(limit = 80): Promise<DataAccessResult<FoodEntryRow[]>> {
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
+  }
+
+  const safeLimit = sanitizeLimit(limit, 80, 120);
+  const { data, error } = await auth.data.supabase
+    .from("food_entries")
+    .select("*")
+    .eq("user_id", auth.data.user.id)
+    .order("created_at", { ascending: false })
+    .limit(safeLimit);
+
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to load recently logged foods.",
+      cause: error.message,
+    });
+  }
+
+  return ok(data);
+}
+
+export async function getMyLoggedFoodEntriesSince(
+  sinceIso: string,
+  limit = 400,
+): Promise<DataAccessResult<FoodEntryRow[]>> {
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
+  }
+
+  const safeLimit = sanitizeLimit(limit, 400, 500);
+  const { data, error } = await auth.data.supabase
+    .from("food_entries")
+    .select("*")
+    .eq("user_id", auth.data.user.id)
+    .gte("created_at", sinceIso)
+    .order("created_at", { ascending: false })
+    .limit(safeLimit);
+
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to load frequent food history.",
+      cause: error.message,
+    });
+  }
+
+  return ok(data);
+}
+
+export async function getMyFrequentWindowFoodEntries(
+  windowDays = 45,
+  limit = 400,
+): Promise<DataAccessResult<FoodEntryRow[]>> {
+  const sinceIso = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
+  return getMyLoggedFoodEntriesSince(sinceIso, limit);
 }
 
 export async function createMyFoodEntry(input: CreateMyFoodEntryInput): Promise<DataAccessResult<FoodEntryRow>> {
