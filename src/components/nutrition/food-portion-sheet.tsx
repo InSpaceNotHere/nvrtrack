@@ -237,7 +237,6 @@ export function FoodPortionSheet({
             </Button>
           ) : null}
         </div>
-        <p className="mt-2 text-center text-[11px] text-zinc-500">{mealLabel}</p>
       </section>
     </div>
   );
