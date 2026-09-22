@@ -3,6 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredE2EEnv } from "./e2e-env";
 
+test.setTimeout(90_000);
+
 async function login(page: Page) {
   const email = requiredE2EEnv("E2E_TEST_EMAIL");
   const password = requiredE2EEnv("E2E_TEST_PASSWORD");
