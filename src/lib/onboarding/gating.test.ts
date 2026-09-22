@@ -92,16 +92,26 @@ describe("resolveOnboardingGate", () => {
     expect(decision).toEqual({ allow: true, redirectTo: null });
   });
 
-  it("still redirects completed users away from other onboarding screens", () => {
+  it("allows incomplete users to visit the public privacy page", () => {
     const decision = resolveOnboardingGate({
-      pathname: "/onboarding",
-      onboardingQuery: "goal",
+      pathname: "/privacy",
+      completedVersion: 0,
+      requiredVersion: 1,
+      activeWorkoutId: null,
+    });
+
+    expect(decision).toEqual({ allow: true, redirectTo: null });
+  });
+
+  it("allows completed users to visit the public privacy page", () => {
+    const decision = resolveOnboardingGate({
+      pathname: "/privacy",
       completedVersion: 1,
       requiredVersion: 1,
       activeWorkoutId: null,
     });
 
-    expect(decision).toEqual({ allow: false, redirectTo: "/" });
+    expect(decision).toEqual({ allow: true, redirectTo: null });
   });
 });
 

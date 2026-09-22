@@ -10,6 +10,7 @@ import { StateChip } from "@/components/ui/state-chip";
 import { getMyOnboardingProfileSnapshot } from "@/lib/data/onboarding";
 import { getMyNotificationPreferences, getMyNotifications } from "@/lib/data/notifications";
 import { getMyProfile } from "@/lib/data/profile";
+import { SUPPORT_CONTACT_EMAIL } from "@/lib/privacy/notice";
 import {
   DESIRED_TRAINING_DAYS_OPTIONS,
   DISCOVERY_SOURCE_OPTIONS,
@@ -208,6 +209,21 @@ export default async function ProfilePage({
             <div className="space-y-2">
               <p className="text-xs text-zinc-500">Session and account actions</p>
               <LogoutButton />
+              <p className="text-xs text-zinc-500">
+                <Link
+                  href="/privacy"
+                  className="font-medium text-zinc-300 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-zinc-100"
+                >
+                  Privacy
+                </Link>
+                <span className="px-2 text-zinc-600">·</span>
+                <a
+                  href={`mailto:${SUPPORT_CONTACT_EMAIL}`}
+                  className="font-medium text-zinc-300 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-zinc-100"
+                >
+                  Support
+                </a>
+              </p>
             </div>
           </Card>
         </section>

@@ -13,6 +13,7 @@ import {
   type SaveOnboardingStepResult,
 } from "@/app/(protected)/actions/onboarding-actions";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { PrivacyLink } from "@/components/privacy/privacy-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toast } from "@/components/ui/toast";
@@ -24,6 +25,7 @@ import {
   TRAINING_EXPERIENCE_OPTIONS,
   type HeightUnitCode,
 } from "@/lib/onboarding/constants";
+import { PRIVACY_ONBOARDING_CONTEXT } from "@/lib/privacy/notice";
 
 export type OnboardingQuestionScreen =
   | "goal"
@@ -346,6 +348,11 @@ export function OnboardingV1Flow({
                 {isExistingUser
                   ? "Let’s finish setting up NVRTRACK. Your workouts, progress, meals, and existing data are staying exactly where they are."
                   : "A few quick questions help NVRTRACK understand how you train."}
+              </p>
+              <p className="max-w-[48ch] text-xs leading-relaxed text-zinc-500">
+                {PRIVACY_ONBOARDING_CONTEXT}
+                {" "}
+                <PrivacyLink className="text-zinc-400" />
               </p>
             </div>
             <Button

@@ -3,23 +3,9 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { resolveOnboardingGate } from "@/lib/onboarding/gating";
 import { ONBOARDING_REQUIRED_VERSION } from "@/lib/onboarding/constants";
+import { isAuthRoute, isProtectedRoute } from "@/lib/routing/access";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
 import type { Database } from "@/types/database";
-
-const AUTH_ROUTES = new Set(["/login", "/signup"]);
-const PROTECTED_ROUTE_PREFIXES = ["/", "/nutrition", "/training", "/progress", "/profile", "/onboarding"] as const;
-
-function isProtectedRoute(pathname: string): boolean {
-  if (pathname === "/") {
-    return true;
-  }
-
-  return PROTECTED_ROUTE_PREFIXES.filter((route) => route !== "/").some((route) => pathname.startsWith(route));
-}
-
-function isAuthRoute(pathname: string): boolean {
-  return AUTH_ROUTES.has(pathname);
-}
 
 function isMissingColumnError(message: string | undefined): boolean {
   if (!message) {

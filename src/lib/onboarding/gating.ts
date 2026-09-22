@@ -18,6 +18,10 @@ function isOnboardingRoute(pathname: string): boolean {
   return pathname === ONBOARDING_ROUTE_PREFIX || pathname.startsWith(`${ONBOARDING_ROUTE_PREFIX}/`);
 }
 
+function isPrivacyRoute(pathname: string): boolean {
+  return pathname === "/privacy" || pathname.startsWith("/privacy/");
+}
+
 function getWorkoutIdFromRoute(pathname: string): string | null {
   const match = pathname.match(ACTIVE_WORKOUT_ROUTE_REGEX);
   return match?.[1] ?? null;
@@ -26,6 +30,10 @@ function getWorkoutIdFromRoute(pathname: string): string | null {
 export function resolveOnboardingGate(input: ResolveOnboardingGateInput): OnboardingGateDecision {
   const { pathname, completedVersion, requiredVersion, activeWorkoutId, onboardingQuery } = input;
   const hasCompletedRequiredVersion = completedVersion >= requiredVersion;
+
+  if (isPrivacyRoute(pathname)) {
+    return { allow: true, redirectTo: null };
+  }
 
   if (hasCompletedRequiredVersion) {
     if (isOnboardingRoute(pathname)) {
