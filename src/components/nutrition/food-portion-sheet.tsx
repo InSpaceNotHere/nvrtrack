@@ -138,7 +138,6 @@ export function FoodPortionSheet({
   target,
   amountValue,
   amountUnit,
-  mealLabel: _mealLabel,
   pending = false,
   errorMessage,
   submitLabel,
