@@ -1,15 +1,20 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+
+async function clickEnabled(locator: Locator): Promise<void> {
+  await expect(locator).toBeEnabled({ timeout: 10_000 });
+  await locator.click();
+}
 
 async function advanceFromHeading(
   page: Page,
   heading: string,
-  click: () => Promise<void>,
+  button: Locator,
 ): Promise<void> {
   const headingLoc = page.getByRole("heading", { name: heading });
   if (!(await headingLoc.isVisible().catch(() => false))) {
     return;
   }
-  await click();
+  await clickEnabled(button);
   await expect(headingLoc).toBeHidden({ timeout: 15_000 });
 }
 
@@ -20,51 +25,27 @@ export async function completeOnboardingIfNeeded(page: Page): Promise<void> {
     return;
   }
 
-  await advanceFromHeading(page, "Let’s build your setup.", async () => {
-    await page.getByRole("button", { name: "Get Started" }).click();
-  });
-  await advanceFromHeading(page, "Welcome back", async () => {
-    await page.getByRole("button", { name: "Continue" }).click();
-  });
-  await advanceFromHeading(page, "What are you working toward?", async () => {
-    const option = page.getByRole("button", { name: "Build muscle" });
-    if (await option.isEnabled()) {
-      await option.click();
-    }
-  });
-  await advanceFromHeading(page, "How experienced are you with training?", async () => {
-    const option = page.getByRole("button", { name: "Some experience" });
-    if (await option.isEnabled()) {
-      await option.click();
-    }
-  });
-  await advanceFromHeading(page, "How many days per week would you like to train?", async () => {
-    const option = page.getByRole("button", { name: "3" });
-    if (await option.isEnabled()) {
-      await option.click();
-    }
-  });
-  await advanceFromHeading(page, "Where do you usually train?", async () => {
-    const option = page.getByRole("button", { name: "Mixed" });
-    if (await option.isEnabled()) {
-      await option.click();
-    }
-  });
-  await advanceFromHeading(page, "How tall are you?", async () => {
-    const continueButton = page.getByRole("button", { name: "Continue" });
-    if (await continueButton.isEnabled()) {
-      await continueButton.click();
-    }
-  });
-  await advanceFromHeading(page, "How did you hear about NVRTRACK?", async () => {
-    const option = page.getByRole("button", { name: "Google / Search" });
-    if (await option.isEnabled()) {
-      await option.click();
-    }
-  });
-  await advanceFromHeading(page, "You’re all set.", async () => {
-    await page.getByRole("button", { name: "Go to Home" }).click();
-  });
+  await advanceFromHeading(page, "Let’s build your setup.", page.getByRole("button", { name: "Get Started" }));
+  await advanceFromHeading(page, "Welcome back", page.getByRole("button", { name: "Continue" }));
+  await advanceFromHeading(page, "What are you working toward?", page.getByRole("button", { name: "Build muscle" }));
+  await advanceFromHeading(
+    page,
+    "How experienced are you with training?",
+    page.getByRole("button", { name: "Some experience" }),
+  );
+  await advanceFromHeading(
+    page,
+    "How many days per week would you like to train?",
+    page.getByRole("button", { name: "3" }),
+  );
+  await advanceFromHeading(page, "Where do you usually train?", page.getByRole("button", { name: "Mixed" }));
+  await advanceFromHeading(page, "How tall are you?", page.getByRole("button", { name: "Continue" }));
+  await advanceFromHeading(
+    page,
+    "How did you hear about NVRTRACK?",
+    page.getByRole("button", { name: "Google / Search" }),
+  );
+  await advanceFromHeading(page, "You’re all set.", page.getByRole("button", { name: "Go to Home" }));
 
   await expect(page).toHaveURL("/", { timeout: 20_000 });
 }
