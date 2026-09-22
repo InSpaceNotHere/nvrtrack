@@ -209,22 +209,22 @@ export function NutritionTodayView({
         </Toast>
       ) : null}
 
-      <section className="rounded-3xl bg-gradient-to-b from-[#121a2c] to-[#0b0f18] px-4 py-4">
+      <section className="rounded-3xl bg-gradient-to-b from-[#121a2c] to-[#0b0f18] px-4 py-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Calories</p>
-        <p className="mt-1 text-[2.15rem] font-semibold leading-none tracking-tight text-white">
+        <p className="mt-1 text-[1.85rem] font-semibold leading-none tracking-tight text-white">
           {roundNutritionValue(dailyTotals.calories, 0).toLocaleString()}
-          <span className="ml-1 text-base font-medium text-zinc-500">
+          <span className="ml-1 text-sm font-medium text-zinc-500">
             / {calorieGoal !== null ? calorieGoal.toLocaleString() : "—"} kcal
           </span>
         </p>
-        <div className="mt-3">
+        <div className="mt-2.5">
           {calorieGoal !== null && calorieGoal > 0 ? (
             <ProgressBar value={dailyTotals.calories} max={calorieGoal} compact />
           ) : (
             <div className="h-1.5 w-full rounded-full bg-white/8" />
           )}
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="mt-3 grid grid-cols-3 gap-2">
           {[
             { label: "Protein", consumed: dailyTotals.protein_g, goal: proteinGoal },
             { label: "Carbs", consumed: dailyTotals.carbohydrate_g, goal: carbohydrateGoal },
@@ -271,11 +271,11 @@ export function NutritionTodayView({
                           {roundNutritionValue(totals.calories, 0)}
                         </p>
                       </div>
-                      <div className="mt-1.5 flex gap-2">
+                      <div className="mt-1 flex gap-3">
                         <button
                           type="button"
                           onClick={() => startEdit(entry)}
-                          className="rounded-md px-2 py-1 text-xs font-medium text-zinc-300 hover:bg-white/8"
+                          className="text-[11px] text-zinc-600 hover:text-zinc-300"
                           aria-label={`Edit entry ${name}`}
                         >
                           Edit
@@ -286,7 +286,7 @@ export function NutritionTodayView({
                               type="button"
                               onClick={() => handleDelete(entry.id)}
                               disabled={isPending}
-                              className="rounded-md px-2 py-1 text-xs font-medium text-rose-200 hover:bg-rose-500/15"
+                              className="text-[11px] text-rose-300 hover:text-rose-200"
                               aria-label={`Confirm delete ${name}`}
                             >
                               Confirm Delete
@@ -294,7 +294,7 @@ export function NutritionTodayView({
                             <button
                               type="button"
                               onClick={() => setDeleteConfirmId(null)}
-                              className="rounded-md px-2 py-1 text-xs text-zinc-400"
+                              className="text-[11px] text-zinc-600"
                             >
                               Cancel
                             </button>
@@ -303,7 +303,7 @@ export function NutritionTodayView({
                           <button
                             type="button"
                             onClick={() => setDeleteConfirmId(entry.id)}
-                            className="rounded-md px-2 py-1 text-xs font-medium text-zinc-500 hover:text-rose-200"
+                            className="text-[11px] text-zinc-700 hover:text-rose-200"
                             aria-label={`Delete entry ${name}`}
                           >
                             Delete

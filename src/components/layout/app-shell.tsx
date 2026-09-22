@@ -19,6 +19,7 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const isOnboardingRoute = pathname.startsWith("/onboarding");
+  const isFocusedTaskRoute = pathname.startsWith("/nutrition/add");
   const isPublicPath = isPublicRoute(pathname);
 
   useEffect(() => {
@@ -87,10 +88,10 @@ export function AppShell({ children }: AppShellProps) {
     };
   }, [isOnboardingRoute, isPublicPath, pathname, router, supabase]);
 
-  if (isOnboardingRoute) {
+  if (isOnboardingRoute || isFocusedTaskRoute) {
     return (
       <div className="min-h-screen w-full bg-[var(--ds-color-bg-base)]">
-        <main className="mx-auto w-full max-w-[760px] px-2 pb-6 pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-4">
+        <main className="mx-auto w-full max-w-[760px] px-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-4">
           {children}
         </main>
       </div>

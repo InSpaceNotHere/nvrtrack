@@ -1,7 +1,7 @@
 import { getAuthenticatedContext, type AuthenticatedContext, type FoodCatalogRow } from "./auth-context";
 import { fail, ok, type DataAccessResult } from "./result";
 import { normalizeCatalogSearchText, rankCatalogSearchItems } from "@/lib/nutrition/catalog-search";
-import { getCatalogDisplayName } from "@/lib/nutrition/food-display-name";
+import { getCatalogDisplayName, splitDisplayName } from "@/lib/nutrition/food-display-name";
 
 function sanitizeLimit(limit: number, fallback = 40): number {
   if (!Number.isInteger(limit) || limit <= 0) {
@@ -340,6 +340,7 @@ export async function searchActiveFoodCatalog(
       description: row.description,
       aliases: row.aliases,
       display_name: getCatalogDisplayName(row),
+      group_name: splitDisplayName(getCatalogDisplayName(row)).groupName,
     })),
     normalizedQuery,
     {

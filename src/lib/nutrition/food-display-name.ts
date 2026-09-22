@@ -13,6 +13,68 @@ export interface EntryDisplaySource {
   source_description?: string | null;
 }
 
+const PREP_VARIANTS = [
+  "skin-on, cooked",
+  "skin-on, raw",
+  "hard-boiled",
+  "scrambled",
+  "roasted",
+  "grilled",
+  "braised",
+  "fried",
+  "boiled",
+  "baked",
+  "cooked",
+  "raw",
+  "dry",
+] as const;
+
+const VARIANT_PRIORITY: Record<string, number> = {
+  cooked: 100,
+  roasted: 80,
+  grilled: 75,
+  braised: 70,
+  baked: 60,
+  boiled: 55,
+  fried: 50,
+  "skin-on, cooked": 45,
+  scrambled: 40,
+  "hard-boiled": 35,
+  dry: 25,
+  raw: 20,
+  "skin-on, raw": 15,
+};
+
+export function splitDisplayName(displayName: string): { groupName: string; variantLabel: string | null } {
+  const trimmed = displayName.trim();
+  const lower = trimmed.toLowerCase();
+  for (const variant of PREP_VARIANTS) {
+    const suffix = `, ${variant}`;
+    if (lower.endsWith(suffix)) {
+      return {
+        groupName: trimmed.slice(0, trimmed.length - suffix.length).trim(),
+        variantLabel: variant,
+      };
+    }
+  }
+  return { groupName: trimmed, variantLabel: null };
+}
+
+export function variantPriority(variantLabel: string | null): number {
+  if (!variantLabel) {
+    return 90;
+  }
+  return VARIANT_PRIORITY[variantLabel] ?? 30;
+}
+
+export function getEntryPresentationName(displayName: string): string {
+  const parts = splitDisplayName(displayName);
+  if (!parts.variantLabel || parts.variantLabel === "cooked") {
+    return parts.groupName;
+  }
+  return `${parts.groupName}, ${parts.variantLabel}`;
+}
+
 function collapseDuplicateClauses(value: string): string {
   return value
     .replace(/,\s*cooked,\s*cooked/gi, ", cooked")
@@ -87,9 +149,9 @@ export function getCatalogDisplayName(source: CatalogDisplaySource): string {
 
 export function getFoodEntryDisplayName(entry: EntryDisplaySource): string {
   if (typeof entry.fdc_id === "number" && CATALOG_DISPLAY_NAMES_BY_FDC_ID[entry.fdc_id]) {
-    return CATALOG_DISPLAY_NAMES_BY_FDC_ID[entry.fdc_id];
+    return getEntryPresentationName(CATALOG_DISPLAY_NAMES_BY_FDC_ID[entry.fdc_id]);
   }
-  return humanizeUsdaStyleLabel(entry.food_name || entry.source_description || "Food");
+  return getEntryPresentationName(humanizeUsdaStyleLabel(entry.food_name || entry.source_description || "Food"));
 }
 
 export function formatMacroSummary(input: {
