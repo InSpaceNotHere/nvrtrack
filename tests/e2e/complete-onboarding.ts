@@ -1,24 +1,16 @@
 import { expect, type Page } from "@playwright/test";
 
-const SCREEN_HEADINGS = [
-  "Let’s build your setup.",
-  "Welcome back",
-  "What are you working toward?",
-  "How experienced are you with training?",
-  "How many days per week would you like to train?",
-  "Where do you usually train?",
-  "How tall are you?",
-  "How did you hear about NVRTRACK?",
-  "You’re all set.",
-] as const;
-
-async function visibleHeading(page: Page): Promise<(typeof SCREEN_HEADINGS)[number] | null> {
-  for (const name of SCREEN_HEADINGS) {
-    if (await page.getByRole("heading", { name }).isVisible().catch(() => false)) {
-      return name;
-    }
+async function advanceFromHeading(
+  page: Page,
+  heading: string,
+  click: () => Promise<void>,
+): Promise<void> {
+  const headingLoc = page.getByRole("heading", { name: heading });
+  if (!(await headingLoc.isVisible().catch(() => false))) {
+    return;
   }
-  return null;
+  await click();
+  await expect(headingLoc).toBeHidden({ timeout: 15_000 });
 }
 
 export async function completeOnboardingIfNeeded(page: Page): Promise<void> {
@@ -28,37 +20,51 @@ export async function completeOnboardingIfNeeded(page: Page): Promise<void> {
     return;
   }
 
-  for (let step = 0; step < 12; step += 1) {
-    if (!/\/onboarding/.test(new URL(page.url()).pathname)) {
-      break;
+  await advanceFromHeading(page, "Let’s build your setup.", async () => {
+    await page.getByRole("button", { name: "Get Started" }).click();
+  });
+  await advanceFromHeading(page, "Welcome back", async () => {
+    await page.getByRole("button", { name: "Continue" }).click();
+  });
+  await advanceFromHeading(page, "What are you working toward?", async () => {
+    const option = page.getByRole("button", { name: "Build muscle" });
+    if (await option.isEnabled()) {
+      await option.click();
     }
-
-    const heading = await visibleHeading(page);
-    if (!heading) {
-      await page.waitForTimeout(250);
-      continue;
+  });
+  await advanceFromHeading(page, "How experienced are you with training?", async () => {
+    const option = page.getByRole("button", { name: "Some experience" });
+    if (await option.isEnabled()) {
+      await option.click();
     }
-
-    if (heading === "Let’s build your setup." || heading === "Welcome back") {
-      await page.getByRole("button", { name: /Get Started|Continue/ }).click();
-    } else if (heading === "What are you working toward?") {
-      await page.getByRole("button", { name: "Build muscle" }).click();
-    } else if (heading === "How experienced are you with training?") {
-      await page.getByRole("button", { name: "Some experience" }).click();
-    } else if (heading === "How many days per week would you like to train?") {
-      await page.getByRole("button", { name: "3" }).click();
-    } else if (heading === "Where do you usually train?") {
-      await page.getByRole("button", { name: "Mixed" }).click();
-    } else if (heading === "How tall are you?") {
-      await page.getByRole("button", { name: "Continue" }).click();
-    } else if (heading === "How did you hear about NVRTRACK?") {
-      await page.getByRole("button", { name: "Google / Search" }).click();
-    } else if (heading === "You’re all set.") {
-      await page.getByRole("button", { name: "Go to Home" }).click();
+  });
+  await advanceFromHeading(page, "How many days per week would you like to train?", async () => {
+    const option = page.getByRole("button", { name: "3" });
+    if (await option.isEnabled()) {
+      await option.click();
     }
-
-    await page.waitForTimeout(200);
-  }
+  });
+  await advanceFromHeading(page, "Where do you usually train?", async () => {
+    const option = page.getByRole("button", { name: "Mixed" });
+    if (await option.isEnabled()) {
+      await option.click();
+    }
+  });
+  await advanceFromHeading(page, "How tall are you?", async () => {
+    const continueButton = page.getByRole("button", { name: "Continue" });
+    if (await continueButton.isEnabled()) {
+      await continueButton.click();
+    }
+  });
+  await advanceFromHeading(page, "How did you hear about NVRTRACK?", async () => {
+    const option = page.getByRole("button", { name: "Google / Search" });
+    if (await option.isEnabled()) {
+      await option.click();
+    }
+  });
+  await advanceFromHeading(page, "You’re all set.", async () => {
+    await page.getByRole("button", { name: "Go to Home" }).click();
+  });
 
   await expect(page).toHaveURL("/", { timeout: 20_000 });
 }
