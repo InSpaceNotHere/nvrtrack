@@ -1,11 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
+import { resolveOnboardingGate } from "@/lib/onboarding/gating";
+import { ONBOARDING_REQUIRED_VERSION } from "@/lib/onboarding/constants";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
 import type { Database } from "@/types/database";
 
 const AUTH_ROUTES = new Set(["/login", "/signup"]);
-const PROTECTED_ROUTE_PREFIXES = ["/", "/nutrition", "/training", "/progress", "/profile"] as const;
+const PROTECTED_ROUTE_PREFIXES = ["/", "/nutrition", "/training", "/progress", "/profile", "/onboarding"] as const;
 
 function isProtectedRoute(pathname: string): boolean {
   if (pathname === "/") {
@@ -17,6 +19,18 @@ function isProtectedRoute(pathname: string): boolean {
 
 function isAuthRoute(pathname: string): boolean {
   return AUTH_ROUTES.has(pathname);
+}
+
+function isMissingColumnError(message: string | undefined): boolean {
+  if (!message) {
+    return false;
+  }
+  const normalized = message.toLowerCase();
+  return (
+    (normalized.includes("column") && normalized.includes("does not exist")) ||
+    (normalized.includes("could not find the") && normalized.includes("column")) ||
+    normalized.includes("schema cache")
+  );
 }
 
 export async function updateSession(request: NextRequest) {
@@ -55,6 +69,45 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isAuthRoute(pathname)) {
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  if (user && isProtectedRoute(pathname)) {
+    const profileResult = await supabase
+      .from("profiles")
+      .select("onboarding_version_completed")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profileResult.error) {
+      const completedVersion =
+        (profileResult.data as { onboarding_version_completed?: number | null } | null)?.onboarding_version_completed ?? 0;
+      let activeWorkoutId: string | null = null;
+      if (completedVersion < ONBOARDING_REQUIRED_VERSION && pathname.startsWith("/training/workouts/")) {
+        const activeWorkoutResult = await supabase
+          .from("workouts")
+          .select("id")
+          .eq("user_id", user.id)
+          .is("completed_at", null)
+          .order("started_at", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        activeWorkoutId = (activeWorkoutResult.data as { id?: string } | null)?.id ?? null;
+      }
+
+      const decision = resolveOnboardingGate({
+        pathname,
+        completedVersion,
+        requiredVersion: ONBOARDING_REQUIRED_VERSION,
+        activeWorkoutId,
+      });
+
+      if (!decision.allow && decision.redirectTo) {
+        return NextResponse.redirect(new URL(decision.redirectTo, request.url));
+      }
+    } else if (!isMissingColumnError(profileResult.error.message)) {
+      return response;
+    }
   }
 
   return response;

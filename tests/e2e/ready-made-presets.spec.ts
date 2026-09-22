@@ -29,6 +29,8 @@ const FULL_BODY_EXPECTED_ORDER = [
   "Crunch",
 ] as const;
 
+const WEEKDAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
+
 async function signUpFreshUser(page: Page, label: string): Promise<{ email: string; password: string }> {
   const runId = `${Date.now()}-${Math.round(Math.random() * 100000)}`;
   const email = `e2e-ready-made-${label}-${runId}@example.com`;
@@ -273,6 +275,17 @@ test("ready-made presets preserve no-write browse, safe scheduling, and structur
   expect(scheduleAfterFocusedSaves).toEqual(scheduleAfterApply);
 
   await page.goto("/training?view=program");
+  const todayWeekday = await page.evaluate(() => new Date().getUTCDay());
+  const todayLabel = WEEKDAY_LABELS[todayWeekday] ?? "Monday";
+  const todayControl = page.locator("label").filter({ hasText: todayLabel }).first().locator("select");
+  await todayControl.selectOption({ label: "Full Body Basics - Full Body" });
+  await expect
+    .poll(async () => {
+      const today = (await getScheduleAssignments(client, userId)).find((entry) => entry.weekday === todayWeekday);
+      return !!today?.template_id && today.is_rest_day === false;
+    })
+    .toBe(true);
+
   await page.getByRole("button", { name: "Quick Start" }).click();
   await page.waitForURL(/\/training\/workouts\/[^/?]+(?:\?.*)?$/);
 
