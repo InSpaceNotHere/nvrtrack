@@ -60,17 +60,8 @@ function rowToDraft(food: FoodRow): FoodDraft {
 }
 
 function sourceStatusLabel(status: string | null): string | null {
-  if (status === "usda_live") {
-    return "USDA Live";
-  }
-  if (status === "usda_modified") {
-    return "USDA Modified";
-  }
-  if (status === "usda_catalog") {
-    return "USDA Catalog";
-  }
-  if (status === "manual") {
-    return "Manual";
+  if (status === "manual" || !status) {
+    return "Custom";
   }
   return null;
 }
@@ -392,7 +383,6 @@ export function SavedFoodManager({ foods, loadErrorMessage }: SavedFoodManagerPr
                         {sourceStatusLabel(food.source_status) ? (
                           <p className="mt-0.5 text-[11px] text-zinc-500">
                             {sourceStatusLabel(food.source_status)}
-                            {food.fdc_id ? ` • FDC ${food.fdc_id}` : ""}
                           </p>
                         ) : null}
                         <p className="text-[11px] text-zinc-500">
