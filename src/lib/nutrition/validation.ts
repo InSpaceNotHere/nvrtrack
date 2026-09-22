@@ -193,21 +193,21 @@ export function normalizeSavedFoodInput(input: SavedFoodInput): ValidationResult
   });
   if (calories.error) errors.calories = calories.error;
 
-  const protein = parseNumber(input.protein_g ?? 0, "Protein", {
+  const protein = parseNumber(input.protein_g, "Protein", {
     required: true,
     min: 0,
     max: MACRO_MAX,
   });
   if (protein.error) errors.protein_g = protein.error;
 
-  const carbohydrate = parseNumber(input.carbohydrate_g ?? 0, "Carbohydrates", {
+  const carbohydrate = parseNumber(input.carbohydrate_g, "Carbohydrates", {
     required: true,
     min: 0,
     max: MACRO_MAX,
   });
   if (carbohydrate.error) errors.carbohydrate_g = carbohydrate.error;
 
-  const fat = parseNumber(input.fat_g ?? 0, "Fat", {
+  const fat = parseNumber(input.fat_g, "Fat", {
     required: true,
     min: 0,
     max: MACRO_MAX,

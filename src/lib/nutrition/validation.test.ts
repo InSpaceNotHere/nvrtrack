@@ -57,6 +57,39 @@ describe("saved food validation", () => {
     expect(result.errors.fat_g).toBeDefined();
     expect(result.errors.fiber_g).toBeDefined();
   });
+
+  it("does not coerce empty or garbage macros to zero", () => {
+    const empty = normalizeSavedFoodInput({
+      name: "Oats",
+      serving_size: "40",
+      serving_unit: "g",
+      calories: "",
+      protein_g: "",
+      carbohydrate_g: "",
+      fat_g: "",
+    });
+    expect(empty.data).toBeNull();
+    expect(empty.errors.calories).toMatch(/required/i);
+    expect(empty.errors.protein_g).toMatch(/required/i);
+    expect(empty.errors.carbohydrate_g).toMatch(/required/i);
+    expect(empty.errors.fat_g).toMatch(/required/i);
+
+    const garbage = normalizeSavedFoodInput({
+      name: "Oats",
+      serving_size: "abc",
+      serving_unit: "g",
+      calories: "12kcal",
+      protein_g: "n/a",
+      carbohydrate_g: "--",
+      fat_g: " ",
+    });
+    expect(garbage.data).toBeNull();
+    expect(garbage.errors.serving_size).toMatch(/number/i);
+    expect(garbage.errors.calories).toMatch(/number/i);
+    expect(garbage.errors.protein_g).toMatch(/number/i);
+    expect(garbage.errors.carbohydrate_g).toMatch(/number/i);
+    expect(garbage.errors.fat_g).toMatch(/required/i);
+  });
 });
 
 describe("food entry validation", () => {

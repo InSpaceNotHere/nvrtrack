@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { completeOnboardingIfNeeded } from "./complete-onboarding";
+import { createAndLogCustomFood } from "./custom-food";
 import { requiredE2EEnv } from "./e2e-env";
 
 test.setTimeout(90_000);
@@ -94,15 +95,13 @@ test("favorites persist from Common, search, Recent, and Frequent without openin
   await page.getByLabel("Search foods").fill("");
   await expect(railFood(page, "Favorites", /^White Rice \d/)).toHaveCount(1);
 
-  await page.getByRole("tab", { name: "Custom" }).click();
-  await page.getByLabel("Food name").fill(customName);
-  await page.getByLabel("Serving size").fill("1");
-  await page.getByLabel("Serving unit").fill("serving");
-  await page.getByLabel("Calories/serving").fill("111");
-  await page.getByLabel("Protein g").fill("9");
-  await page.getByLabel("Carbohydrates g").fill("7");
-  await page.getByLabel("Fat g").fill("3");
-  await page.getByRole("button", { name: "Add to Breakfast" }).click();
+  await createAndLogCustomFood(page, {
+    name: customName,
+    calories: "111",
+    protein: "9",
+    carbs: "7",
+    fat: "3",
+  });
   await expect(page.locator("li").filter({ hasText: customName })).toBeVisible();
 
   await page.getByRole("link", { name: "Add Food to Breakfast" }).click();
@@ -151,15 +150,14 @@ test("favorites stay isolated across users", async ({ page, browser }) => {
   const date = uniqueTestDate();
   await page.goto(`/nutrition/add?meal=breakfast&date=${date}`);
   const marker = `Iso Fav ${Date.now()}`;
-  await page.getByRole("tab", { name: "Custom" }).click();
-  await page.getByLabel("Food name").fill(marker);
-  await page.getByLabel("Serving size").fill("1");
-  await page.getByLabel("Serving unit").fill("serving");
-  await page.getByLabel("Calories/serving").fill("90");
-  await page.getByLabel("Protein g").fill("8");
-  await page.getByLabel("Carbohydrates g").fill("6");
-  await page.getByLabel("Fat g").fill("2");
-  await page.getByRole("button", { name: "Add to Breakfast" }).click();
+  await page.getByRole("heading", { name: "Add Food" }).waitFor();
+  await createAndLogCustomFood(page, {
+    name: marker,
+    calories: "90",
+    protein: "8",
+    carbs: "6",
+    fat: "2",
+  });
   await page.getByRole("link", { name: "Add Food to Breakfast" }).click();
   await rail(page, "Recent").getByRole("button", { name: new RegExp(`Add ${marker} to favorites`) }).click();
   await expect(railFood(page, "Favorites", new RegExp(`^${marker}`))).toHaveCount(1);
