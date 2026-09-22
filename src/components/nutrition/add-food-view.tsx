@@ -54,11 +54,13 @@ function searchSavedFoods(foods: FoodRow[], query: string): FoodRow[] {
 }
 
 function identityPayload(identity: LogicalFoodIdentity) {
+  const fdcMatch = /^fdc:(\d+)$/.exec(identity.key);
   return {
     identity_type: identity.type,
     catalog_food_id: identity.catalogFoodId,
     food_id: identity.foodId,
     snapshot_key: identity.snapshotKey,
+    fdc_id: fdcMatch ? Number(fdcMatch[1]) : null,
   };
 }
 

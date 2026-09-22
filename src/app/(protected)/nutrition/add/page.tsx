@@ -61,7 +61,7 @@ export default async function AddFoodPage({ searchParams }: AddFoodPageProps) {
       recentFoods={recentFoods}
       frequentFoods={frequentFoods}
       favoriteFoods={favoriteFoods}
-      favoriteIdentities={favoriteRecords.map((row) => row.identity)}
+      favoriteIdentities={favoriteFoods.map((item) => item.identity)}
       favoritesEnabled={favoritesAvailable}
       loadErrorMessage={
         catalogResult.error?.message ??

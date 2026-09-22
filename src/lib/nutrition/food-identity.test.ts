@@ -93,4 +93,11 @@ describe("user-facing personal food identity", () => {
     });
     expect(identitiesMatch(salsa, guacamole)).toBe(false);
   });
+
+  it("maps catalog favorites onto the same FDC key used by Recent", () => {
+    const recent = getPersonalFoodIdentity({ catalog_food_id: "breast-cooked", fdc_id: 171140 });
+    const storedFavorite = getPersonalFoodIdentity({ catalog_food_id: "breast-cooked", fdc_id: 171140 });
+    expect(storedFavorite.key).toBe("fdc:171140");
+    expect(identitiesMatch(recent, storedFavorite)).toBe(true);
+  });
 });

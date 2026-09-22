@@ -35,10 +35,15 @@ function logFavoritesStorageIssue(error: { message?: string; code?: string } | n
   console.error("Nutrition favorites request failed.", detail);
 }
 
-function rowToFavorite(row: NutritionFoodFavoriteRow): FavoriteRecord {
+function rowToFavorite(
+  row: NutritionFoodFavoriteRow,
+  fdcByCatalogId: Map<string, number> = new Map(),
+): FavoriteRecord {
+  const catalogFdcId = row.catalog_food_id ? fdcByCatalogId.get(row.catalog_food_id) : undefined;
   const identity = getLogicalFoodIdentity({
     catalog_food_id: row.catalog_food_id,
     food_id: row.food_id,
+    fdc_id: catalogFdcId ?? null,
     food_name: row.snapshot_key,
     source_description: row.identity_type === "snapshot" ? row.snapshot_key : null,
   });
@@ -90,6 +95,7 @@ export function parseFavoriteIdentityInput(input: {
   catalog_food_id?: string | null;
   food_id?: string | null;
   snapshot_key?: string | null;
+  fdc_id?: number | null;
 }): LogicalFoodIdentity | null {
   const type = input.identity_type;
   if (type !== "catalog" && type !== "saved" && type !== "snapshot") {
@@ -98,6 +104,7 @@ export function parseFavoriteIdentityInput(input: {
   const identity = getLogicalFoodIdentity({
     catalog_food_id: type === "catalog" ? input.catalog_food_id : null,
     food_id: type === "saved" ? input.food_id : null,
+    fdc_id: typeof input.fdc_id === "number" ? input.fdc_id : null,
     food_name: type === "snapshot" ? input.snapshot_key : null,
     source_description: type === "snapshot" ? input.snapshot_key : null,
   });
@@ -139,7 +146,21 @@ export async function listMyNutritionFoodFavorites(): Promise<
     return ok({ available: false, favorites: [] });
   }
 
-  return ok({ available: true, favorites: (data ?? []).map(rowToFavorite) });
+  const rows = data ?? [];
+  const catalogIds = [
+    ...new Set(rows.map((row) => row.catalog_food_id).filter((id): id is string => Boolean(id))),
+  ];
+  const fdcByCatalogId = new Map<string, number>();
+  if (catalogIds.length > 0) {
+    const catalog = await auth.data.supabase.from("food_catalog").select("id, fdc_id").in("id", catalogIds);
+    for (const food of catalog.data ?? []) {
+      if (typeof food.fdc_id === "number") {
+        fdcByCatalogId.set(food.id, food.fdc_id);
+      }
+    }
+  }
+
+  return ok({ available: true, favorites: rows.map((row) => rowToFavorite(row, fdcByCatalogId)) });
 }
 
 export async function addMyNutritionFoodFavorite(

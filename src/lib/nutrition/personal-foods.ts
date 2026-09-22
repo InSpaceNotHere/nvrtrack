@@ -231,15 +231,16 @@ export function buildFavoritePersonalFoods(
   const items: PersonalFoodItem[] = [];
   const sorted = [...favorites].sort((left, right) => compareIsoDesc(left.createdAt, right.createdAt));
   for (const favorite of sorted) {
-    const latestEntry = latestByIdentity.get(favorite.identity.key) ?? null;
     if (favorite.identity.type === "catalog" && favorite.identity.catalogFoodId) {
       const catalogFood = catalogById.get(favorite.identity.catalogFoodId);
       if (!catalogFood) {
         continue;
       }
+      const identity = getPersonalFoodIdentity({ catalog_food_id: catalogFood.id, fdc_id: catalogFood.fdc_id });
+      const latestEntry = latestByIdentity.get(identity.key) ?? latestByIdentity.get(favorite.identity.key) ?? null;
       const macros = perHundredGramMacros(catalogFood);
       items.push({
-        identity: favorite.identity,
+        identity,
         kind: "catalog",
         name: getEntryPresentationName(getCatalogDisplayName(catalogFood)),
         calories: macros.calories,
@@ -269,14 +270,15 @@ export function buildFavoritePersonalFoods(
         carbohydrate_g: savedFood.carbohydrate_g,
         fat_g: savedFood.fat_g,
         basis: `${savedFood.serving_size} ${savedFood.serving_unit}`,
-        lastLoggedAt: latestEntry?.created_at ?? favorite.createdAt,
+        lastLoggedAt: latestByIdentity.get(favorite.identity.key)?.created_at ?? favorite.createdAt,
         occurrenceCount: 0,
         catalogFood: null,
         savedFood,
-        snapshotEntry: latestEntry,
+        snapshotEntry: latestByIdentity.get(favorite.identity.key) ?? null,
       });
       continue;
     }
+    const latestEntry = latestByIdentity.get(favorite.identity.key);
     if (latestEntry) {
       items.push(
         hydrateBucket(
