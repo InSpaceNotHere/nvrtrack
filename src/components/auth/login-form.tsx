@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
+import { PrivacyLink } from "@/components/privacy/privacy-link";
 import { mapAuthErrorMessage } from "@/lib/auth/errors";
 import { ONBOARDING_REQUIRED_VERSION } from "@/lib/onboarding/constants";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -144,6 +145,9 @@ export function LoginForm() {
         <Link href="/signup" className="font-medium text-white underline decoration-white/30 underline-offset-2">
           Create an account
         </Link>
+      </p>
+      <p className="mt-3 text-xs text-zinc-500">
+        <PrivacyLink />
       </p>
     </section>
   );

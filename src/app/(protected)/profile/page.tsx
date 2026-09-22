@@ -208,6 +208,14 @@ export default async function ProfilePage({
             <div className="space-y-2">
               <p className="text-xs text-zinc-500">Session and account actions</p>
               <LogoutButton />
+              <p className="text-xs text-zinc-500">
+                <Link
+                  href="/privacy"
+                  className="font-medium text-zinc-300 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-zinc-100"
+                >
+                  Privacy
+                </Link>
+              </p>
             </div>
           </Card>
         </section>

@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { DesktopSidebar } from "@/components/layout/desktop-sidebar";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { ONBOARDING_REQUIRED_VERSION } from "@/lib/onboarding/constants";
+import { isPublicRoute } from "@/lib/routing/access";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 interface AppShellProps {
@@ -18,12 +19,13 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const isOnboardingRoute = pathname.startsWith("/onboarding");
+  const isPublicPath = isPublicRoute(pathname);
 
   useEffect(() => {
     let cancelled = false;
 
     async function runGateCheck() {
-      if (!supabase) {
+      if (!supabase || isPublicPath) {
         return;
       }
 
@@ -83,7 +85,7 @@ export function AppShell({ children }: AppShellProps) {
     return () => {
       cancelled = true;
     };
-  }, [isOnboardingRoute, pathname, router, supabase]);
+  }, [isOnboardingRoute, isPublicPath, pathname, router, supabase]);
 
   if (isOnboardingRoute) {
     return (
