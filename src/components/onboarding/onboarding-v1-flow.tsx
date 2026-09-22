@@ -349,7 +349,7 @@ export function OnboardingV1Flow({
                   ? "Let’s finish setting up NVRTRACK. Your workouts, progress, meals, and existing data are staying exactly where they are."
                   : "A few quick questions help NVRTRACK understand how you train."}
               </p>
-              <p className="max-w-[42ch] text-xs leading-relaxed text-zinc-500">
+              <p className="max-w-[48ch] text-xs leading-relaxed text-zinc-500">
                 {PRIVACY_ONBOARDING_CONTEXT}
                 {" "}
                 <PrivacyLink className="text-zinc-400" />

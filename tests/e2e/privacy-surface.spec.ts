@@ -9,8 +9,19 @@ test("privacy page is public and linked from login, signup, onboarding, and prof
   await page.goto("/privacy");
   await expect(page).toHaveURL(/\/privacy\/?$/);
   await expect(page.getByRole("heading", { name: "Privacy", exact: true })).toBeVisible();
-  await expect(page.getByRole("note")).toContainText("owner/legal review draft");
-  await expect(page.getByText("does not currently provide an in-app account deletion flow")).toBeVisible();
+  await expect(page.getByText("Last updated: September 22, 2026")).toBeVisible();
+  await expect(page.getByRole("link", { name: "privacy@nvrtrack.com" })).toHaveAttribute(
+    "href",
+    "mailto:privacy@nvrtrack.com",
+  );
+  await expect(page.getByRole("link", { name: "support@nvrtrack.com" })).toHaveAttribute(
+    "href",
+    "mailto:support@nvrtrack.com",
+  );
+  await expect(page.locator("body")).not.toContainText(/gmail\.com/i);
+  await expect(page.locator("body")).not.toContainText("OWNER_LEGAL_REVIEW_DRAFT");
+  await expect(page.locator("body")).not.toContainText("Owner / legal review");
+  await expect(page.getByText("does not currently provide self-service account deletion")).toBeVisible();
 
   await page.goto("/login");
   await expect(page.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
@@ -32,7 +43,7 @@ test("privacy page is public and linked from login, signup, onboarding, and prof
 
   if (/\/onboarding/.test(new URL(page.url()).pathname)) {
     await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
-    await expect(page.getByText("Your answers are saved to your NVRTRACK profile")).toBeVisible();
+    await expect(page.getByText("Your answers are saved to your NVRTRACK profile.")).toBeVisible();
     await page.getByRole("link", { name: "Privacy" }).click();
     await expect(page).toHaveURL(/\/privacy\/?$/);
     await expect(page.getByRole("heading", { name: "Privacy", exact: true })).toBeVisible();
