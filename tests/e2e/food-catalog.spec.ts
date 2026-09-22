@@ -52,7 +52,7 @@ test("common catalog logging flow with amount edit/delete and custom fallback", 
   await expect(page.getByRole("button", { name: /White Rice/i }).first()).toBeVisible();
 
   await search.fill("blueberries");
-  await expect(page.getByRole("button", { name: /Blueberries/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Blueberries/i }).first()).toBeVisible();
 
   await search.fill("greek yogurt");
   await expect(page.getByRole("button", { name: /Greek Yogurt/i }).first()).toBeVisible();
