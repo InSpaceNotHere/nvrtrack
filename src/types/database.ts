@@ -499,6 +499,51 @@ export type Database = {
           },
         ]
       }
+      nutrition_food_favorites: {
+        Row: {
+          catalog_food_id: string | null
+          created_at: string
+          food_id: string | null
+          id: string
+          identity_type: string
+          snapshot_key: string | null
+          user_id: string
+        }
+        Insert: {
+          catalog_food_id?: string | null
+          created_at?: string
+          food_id?: string | null
+          id?: string
+          identity_type: string
+          snapshot_key?: string | null
+          user_id: string
+        }
+        Update: {
+          catalog_food_id?: string | null
+          created_at?: string
+          food_id?: string | null
+          id?: string
+          identity_type?: string
+          snapshot_key?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nutrition_food_favorites_catalog_food_id_fkey"
+            columns: ["catalog_food_id"]
+            isOneToOne: false
+            referencedRelation: "food_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nutrition_food_favorites_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "foods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string

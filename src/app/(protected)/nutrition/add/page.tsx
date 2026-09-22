@@ -2,10 +2,17 @@ import { redirect } from "next/navigation";
 
 import { AddFoodView } from "@/components/nutrition/add-food-view";
 import { getActiveFoodCatalog } from "@/lib/data/food-catalog";
+import { listMyNutritionFoodFavorites } from "@/lib/data/nutrition-favorites";
+import { getMyLatestLoggedFoodEntries, getMyFrequentWindowFoodEntries } from "@/lib/data/nutrition";
 import { getMyFoods } from "@/lib/data/foods";
 import { getMyProfile } from "@/lib/data/profile";
 import { getTodayDateString, isValidDateString } from "@/lib/nutrition/date";
 import { parseMealTypeParam } from "@/lib/nutrition/meals";
+import {
+  buildFavoritePersonalFoods,
+  buildFrequentPersonalFoods,
+  buildRecentPersonalFoods,
+} from "@/lib/nutrition/personal-foods";
 import { normalizeTimeZone } from "@/lib/timezone";
 
 interface AddFoodPageProps {
@@ -25,15 +32,41 @@ export default async function AddFoodPage({ searchParams }: AddFoodPageProps) {
     redirect(`/nutrition/add?meal=${mealType}&date=${entryDate}`);
   }
 
-  const [catalogResult, foodsResult] = await Promise.all([getActiveFoodCatalog(200), getMyFoods()]);
+  const [catalogResult, foodsResult, recentResult, frequentResult, favoritesResult] = await Promise.all([
+    getActiveFoodCatalog(200),
+    getMyFoods(),
+    getMyLatestLoggedFoodEntries(80),
+    getMyFrequentWindowFoodEntries(45, 400),
+    listMyNutritionFoodFavorites(),
+  ]);
+
+  const catalogFoods = catalogResult.data ?? [];
+  const foods = foodsResult.data ?? [];
+  const recentEntries = recentResult.data ?? [];
+  const frequentEntries = frequentResult.data ?? [];
+  const favoriteRecords = favoritesResult.data ?? [];
+  const recentFoods = buildRecentPersonalFoods(recentEntries, catalogFoods, foods);
+  const frequentFoods = buildFrequentPersonalFoods(frequentEntries, catalogFoods, foods);
+  const favoriteFoods = buildFavoritePersonalFoods(favoriteRecords, catalogFoods, foods, recentEntries);
 
   return (
     <AddFoodView
       mealType={mealType}
       entryDate={entryDate}
-      catalogFoods={catalogResult.data ?? []}
-      foods={foodsResult.data ?? []}
-      loadErrorMessage={catalogResult.error?.message ?? foodsResult.error?.message ?? null}
+      catalogFoods={catalogFoods}
+      foods={foods}
+      recentFoods={recentFoods}
+      frequentFoods={frequentFoods}
+      favoriteFoods={favoriteFoods}
+      favoriteIdentities={favoriteRecords.map((row) => row.identity)}
+      loadErrorMessage={
+        catalogResult.error?.message ??
+        foodsResult.error?.message ??
+        recentResult.error?.message ??
+        frequentResult.error?.message ??
+        favoritesResult.error?.message ??
+        null
+      }
     />
   );
 }

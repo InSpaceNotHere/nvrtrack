@@ -53,6 +53,7 @@ export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 export type FoodCatalogRow = Database["public"]["Tables"]["food_catalog"]["Row"];
 export type FoodRow = Database["public"]["Tables"]["foods"]["Row"];
 export type FoodEntryRow = Database["public"]["Tables"]["food_entries"]["Row"];
+export type NutritionFoodFavoriteRow = Database["public"]["Tables"]["nutrition_food_favorites"]["Row"];
 export type WeightEntryRow = Database["public"]["Tables"]["weight_entries"]["Row"];
 export type ExerciseRow = TrainingExerciseRow;
 export type WorkoutRow = TrainingWorkoutRow;
