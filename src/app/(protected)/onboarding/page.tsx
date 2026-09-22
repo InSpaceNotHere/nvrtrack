@@ -1,24 +1,32 @@
 import { redirect } from "next/navigation";
 
-import { OnboardingV1Flow } from "@/components/onboarding/onboarding-v1-flow";
+import {
+  OnboardingV1Flow,
+  type OnboardingQuestionScreen,
+  type OnboardingScreen,
+} from "@/components/onboarding/onboarding-v1-flow";
 import { Card } from "@/components/ui/card";
 import { getMyExistingAccountDataProbe, getMyOnboardingProfileSnapshot } from "@/lib/data/onboarding";
 import { ONBOARDING_REQUIRED_VERSION } from "@/lib/onboarding/constants";
 import { deriveHeightDefaults } from "@/lib/onboarding/validation";
 
-function resolveInitialStep(snapshot: {
+function resolveInitialQuestion(snapshot: {
   primary_goal: string | null;
   training_experience: string | null;
   desired_training_days_state: string;
   training_environment: string | null;
-}): 1 | 2 | 3 {
+  discovery_source: string | null;
+}): OnboardingQuestionScreen {
   if (!snapshot.primary_goal || !snapshot.training_experience) {
-    return 1;
+    return !snapshot.primary_goal ? "goal" : "experience";
   }
   if (!snapshot.training_environment || snapshot.desired_training_days_state === "unspecified") {
-    return 2;
+    return snapshot.desired_training_days_state === "unspecified" ? "days" : "environment";
   }
-  return 3;
+  if (!snapshot.discovery_source) {
+    return "height";
+  }
+  return "discovery";
 }
 
 function toDesiredTrainingDaysChoice(snapshot: {
@@ -41,10 +49,24 @@ function parseSingleParam(value: string | string[] | undefined): string | undefi
   return Array.isArray(value) ? value[0] : value;
 }
 
-function parsePreviewStep(value: string | undefined): 1 | 2 | 3 | null {
-  if (value === "1") return 1;
-  if (value === "2") return 2;
-  if (value === "3") return 3;
+function parsePreviewStep(value: string | undefined): OnboardingQuestionScreen | null {
+  if (value === "1") return "goal";
+  if (value === "2") return "days";
+  if (value === "3") return "height";
+  return null;
+}
+
+function parseScreen(value: string | undefined): OnboardingScreen | null {
+  if (!value) return null;
+  const normalized = value.toLowerCase();
+  if (normalized === "welcome") return "welcome";
+  if (normalized === "goal") return "goal";
+  if (normalized === "experience") return "experience";
+  if (normalized === "days") return "days";
+  if (normalized === "environment") return "environment";
+  if (normalized === "height") return "height";
+  if (normalized === "discovery") return "discovery";
+  if (normalized === "complete") return "complete";
   return null;
 }
 
@@ -56,6 +78,8 @@ export default async function OnboardingPage({
   const resolvedSearchParams = (await Promise.resolve(searchParams)) ?? {};
   const previewStepParam = parseSingleParam(resolvedSearchParams.previewStep);
   const previewExistingParam = parseSingleParam(resolvedSearchParams.previewExisting);
+  const screenParam = parseSingleParam(resolvedSearchParams.q);
+  const requestedScreen = parseScreen(screenParam);
   const allowPreviewOverrides = process.env.NODE_ENV !== "production";
   const previewStep = allowPreviewOverrides ? parsePreviewStep(previewStepParam) : null;
   const previewExisting = allowPreviewOverrides ? previewExistingParam === "1" : false;
@@ -77,7 +101,8 @@ export default async function OnboardingPage({
 
   const snapshot = snapshotResult.data;
   const completedVersion = snapshot.onboarding_version_completed ?? 0;
-  if (completedVersion >= ONBOARDING_REQUIRED_VERSION) {
+  const allowCompletedOnboardingScreen = requestedScreen === "complete";
+  if (completedVersion >= ONBOARDING_REQUIRED_VERSION && !allowCompletedOnboardingScreen) {
     redirect("/");
   }
 
@@ -86,12 +111,24 @@ export default async function OnboardingPage({
       ? { hasExistingData: snapshot.height_inches !== null || snapshot.display_name !== null }
       : existingDataProbeResult.data;
   const heightDefaults = deriveHeightDefaults(snapshot.height_inches);
+  const initialQuestion = resolveInitialQuestion(snapshot);
+  const hasAnyOnboardingDraft =
+    snapshot.primary_goal !== null ||
+    snapshot.training_experience !== null ||
+    snapshot.desired_training_days_state !== "unspecified" ||
+    snapshot.training_environment !== null ||
+    snapshot.discovery_source !== null;
+
+  const initialScreen: OnboardingScreen =
+    previewStep ??
+    requestedScreen ??
+    (hasAnyOnboardingDraft ? initialQuestion : "welcome");
 
   return (
     <div className="px-2 pb-5 pt-3 sm:px-4">
       <OnboardingV1Flow
         isExistingUser={previewExisting || existingProbe.hasExistingData}
-        initialStep={previewStep ?? resolveInitialStep(snapshot)}
+        initialScreen={initialScreen}
         initialValues={{
           primaryGoal: snapshot.primary_goal ?? "",
           trainingExperience: snapshot.training_experience ?? "",

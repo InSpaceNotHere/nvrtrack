@@ -68,7 +68,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isAuthRoute(pathname)) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
   if (user && isProtectedRoute(pathname)) {
@@ -97,6 +97,7 @@ export async function updateSession(request: NextRequest) {
 
       const decision = resolveOnboardingGate({
         pathname,
+        onboardingQuery: request.nextUrl.searchParams.get("q"),
         completedVersion,
         requiredVersion: ONBOARDING_REQUIRED_VERSION,
         activeWorkoutId,

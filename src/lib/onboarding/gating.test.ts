@@ -68,5 +68,40 @@ describe("resolveOnboardingGate", () => {
 
     expect(decision).toEqual({ allow: false, redirectTo: "/onboarding" });
   });
+
+  it("redirects incomplete users away from home even when an active workout exists", () => {
+    const decision = resolveOnboardingGate({
+      pathname: "/",
+      completedVersion: 0,
+      requiredVersion: 1,
+      activeWorkoutId: "workout-123",
+    });
+
+    expect(decision).toEqual({ allow: false, redirectTo: "/onboarding" });
+  });
+
+  it("allows completed users to stay on the onboarding complete screen", () => {
+    const decision = resolveOnboardingGate({
+      pathname: "/onboarding",
+      onboardingQuery: "complete",
+      completedVersion: 1,
+      requiredVersion: 1,
+      activeWorkoutId: null,
+    });
+
+    expect(decision).toEqual({ allow: true, redirectTo: null });
+  });
+
+  it("still redirects completed users away from other onboarding screens", () => {
+    const decision = resolveOnboardingGate({
+      pathname: "/onboarding",
+      onboardingQuery: "goal",
+      completedVersion: 1,
+      requiredVersion: 1,
+      activeWorkoutId: null,
+    });
+
+    expect(decision).toEqual({ allow: false, redirectTo: "/" });
+  });
 });
 

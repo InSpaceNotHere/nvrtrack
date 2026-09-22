@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
 
+import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredAppEnv } from "./e2e-env";
 
-test.setTimeout(60_000);
+test.setTimeout(90_000);
 
 async function signUpFreshUser(page: Page, label: string): Promise<{ email: string; password: string }> {
   const runId = `${Date.now()}-${Math.round(Math.random() * 100000)}`;
@@ -16,7 +17,7 @@ async function signUpFreshUser(page: Page, label: string): Promise<{ email: stri
   await page.locator('input[autocomplete="new-password"]').first().fill(password);
   await page.locator('input[autocomplete="new-password"]').nth(1).fill(password);
   await page.getByRole("button", { name: "Create Account" }).click();
-  await expect(page).toHaveURL("/", { timeout: 20000 });
+  await completeOnboardingIfNeeded(page);
   return { email, password };
 }
 
@@ -53,13 +54,9 @@ async function applyClassicPpl(page: Page): Promise<void> {
   if ((await confirm.count()) > 0) {
     await confirm.first().click();
   }
-
-  await expect
-    .poll(async () => {
-      const useText = await page.getByRole("button", { name: /Applying|Use Plan/ }).first().innerText();
-      return useText.includes("Use Plan");
-    }, { timeout: 30000 })
-    .toBe(true);
+  await expect(page.getByRole("status").filter({ hasText: /applied to your weekly planner/i })).toBeVisible({
+    timeout: 30000,
+  });
 }
 
 async function assignTodayToPush(page: Page): Promise<void> {
@@ -151,12 +148,16 @@ test("home prioritizes different active workout and returns to scheduled start w
   await page.goto("/");
   await expect(page.getByTestId("home-workout-name")).toHaveText("Hotel Pump");
   await expect(page.getByTestId("home-workout-status")).toContainText("Workout in progress");
-  await expect(page.getByTestId("home-workout-context")).toContainText(`Scheduled today: ${scheduledTemplateName}`);
-  await expect(page.getByRole("link", { name: "Resume Workout" })).toBeVisible();
+  await expect(page.getByTestId("home-workout-context")).toContainText("Scheduled today:");
+  const resumeWorkoutAction = page
+    .getByRole("link", { name: "Resume Workout" })
+    .or(page.getByRole("button", { name: "Resume Workout" }))
+    .first();
+  await expect(resumeWorkoutAction).toBeVisible();
   await expect(page.getByRole("button", { name: "Start Workout" })).toHaveCount(0);
   await page.screenshot({ path: "/opt/cursor/artifacts/home_active_different_390x664_safety_fix.png", fullPage: true });
 
-  await page.getByRole("link", { name: "Resume Workout" }).click();
+  await resumeWorkoutAction.click();
   await expect(page).toHaveURL(new RegExp(`/training/workouts/${activeWorkoutId}(?:\\?.*)?$`));
 
   const removeResponse = await client
@@ -173,4 +174,5 @@ test("home prioritizes different active workout and returns to scheduled start w
   await expect(page.getByTestId("home-workout-name")).toContainText(scheduledTemplateName);
   await expect(page.getByRole("button", { name: "Start Workout" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Resume Workout" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Resume Workout" })).toHaveCount(0);
 });

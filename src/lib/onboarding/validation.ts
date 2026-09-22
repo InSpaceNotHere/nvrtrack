@@ -44,6 +44,13 @@ export interface OnboardingStepThreeInput {
   heightCentimeters: string;
 }
 
+export interface OnboardingHeightInput {
+  heightUnit: string;
+  heightFeet: string;
+  heightInches: string;
+  heightCentimeters: string;
+}
+
 export interface OnboardingStepValidationResult<TValue extends object, TField extends string> {
   data: TValue | null;
   fieldErrors: Partial<Record<TField, string>>;
@@ -52,6 +59,7 @@ export interface OnboardingStepValidationResult<TValue extends object, TField ex
 export type OnboardingStepOneField = "primaryGoal" | "trainingExperience";
 export type OnboardingStepTwoField = "desiredTrainingDaysChoice" | "trainingEnvironment";
 export type OnboardingStepThreeField = "discoverySource" | "heightFeet" | "heightInches" | "heightCentimeters";
+export type OnboardingHeightField = "heightFeet" | "heightInches" | "heightCentimeters";
 
 export interface NormalizedStepOneValues {
   primary_goal: PrimaryGoalCode;
@@ -66,6 +74,10 @@ export interface NormalizedStepTwoValues {
 
 export interface NormalizedStepThreeValues {
   discovery_source: DiscoverySourceCode;
+  height_inches: number | undefined;
+}
+
+export interface NormalizedHeightValues {
   height_inches: number | undefined;
 }
 
@@ -217,13 +229,43 @@ export function normalizeOnboardingStepThreeInput(
 ): OnboardingStepValidationResult<NormalizedStepThreeValues, OnboardingStepThreeField> {
   const fieldErrors: Partial<Record<OnboardingStepThreeField, string>> = {};
   const discoverySource = input.discoverySource.trim();
-  const heightUnit = input.heightUnit.trim();
 
   if (!DISCOVERY_SOURCE_CODES.has(discoverySource)) {
     fieldErrors.discoverySource = "Select how you heard about NVRTRACK.";
   }
+
+  const parsedHeight = normalizeOptionalHeightInput({
+    heightUnit: input.heightUnit,
+    heightFeet: input.heightFeet,
+    heightInches: input.heightInches,
+    heightCentimeters: input.heightCentimeters,
+  });
+  if (!parsedHeight.data) {
+    Object.assign(fieldErrors, parsedHeight.fieldErrors);
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { data: null, fieldErrors };
+  }
+
+  return {
+    data: {
+      discovery_source: discoverySource as DiscoverySourceCode,
+      height_inches: parsedHeight.data?.height_inches,
+    },
+    fieldErrors: {},
+  };
+}
+
+export function normalizeOptionalHeightInput(
+  input: OnboardingHeightInput,
+): OnboardingStepValidationResult<NormalizedHeightValues, OnboardingHeightField> {
+  const fieldErrors: Partial<Record<OnboardingHeightField, string>> = {};
+  const heightUnit = input.heightUnit.trim();
+
   if (!HEIGHT_UNIT_CODES.has(heightUnit)) {
     fieldErrors.heightCentimeters = "Select a height unit.";
+    return { data: null, fieldErrors };
   }
 
   let heightInches: number | undefined = undefined;
@@ -245,7 +287,6 @@ export function normalizeOnboardingStepThreeInput(
 
   return {
     data: {
-      discovery_source: discoverySource as DiscoverySourceCode,
       height_inches: heightInches,
     },
     fieldErrors: {},

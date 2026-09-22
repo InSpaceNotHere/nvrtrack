@@ -1,7 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
 
+import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredAppEnv } from "./e2e-env";
+
+test.setTimeout(120_000);
 
 interface UserScopedCounts {
   templates: number;
@@ -42,7 +45,7 @@ async function signUpFreshUser(page: Page, label: string): Promise<{ email: stri
   await page.locator('input[autocomplete="new-password"]').first().fill(password);
   await page.locator('input[autocomplete="new-password"]').nth(1).fill(password);
   await page.getByRole("button", { name: "Create Account" }).click();
-  await expect(page).toHaveURL("/", { timeout: 20000 });
+  await completeOnboardingIfNeeded(page);
   return { email, password };
 }
 

@@ -5,6 +5,7 @@ import {
   normalizeOnboardingStepOneInput,
   normalizeOnboardingStepThreeInput,
   normalizeOnboardingStepTwoInput,
+  normalizeOptionalHeightInput,
 } from "./validation";
 
 describe("normalizeOnboardingStepOneInput", () => {
@@ -102,6 +103,32 @@ describe("normalizeOnboardingStepThreeInput", () => {
     });
 
     expect(result.data?.height_inches).toBe(68);
+  });
+});
+
+describe("normalizeOptionalHeightInput", () => {
+  it("allows skipping height with blank values", () => {
+    const result = normalizeOptionalHeightInput({
+      heightUnit: "ft_in",
+      heightFeet: "",
+      heightInches: "",
+      heightCentimeters: "",
+    });
+
+    expect(result.data).toEqual({ height_inches: undefined });
+    expect(result.fieldErrors).toEqual({});
+  });
+
+  it("rejects out-of-range feet independently of discovery", () => {
+    const result = normalizeOptionalHeightInput({
+      heightUnit: "ft_in",
+      heightFeet: "9",
+      heightInches: "11",
+      heightCentimeters: "",
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.fieldErrors.heightFeet).toBe("Feet must be between 3 and 8.");
   });
 });
 

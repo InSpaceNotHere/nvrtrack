@@ -1,5 +1,9 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { completeOnboardingIfNeeded } from "./complete-onboarding";
+
+test.setTimeout(90_000);
+
 function addDays(date: string, delta: number): string {
   const base = Date.parse(`${date}T00:00:00.000Z`);
   return new Date(base + delta * 86400000).toISOString().slice(0, 10);
@@ -15,7 +19,7 @@ async function signUpFreshUser(page: Page, label: string): Promise<{ email: stri
   await page.locator('input[autocomplete="new-password"]').first().fill(password);
   await page.locator('input[autocomplete="new-password"]').nth(1).fill(password);
   await page.getByRole("button", { name: "Create Account" }).click();
-  await expect(page).toHaveURL("/", { timeout: 15000 });
+  await completeOnboardingIfNeeded(page);
   return { email, password };
 }
 

@@ -10,15 +10,7 @@ async function login(page: Page) {
   await page.getByLabel("Email").fill(email);
   await page.locator('input[autocomplete="current-password"]').fill(password);
   await page.getByRole("button", { name: "Log In" }).click();
-  try {
-    await page.waitForURL("**/", { timeout: 10000 });
-  } catch {
-    if (new URL(page.url()).pathname === "/login") {
-      await page.getByRole("button", { name: "Log In" }).click();
-      await page.waitForURL("**/", { timeout: 10000 });
-    }
-  }
-  await expect(page).toHaveURL("/", { timeout: 15000 });
+  await expect(page).toHaveURL("/", { timeout: 20_000 });
 }
 
 function buildUniqueDate(seed: number, dayOffset = 0): string {

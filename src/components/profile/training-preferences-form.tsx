@@ -216,7 +216,13 @@ export function TrainingPreferencesForm({ initialValues }: TrainingPreferencesFo
         </div>
       </Card>
 
-      {message ? <Toast tone={messageTone === "error" ? "error" : "success"}>{message}</Toast> : null}
+      {message ? (
+        <Toast tone={messageTone === "error" ? "error" : "success"} role={messageTone === "error" ? "alert" : "status"}>
+          {message}
+        </Toast>
+      ) : (
+        <p className="px-1 text-xs text-zinc-500">Save updates to keep your training profile current.</p>
+      )}
 
       <Button type="submit" variant="primary" className="h-10 w-full" disabled={isPending}>
         {isPending ? "Saving..." : "Save Preferences"}

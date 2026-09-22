@@ -7,11 +7,20 @@ import {
   markMyOnboardingCompleted,
   saveMyOnboardingDraft,
 } from "@/lib/data/onboarding";
-import { ONBOARDING_REQUIRED_VERSION } from "@/lib/onboarding/constants";
 import {
+  DESIRED_TRAINING_DAYS_OPTIONS,
+  ONBOARDING_REQUIRED_VERSION,
+  PRIMARY_GOAL_OPTIONS,
+  TRAINING_ENVIRONMENT_OPTIONS,
+  TRAINING_EXPERIENCE_OPTIONS,
+} from "@/lib/onboarding/constants";
+import {
+  normalizeOptionalHeightInput,
   normalizeOnboardingStepOneInput,
   normalizeOnboardingStepThreeInput,
   normalizeOnboardingStepTwoInput,
+  type OnboardingHeightField,
+  type OnboardingHeightInput,
   type OnboardingStepOneField,
   type OnboardingStepOneInput,
   type OnboardingStepThreeField,
@@ -20,12 +29,16 @@ import {
   type OnboardingStepTwoInput,
 } from "@/lib/onboarding/validation";
 
-function revalidateOnboardingViews() {
+function revalidateAppViews() {
   revalidatePath("/");
   revalidatePath("/nutrition");
   revalidatePath("/training");
   revalidatePath("/progress");
   revalidatePath("/profile");
+}
+
+function revalidateOnboardingViews() {
+  revalidateAppViews();
   revalidatePath("/onboarding");
 }
 
@@ -33,6 +46,177 @@ export interface SaveOnboardingStepResult<TField extends string> {
   status: "success" | "error";
   message: string;
   fieldErrors: Partial<Record<TField, string>>;
+}
+
+const PRIMARY_GOAL_CODES = new Set<string>(PRIMARY_GOAL_OPTIONS.map((option) => option.code));
+const TRAINING_EXPERIENCE_CODES = new Set<string>(TRAINING_EXPERIENCE_OPTIONS.map((option) => option.code));
+const DESIRED_TRAINING_DAYS_CODES = new Set<string>(DESIRED_TRAINING_DAYS_OPTIONS.map((option) => option.code));
+const TRAINING_ENVIRONMENT_CODES = new Set<string>(TRAINING_ENVIRONMENT_OPTIONS.map((option) => option.code));
+
+export async function saveOnboardingGoalAction(input: {
+  primaryGoal: string;
+}): Promise<SaveOnboardingStepResult<"primaryGoal">> {
+  const primaryGoal = input.primaryGoal.trim();
+  if (!PRIMARY_GOAL_CODES.has(primaryGoal)) {
+    return {
+      status: "error",
+      message: "Select your main goal before continuing.",
+      fieldErrors: { primaryGoal: "Select your main goal." },
+    };
+  }
+
+  const saveResult = await saveMyOnboardingDraft({ primary_goal: primaryGoal });
+  if (saveResult.error) {
+    return {
+      status: "error",
+      message: saveResult.error.message,
+      fieldErrors: {},
+    };
+  }
+
+  revalidateOnboardingViews();
+  return {
+    status: "success",
+    message: "Saved.",
+    fieldErrors: {},
+  };
+}
+
+export async function saveOnboardingExperienceAction(input: {
+  trainingExperience: string;
+}): Promise<SaveOnboardingStepResult<"trainingExperience">> {
+  const trainingExperience = input.trainingExperience.trim();
+  if (!TRAINING_EXPERIENCE_CODES.has(trainingExperience)) {
+    return {
+      status: "error",
+      message: "Select your training experience before continuing.",
+      fieldErrors: { trainingExperience: "Select your training experience." },
+    };
+  }
+
+  const saveResult = await saveMyOnboardingDraft({ training_experience: trainingExperience });
+  if (saveResult.error) {
+    return {
+      status: "error",
+      message: saveResult.error.message,
+      fieldErrors: {},
+    };
+  }
+
+  revalidateOnboardingViews();
+  return {
+    status: "success",
+    message: "Saved.",
+    fieldErrors: {},
+  };
+}
+
+export async function saveOnboardingTrainingDaysAction(input: {
+  desiredTrainingDaysChoice: string;
+}): Promise<SaveOnboardingStepResult<"desiredTrainingDaysChoice">> {
+  const desiredTrainingDaysChoice = input.desiredTrainingDaysChoice.trim();
+  if (!DESIRED_TRAINING_DAYS_CODES.has(desiredTrainingDaysChoice)) {
+    return {
+      status: "error",
+      message: "Select your ideal training days before continuing.",
+      fieldErrors: {
+        desiredTrainingDaysChoice: "Select your ideal training days.",
+      },
+    };
+  }
+
+  let desired_training_days: number | null = null;
+  let desired_training_days_state: "specified" | "not_sure" | "prefer_not_to_answer" = "specified";
+  if (desiredTrainingDaysChoice === "not_sure") {
+    desired_training_days_state = "not_sure";
+  } else if (desiredTrainingDaysChoice === "prefer_not_to_answer") {
+    desired_training_days_state = "prefer_not_to_answer";
+  } else {
+    desired_training_days = Number(desiredTrainingDaysChoice);
+  }
+
+  const saveResult = await saveMyOnboardingDraft({
+    desired_training_days,
+    desired_training_days_state,
+  });
+  if (saveResult.error) {
+    return {
+      status: "error",
+      message: saveResult.error.message,
+      fieldErrors: {},
+    };
+  }
+
+  revalidateOnboardingViews();
+  return {
+    status: "success",
+    message: "Saved.",
+    fieldErrors: {},
+  };
+}
+
+export async function saveOnboardingTrainingEnvironmentAction(input: {
+  trainingEnvironment: string;
+}): Promise<SaveOnboardingStepResult<"trainingEnvironment">> {
+  const trainingEnvironment = input.trainingEnvironment.trim();
+  if (!TRAINING_ENVIRONMENT_CODES.has(trainingEnvironment)) {
+    return {
+      status: "error",
+      message: "Select your training environment before continuing.",
+      fieldErrors: { trainingEnvironment: "Select your training environment." },
+    };
+  }
+
+  const saveResult = await saveMyOnboardingDraft({
+    training_environment: trainingEnvironment,
+  });
+  if (saveResult.error) {
+    return {
+      status: "error",
+      message: saveResult.error.message,
+      fieldErrors: {},
+    };
+  }
+
+  revalidateOnboardingViews();
+  return {
+    status: "success",
+    message: "Saved.",
+    fieldErrors: {},
+  };
+}
+
+export async function saveOnboardingHeightAction(
+  input: OnboardingHeightInput,
+): Promise<SaveOnboardingStepResult<OnboardingHeightField>> {
+  const normalized = normalizeOptionalHeightInput(input);
+  if (!normalized.data) {
+    return {
+      status: "error",
+      message: "Please fix your height input before continuing.",
+      fieldErrors: normalized.fieldErrors,
+    };
+  }
+
+  const draftPayload: Parameters<typeof saveMyOnboardingDraft>[0] = {};
+  if (normalized.data.height_inches !== undefined) {
+    draftPayload.height_inches = normalized.data.height_inches;
+  }
+  const saveResult = await saveMyOnboardingDraft(draftPayload);
+  if (saveResult.error) {
+    return {
+      status: "error",
+      message: saveResult.error.message,
+      fieldErrors: {},
+    };
+  }
+
+  revalidateOnboardingViews();
+  return {
+    status: "success",
+    message: "Saved.",
+    fieldErrors: {},
+  };
 }
 
 export async function saveOnboardingStepOneAction(
@@ -155,7 +339,7 @@ export async function completeOnboardingV1Action(
     };
   }
 
-  revalidateOnboardingViews();
+  revalidateAppViews();
   return {
     status: "success",
     message: "Onboarding completed.",

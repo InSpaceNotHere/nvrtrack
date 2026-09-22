@@ -6,6 +6,7 @@ export interface ResolveOnboardingGateInput {
   completedVersion: number;
   requiredVersion: number;
   activeWorkoutId: string | null;
+  onboardingQuery?: string | null;
 }
 
 export interface OnboardingGateDecision {
@@ -23,11 +24,14 @@ function getWorkoutIdFromRoute(pathname: string): string | null {
 }
 
 export function resolveOnboardingGate(input: ResolveOnboardingGateInput): OnboardingGateDecision {
-  const { pathname, completedVersion, requiredVersion, activeWorkoutId } = input;
+  const { pathname, completedVersion, requiredVersion, activeWorkoutId, onboardingQuery } = input;
   const hasCompletedRequiredVersion = completedVersion >= requiredVersion;
 
   if (hasCompletedRequiredVersion) {
     if (isOnboardingRoute(pathname)) {
+      if (onboardingQuery === "complete") {
+        return { allow: true, redirectTo: null };
+      }
       return { allow: false, redirectTo: "/" };
     }
     return { allow: true, redirectTo: null };
@@ -44,4 +48,3 @@ export function resolveOnboardingGate(input: ResolveOnboardingGateInput): Onboar
 
   return { allow: false, redirectTo: "/onboarding" };
 }
-

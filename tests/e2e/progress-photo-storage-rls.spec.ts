@@ -1,6 +1,9 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
+import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredE2EEnv } from "./e2e-env";
+
+test.setTimeout(90_000);
 
 async function loginPrimaryUser(page: Page) {
   await page.context().clearCookies();
@@ -29,7 +32,7 @@ async function createSecondaryUserContext(browser: Browser, runId: string): Prom
   await page.locator('input[autocomplete="new-password"]').first().fill(password);
   await page.locator('input[autocomplete="new-password"]').nth(1).fill(password);
   await page.getByRole("button", { name: "Create Account" }).click();
-  await expect(page).toHaveURL("/", { timeout: 15000 });
+  await completeOnboardingIfNeeded(page);
   return page;
 }
 
