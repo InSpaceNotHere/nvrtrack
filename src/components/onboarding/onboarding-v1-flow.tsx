@@ -350,7 +350,9 @@ export function OnboardingV1Flow({
                   : "A few quick questions help NVRTRACK understand how you train."}
               </p>
               <p className="max-w-[42ch] text-xs leading-relaxed text-zinc-500">
-                {PRIVACY_ONBOARDING_CONTEXT} <PrivacyLink className="text-zinc-400" />
+                {PRIVACY_ONBOARDING_CONTEXT}
+                {" "}
+                <PrivacyLink className="text-zinc-400" />
               </p>
             </div>
             <Button
