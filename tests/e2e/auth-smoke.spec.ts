@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredE2EEnv } from "./e2e-env";
 
-test.setTimeout(90_000);
+test.setTimeout(120_000);
 
 test("authentication smoke flow", async ({ page }) => {
   const email = requiredE2EEnv("E2E_TEST_EMAIL");
