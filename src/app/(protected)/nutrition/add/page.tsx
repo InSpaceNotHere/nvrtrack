@@ -44,10 +44,13 @@ export default async function AddFoodPage({ searchParams }: AddFoodPageProps) {
   const foods = foodsResult.data ?? [];
   const recentEntries = recentResult.data ?? [];
   const frequentEntries = frequentResult.data ?? [];
-  const favoriteRecords = favoritesResult.data ?? [];
+  const favoritesAvailable = favoritesResult.data?.available === true;
+  const favoriteRecords = favoritesAvailable ? (favoritesResult.data?.favorites ?? []) : [];
   const recentFoods = buildRecentPersonalFoods(recentEntries, catalogFoods, foods);
   const frequentFoods = buildFrequentPersonalFoods(frequentEntries, catalogFoods, foods);
-  const favoriteFoods = buildFavoritePersonalFoods(favoriteRecords, catalogFoods, foods, recentEntries);
+  const favoriteFoods = favoritesAvailable
+    ? buildFavoritePersonalFoods(favoriteRecords, catalogFoods, foods, recentEntries)
+    : [];
 
   return (
     <AddFoodView
@@ -59,12 +62,12 @@ export default async function AddFoodPage({ searchParams }: AddFoodPageProps) {
       frequentFoods={frequentFoods}
       favoriteFoods={favoriteFoods}
       favoriteIdentities={favoriteRecords.map((row) => row.identity)}
+      favoritesEnabled={favoritesAvailable}
       loadErrorMessage={
         catalogResult.error?.message ??
         foodsResult.error?.message ??
         recentResult.error?.message ??
         frequentResult.error?.message ??
-        favoritesResult.error?.message ??
         null
       }
     />

@@ -20,7 +20,8 @@ import type { FoodCatalogRow, FoodRow } from "@/lib/data/auth-context";
 import { formatVariantChipLabel, rankCatalogFoodGroups, type CatalogFoodGroup } from "@/lib/nutrition/catalog-groups";
 import { normalizeCatalogSearchText } from "@/lib/nutrition/catalog-search";
 import { getCatalogDisplayName, getEntryPresentationName, perHundredGramMacros } from "@/lib/nutrition/food-display-name";
-import { getLogicalFoodIdentity, type LogicalFoodIdentity } from "@/lib/nutrition/food-identity";
+import { getPersonalFoodIdentity, type LogicalFoodIdentity } from "@/lib/nutrition/food-identity";
+import { sanitizeFavoritesUserMessage } from "@/lib/nutrition/user-facing-copy";
 import { MEAL_LABELS } from "@/lib/nutrition/meals";
 import { personalItemFromCatalog, personalItemFromSaved, type PersonalFoodItem } from "@/lib/nutrition/personal-foods";
 import type { MealType } from "@/lib/nutrition/types";
@@ -36,6 +37,7 @@ interface AddFoodViewProps {
   frequentFoods: PersonalFoodItem[];
   favoriteFoods: PersonalFoodItem[];
   favoriteIdentities: LogicalFoodIdentity[];
+  favoritesEnabled?: boolean;
   loadErrorMessage?: string | null;
 }
 
@@ -73,7 +75,7 @@ function CatalogGroupResult({
   favorited: boolean;
   onSelectVariant: (foodId: string) => void;
   onOpen: (food: FoodCatalogRow) => void;
-  onToggleFavorite: (food: FoodCatalogRow) => void;
+  onToggleFavorite?: (food: FoodCatalogRow) => void;
 }) {
   const selected = group.variants.find((variant) => variant.food.id === selectedFoodId) ?? group.preferred;
   const macros = perHundredGramMacros(selected.food);
@@ -91,7 +93,7 @@ function CatalogGroupResult({
       selected={isSelected}
       favorited={favorited}
       onSelect={() => onOpen(selected.food)}
-      onToggleFavorite={() => onToggleFavorite(selected.food)}
+      onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(selected.food) : undefined}
       footer={
         showVariants ? (
           <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2">
@@ -130,6 +132,7 @@ export function AddFoodView({
   frequentFoods,
   favoriteFoods,
   favoriteIdentities,
+  favoritesEnabled = false,
   loadErrorMessage,
 }: AddFoodViewProps) {
   const router = useRouter();
@@ -207,15 +210,18 @@ export function AddFoodView({
       return null;
     }
     if (target.kind === "catalog") {
-      return getLogicalFoodIdentity({ catalog_food_id: target.food.id });
+      return getPersonalFoodIdentity({ catalog_food_id: target.food.id, fdc_id: target.food.fdc_id });
     }
     if (target.kind === "saved") {
-      return getLogicalFoodIdentity({ food_id: target.food.id });
+      return getPersonalFoodIdentity({ food_id: target.food.id });
     }
-    return getLogicalFoodIdentity(target.entry);
+    return getPersonalFoodIdentity(target.entry);
   }
 
   function toggleFavorite(identity: LogicalFoodIdentity, item?: PersonalFoodItem) {
+    if (!favoritesEnabled) {
+      return;
+    }
     const nextFavorited = !favoriteKeys.has(identity.key);
     setFavoriteKeys((current) => {
       const next = new Set(current);
@@ -262,7 +268,7 @@ export function AddFoodView({
             return current;
           });
         }
-        setMessage(result.message);
+        setMessage(sanitizeFavoritesUserMessage(result.message));
       }
     });
   }
@@ -408,6 +414,7 @@ export function AddFoodView({
             title="Recent"
             items={recentFoods}
             favoriteKeys={favoriteKeys}
+            favoritesEnabled={favoritesEnabled}
             onSelect={openPersonal}
             onToggleFavorite={(item) => toggleFavorite(item.identity, item)}
           />
@@ -415,16 +422,20 @@ export function AddFoodView({
             title="Frequent"
             items={frequentFoods}
             favoriteKeys={favoriteKeys}
+            favoritesEnabled={favoritesEnabled}
             onSelect={openPersonal}
             onToggleFavorite={(item) => toggleFavorite(item.identity, item)}
           />
-          <PersonalFoodRail
-            title="Favorites"
-            items={favoriteItems.filter((item) => favoriteKeys.has(item.identity.key))}
-            favoriteKeys={favoriteKeys}
-            onSelect={openPersonal}
-            onToggleFavorite={(item) => toggleFavorite(item.identity, item)}
-          />
+          {favoritesEnabled ? (
+            <PersonalFoodRail
+              title="Favorites"
+              items={favoriteItems.filter((item) => favoriteKeys.has(item.identity.key))}
+              favoriteKeys={favoriteKeys}
+              favoritesEnabled={favoritesEnabled}
+              onSelect={openPersonal}
+              onToggleFavorite={(item) => toggleFavorite(item.identity, item)}
+            />
+          ) : null}
           <Tabs value={tab} options={tabOptions} onChange={setTab} ariaLabel="Food source" />
         </>
       ) : null}
@@ -438,7 +449,7 @@ export function AddFoodView({
             {rankedGroups.map((group) => {
               const selectedId = variantByGroup[group.key] ?? group.preferred.food.id;
               const selectedFood = group.variants.find((variant) => variant.food.id === selectedId)?.food ?? group.preferred.food;
-              const identity = getLogicalFoodIdentity({ catalog_food_id: selectedFood.id });
+              const identity = getPersonalFoodIdentity({ catalog_food_id: selectedFood.id, fdc_id: selectedFood.fdc_id });
               return (
                 <CatalogGroupResult
                   key={group.key}
@@ -447,8 +458,14 @@ export function AddFoodView({
                   favorited={favoriteKeys.has(identity.key)}
                   onSelectVariant={(foodId) => setVariantByGroup((current) => ({ ...current, [group.key]: foodId }))}
                   onOpen={openCatalog}
-                  onToggleFavorite={(food) =>
-                    toggleFavorite(getLogicalFoodIdentity({ catalog_food_id: food.id }), personalItemFromCatalog(food))
+                  onToggleFavorite={
+                    favoritesEnabled
+                      ? (food) =>
+                          toggleFavorite(
+                            getPersonalFoodIdentity({ catalog_food_id: food.id, fdc_id: food.fdc_id }),
+                            personalItemFromCatalog(food),
+                          )
+                      : undefined
                   }
                 />
               );
@@ -463,7 +480,7 @@ export function AddFoodView({
           <h2 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">My Foods</h2>
           <div>
             {savedMatches.map((food) => {
-              const identity = getLogicalFoodIdentity({ food_id: food.id });
+              const identity = getPersonalFoodIdentity({ food_id: food.id });
               return (
                 <FoodResultRow
                   key={food.id}
@@ -476,7 +493,9 @@ export function AddFoodView({
                   selected={target?.kind === "saved" && target.food.id === food.id}
                   favorited={favoriteKeys.has(identity.key)}
                   onSelect={() => openSaved(food)}
-                  onToggleFavorite={() => toggleFavorite(identity, personalItemFromSaved(food))}
+                  onToggleFavorite={
+                    favoritesEnabled ? () => toggleFavorite(identity, personalItemFromSaved(food)) : undefined
+                  }
                 />
               );
             })}
@@ -489,7 +508,7 @@ export function AddFoodView({
         <section>
           <div>
             {foods.map((food) => {
-              const identity = getLogicalFoodIdentity({ food_id: food.id });
+              const identity = getPersonalFoodIdentity({ food_id: food.id });
               return (
                 <FoodResultRow
                   key={food.id}
@@ -502,7 +521,9 @@ export function AddFoodView({
                   selected={target?.kind === "saved" && target.food.id === food.id}
                   favorited={favoriteKeys.has(identity.key)}
                   onSelect={() => openSaved(food)}
-                  onToggleFavorite={() => toggleFavorite(identity, personalItemFromSaved(food))}
+                  onToggleFavorite={
+                    favoritesEnabled ? () => toggleFavorite(identity, personalItemFromSaved(food)) : undefined
+                  }
                 />
               );
             })}
@@ -570,7 +591,7 @@ export function AddFoodView({
         submitLabel={`Add to ${mealLabel}`}
         favorited={currentTargetIdentity ? favoriteKeys.has(currentTargetIdentity.key) : false}
         onToggleFavorite={
-          currentTargetIdentity
+          favoritesEnabled && currentTargetIdentity
             ? () => {
                 if (target?.kind === "catalog") {
                   toggleFavorite(currentTargetIdentity, personalItemFromCatalog(target.food));

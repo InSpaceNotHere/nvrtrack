@@ -14,10 +14,25 @@ function isMissingTableError(message: string | undefined): boolean {
   if (!message) {
     return false;
   }
+  const normalized = message.toLowerCase();
   return (
-    message.includes("nutrition_food_favorites") &&
-    (message.includes("does not exist") || message.includes("schema cache") || message.includes("42P01"))
+    normalized.includes("nutrition_food_favorites") ||
+    normalized.includes("42p01") ||
+    normalized.includes("pgrst205") ||
+    (normalized.includes("schema cache") && normalized.includes("favorite"))
   );
+}
+
+function logFavoritesStorageIssue(error: { message?: string; code?: string } | null) {
+  if (!error) {
+    return;
+  }
+  const detail = error.code ?? error.message;
+  if (isMissingTableError(error.message) || error.code === "42P01" || error.code === "PGRST205") {
+    console.error("Nutrition favorites storage is unavailable.", detail);
+    return;
+  }
+  console.error("Nutrition favorites request failed.", detail);
 }
 
 function rowToFavorite(row: NutritionFoodFavoriteRow): FavoriteRecord {
@@ -105,7 +120,9 @@ export function parseFavoriteIdentityInput(input: {
   return identity;
 }
 
-export async function listMyNutritionFoodFavorites(): Promise<DataAccessResult<FavoriteRecord[]>> {
+export async function listMyNutritionFoodFavorites(): Promise<
+  DataAccessResult<{ available: boolean; favorites: FavoriteRecord[] }>
+> {
   const auth = await getAuthenticatedContext();
   if (auth.error) {
     return auth;
@@ -118,17 +135,11 @@ export async function listMyNutritionFoodFavorites(): Promise<DataAccessResult<F
     .order("created_at", { ascending: false });
 
   if (error) {
-    if (isMissingTableError(error.message)) {
-      return ok([]);
-    }
-    return fail({
-      code: "DB_ERROR",
-      message: "Failed to load favorite foods.",
-      cause: error.message,
-    });
+    logFavoritesStorageIssue(error);
+    return ok({ available: false, favorites: [] });
   }
 
-  return ok((data ?? []).map(rowToFavorite));
+  return ok({ available: true, favorites: (data ?? []).map(rowToFavorite) });
 }
 
 export async function addMyNutritionFoodFavorite(
@@ -143,7 +154,7 @@ export async function addMyNutritionFoodFavorite(
   if (!payload) {
     return fail({
       code: "INVALID_INPUT",
-      message: "Favorite identity is invalid.",
+      message: "Couldn't update favorites.",
     });
   }
 
@@ -162,16 +173,15 @@ export async function addMyNutritionFoodFavorite(
       if (existing.error) {
         return existing;
       }
-      const match = existing.data.find((row) => row.identity.key === identity.key);
+      const match = existing.data.favorites.find((row) => row.identity.key === identity.key);
       if (match) {
         return ok(match);
       }
     }
+    logFavoritesStorageIssue(error);
     return fail({
       code: "DB_ERROR",
-      message: isMissingTableError(error.message)
-        ? "Favorites are waiting on the nutrition_food_favorites migration."
-        : "Failed to save favorite.",
+      message: "Couldn't update favorites.",
       cause: error.message,
     });
   }
@@ -179,7 +189,7 @@ export async function addMyNutritionFoodFavorite(
   if (!data) {
     return fail({
       code: "DB_ERROR",
-      message: "Failed to save favorite.",
+      message: "Couldn't update favorites.",
     });
   }
 
@@ -203,17 +213,16 @@ export async function removeMyNutritionFoodFavorite(identity: LogicalFoodIdentit
   } else {
     return fail({
       code: "INVALID_INPUT",
-      message: "Favorite identity is invalid.",
+      message: "Couldn't update favorites.",
     });
   }
 
   const { error } = await query;
   if (error) {
+    logFavoritesStorageIssue(error);
     return fail({
       code: "DB_ERROR",
-      message: isMissingTableError(error.message)
-        ? "Favorites are waiting on the nutrition_food_favorites migration."
-        : "Failed to remove favorite.",
+      message: "Couldn't update favorites.",
       cause: error.message,
     });
   }

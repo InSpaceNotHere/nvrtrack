@@ -8,11 +8,19 @@ interface PersonalFoodRailProps {
   title: string;
   items: PersonalFoodItem[];
   favoriteKeys: Set<string>;
+  favoritesEnabled?: boolean;
   onSelect: (item: PersonalFoodItem) => void;
-  onToggleFavorite: (item: PersonalFoodItem) => void;
+  onToggleFavorite?: (item: PersonalFoodItem) => void;
 }
 
-export function PersonalFoodRail({ title, items, favoriteKeys, onSelect, onToggleFavorite }: PersonalFoodRailProps) {
+export function PersonalFoodRail({
+  title,
+  items,
+  favoriteKeys,
+  favoritesEnabled = false,
+  onSelect,
+  onToggleFavorite,
+}: PersonalFoodRailProps) {
   if (items.length === 0) {
     return null;
   }
@@ -26,14 +34,14 @@ export function PersonalFoodRail({ title, items, favoriteKeys, onSelect, onToggl
           return (
             <div
               key={`${title}-${item.identity.key}`}
-              className="flex w-[168px] shrink-0 flex-col rounded-2xl bg-white/[0.04] ring-1 ring-white/6"
+              className="relative flex w-[168px] shrink-0 flex-col rounded-2xl bg-white/[0.04] ring-1 ring-white/6"
             >
               <button
                 type="button"
                 onClick={() => onSelect(item)}
-                className="min-h-[72px] flex-1 px-3 py-2.5 text-left"
+                className={cn("min-h-[72px] flex-1 px-3 py-2.5 text-left", favoritesEnabled ? "pr-9" : "")}
               >
-                <span className="block truncate text-[13px] font-medium text-white">{item.name}</span>
+                <span className="line-clamp-2 break-words text-[13px] font-medium leading-4 text-white">{item.name}</span>
                 <span className="mt-1 block text-[11px] leading-4 text-zinc-400">
                   {formatMacroSummary({
                     calories: item.calories,
@@ -42,17 +50,19 @@ export function PersonalFoodRail({ title, items, favoriteKeys, onSelect, onToggl
                     fat_g: item.fat_g,
                   })}
                 </span>
-                <span className="mt-0.5 block text-[10px] text-zinc-600">{item.basis}</span>
+                <span className="mt-0.5 block truncate text-[10px] text-zinc-600">{item.basis}</span>
               </button>
-              <button
-                type="button"
-                onClick={() => onToggleFavorite(item)}
-                aria-label={favorited ? `Remove ${item.name} from favorites` : `Add ${item.name} to favorites`}
-                aria-pressed={favorited}
-                className="flex min-h-10 items-center justify-center border-t border-white/6 text-zinc-500"
-              >
-                <Star className={cn("h-4 w-4", favorited ? "fill-amber-300 text-amber-300" : "fill-none")} aria-hidden="true" />
-              </button>
+              {favoritesEnabled && onToggleFavorite ? (
+                <button
+                  type="button"
+                  onClick={() => onToggleFavorite(item)}
+                  aria-label={favorited ? `Remove ${item.name} from favorites` : `Add ${item.name} to favorites`}
+                  aria-pressed={favorited}
+                  className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 hover:bg-white/8 hover:text-zinc-200"
+                >
+                  <Star className={cn("h-3.5 w-3.5", favorited ? "fill-amber-300 text-amber-300" : "fill-none")} aria-hidden="true" />
+                </button>
+              ) : null}
             </div>
           );
         })}
