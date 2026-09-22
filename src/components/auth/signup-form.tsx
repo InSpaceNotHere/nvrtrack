@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
+import { PrivacyLink } from "@/components/privacy/privacy-link";
 import { MIN_PASSWORD_LENGTH, mapAuthErrorMessage } from "@/lib/auth/errors";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
@@ -78,7 +79,7 @@ export function SignupForm() {
         }
 
         navigated = true;
-        window.location.assign("/");
+        window.location.assign("/onboarding");
         return;
       }
 
@@ -190,6 +191,9 @@ export function SignupForm() {
         <Link href="/login" className="font-medium text-white underline decoration-white/30 underline-offset-2">
           Log in
         </Link>
+      </p>
+      <p className="mt-3 text-xs text-zinc-500">
+        <PrivacyLink />
       </p>
     </section>
   );

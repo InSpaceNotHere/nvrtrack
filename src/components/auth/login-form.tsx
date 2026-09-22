@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
+import { PrivacyLink } from "@/components/privacy/privacy-link";
 import { mapAuthErrorMessage } from "@/lib/auth/errors";
+import { ONBOARDING_REQUIRED_VERSION } from "@/lib/onboarding/constants";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
@@ -58,8 +60,18 @@ export function LoginForm() {
         return;
       }
 
+      const profileResult = await supabase
+        .from("profiles")
+        .select("onboarding_version_completed")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      const completedVersion =
+        (profileResult.data as { onboarding_version_completed?: number | null } | null)?.onboarding_version_completed ?? 0;
+      const nextPath =
+        !profileResult.error && completedVersion >= ONBOARDING_REQUIRED_VERSION ? "/" : "/onboarding";
+
       navigated = true;
-      window.location.assign("/");
+      window.location.assign(nextPath);
     } catch (submitError) {
       const message =
         submitError instanceof Error ? submitError.message : "Unable to complete authentication right now.";
@@ -133,6 +145,9 @@ export function LoginForm() {
         <Link href="/signup" className="font-medium text-white underline decoration-white/30 underline-offset-2">
           Create an account
         </Link>
+      </p>
+      <p className="mt-3 text-xs text-zinc-500">
+        <PrivacyLink />
       </p>
     </section>
   );

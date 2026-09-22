@@ -582,12 +582,20 @@ export type Database = {
           calorie_goal: number | null
           carbohydrate_goal: number | null
           created_at: string
+          desired_training_days: number | null
+          desired_training_days_state: string
+          discovery_source: string | null
           display_name: string | null
           fat_goal: number | null
           height_inches: number | null
           id: string
+          onboarding_completed_at: string | null
+          onboarding_version_completed: number | null
+          primary_goal: string | null
           preferred_weight_unit: string
           protein_goal: number | null
+          training_environment: string | null
+          training_experience: string | null
           timezone: string
           updated_at: string
         }
@@ -595,12 +603,20 @@ export type Database = {
           calorie_goal?: number | null
           carbohydrate_goal?: number | null
           created_at?: string
+          desired_training_days?: number | null
+          desired_training_days_state?: string
+          discovery_source?: string | null
           display_name?: string | null
           fat_goal?: number | null
           height_inches?: number | null
           id: string
+          onboarding_completed_at?: string | null
+          onboarding_version_completed?: number | null
+          primary_goal?: string | null
           preferred_weight_unit?: string
           protein_goal?: number | null
+          training_environment?: string | null
+          training_experience?: string | null
           timezone?: string
           updated_at?: string
         }
@@ -608,12 +624,20 @@ export type Database = {
           calorie_goal?: number | null
           carbohydrate_goal?: number | null
           created_at?: string
+          desired_training_days?: number | null
+          desired_training_days_state?: string
+          discovery_source?: string | null
           display_name?: string | null
           fat_goal?: number | null
           height_inches?: number | null
           id?: string
+          onboarding_completed_at?: string | null
+          onboarding_version_completed?: number | null
+          primary_goal?: string | null
           preferred_weight_unit?: string
           protein_goal?: number | null
+          training_environment?: string | null
+          training_experience?: string | null
           timezone?: string
           updated_at?: string
         }

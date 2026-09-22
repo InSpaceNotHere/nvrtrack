@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredE2EEnv } from "./e2e-env";
 
 const COOKED_CHICKEN_LABEL = "Chicken, broiler or fryers, breast, skinless, boneless, meat only, cooked, braised";
@@ -25,7 +26,7 @@ async function login(page: Page) {
   await page.getByLabel("Email").fill(email);
   await page.locator('input[autocomplete="current-password"]').fill(password);
   await page.getByRole("button", { name: "Log In" }).click();
-  await expect(page).toHaveURL("/");
+  await completeOnboardingIfNeeded(page);
 }
 
 async function openComposer(page: Page) {

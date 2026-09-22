@@ -3,14 +3,26 @@ import Link from "next/link";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { NotificationCenter } from "@/components/profile/notification-center";
 import { ProfileSettingsForm } from "@/components/profile/profile-settings-form";
+import { TrainingPreferencesForm } from "@/components/profile/training-preferences-form";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StateChip } from "@/components/ui/state-chip";
+import { getMyOnboardingProfileSnapshot } from "@/lib/data/onboarding";
 import { getMyNotificationPreferences, getMyNotifications } from "@/lib/data/notifications";
 import { getMyProfile } from "@/lib/data/profile";
+import { SUPPORT_CONTACT_EMAIL } from "@/lib/privacy/notice";
+import {
+  DESIRED_TRAINING_DAYS_OPTIONS,
+  DISCOVERY_SOURCE_OPTIONS,
+  ONBOARDING_REQUIRED_VERSION,
+  PRIMARY_GOAL_OPTIONS,
+  TRAINING_ENVIRONMENT_OPTIONS,
+  TRAINING_EXPERIENCE_OPTIONS,
+} from "@/lib/onboarding/constants";
+import { deriveHeightDefaults } from "@/lib/onboarding/validation";
 import { formatHeightFeetInches, profileToFormValues } from "@/lib/profile/validation";
 
-type ProfileView = "overview" | "edit" | "notifications";
+type ProfileView = "overview" | "edit" | "notifications" | "training-preferences";
 
 function asSingleParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -19,7 +31,18 @@ function asSingleParam(value: string | string[] | undefined): string | undefined
 function toView(value: string | undefined): ProfileView {
   if (value === "edit") return "edit";
   if (value === "notifications") return "notifications";
+  if (value === "training-preferences") return "training-preferences";
   return "overview";
+}
+
+function labelForCode(
+  options: ReadonlyArray<{ code: string; label: string }>,
+  code: string | null | undefined,
+): string {
+  if (!code) {
+    return "--";
+  }
+  return options.find((option) => option.code === code)?.label ?? "--";
 }
 
 export default async function ProfilePage({
@@ -29,12 +52,25 @@ export default async function ProfilePage({
 }) {
   const resolvedSearchParams = (await Promise.resolve(searchParams)) ?? {};
   const view = toView(asSingleParam(resolvedSearchParams.view));
-  const [profileResult, notificationsResult, preferencesResult] = await Promise.all([
+  const [profileResult, notificationsResult, preferencesResult, onboardingResult] = await Promise.all([
     getMyProfile(),
     getMyNotifications(),
     getMyNotificationPreferences(),
+    getMyOnboardingProfileSnapshot(),
   ]);
   const formValues = profileToFormValues(profileResult.data);
+  const onboarding = onboardingResult.error ? null : onboardingResult.data;
+  const onboardingCompletedVersion = onboarding?.onboarding_version_completed ?? 0;
+  const hasCompletedOnboardingV1 = onboardingCompletedVersion >= ONBOARDING_REQUIRED_VERSION;
+  const desiredDaysChoice =
+    onboarding?.desired_training_days_state === "specified" && onboarding.desired_training_days !== null
+      ? String(onboarding.desired_training_days)
+      : onboarding?.desired_training_days_state === "not_sure"
+        ? "not_sure"
+        : onboarding?.desired_training_days_state === "prefer_not_to_answer"
+          ? "prefer_not_to_answer"
+          : "";
+  const heightDefaults = deriveHeightDefaults(onboarding?.height_inches ?? null);
 
   return (
     <div className="space-y-4">
@@ -42,6 +78,11 @@ export default async function ProfilePage({
       {profileResult.error ? (
         <p className="rounded-lg border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
           {profileResult.error.message}
+        </p>
+      ) : null}
+      {onboardingResult.error ? (
+        <p className="rounded-lg border border-rose-400/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          {onboardingResult.error.message}
         </p>
       ) : null}
       {notificationsResult.error || preferencesResult.error ? (
@@ -103,6 +144,50 @@ export default async function ProfilePage({
             </div>
           </Card>
 
+          <Card title="Training Preferences" variant="secondary">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <StateChip
+                  state={hasCompletedOnboardingV1 ? "completed" : "missing"}
+                  label={hasCompletedOnboardingV1 ? "Onboarding V1 complete" : "Onboarding V1 pending"}
+                  className="text-[10px]"
+                />
+                <Link
+                  href="/profile?view=training-preferences"
+                  className="text-[11px] font-medium text-zinc-300 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-zinc-100"
+                >
+                  Edit
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 text-xs">
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+                  <p className="text-zinc-500">Goal</p>
+                  <p className="text-zinc-100">{labelForCode(PRIMARY_GOAL_OPTIONS, onboarding?.primary_goal)}</p>
+                </div>
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+                  <p className="text-zinc-500">Experience</p>
+                  <p className="text-zinc-100">
+                    {labelForCode(TRAINING_EXPERIENCE_OPTIONS, onboarding?.training_experience)}
+                  </p>
+                </div>
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+                  <p className="text-zinc-500">Days / week</p>
+                  <p className="text-zinc-100">{labelForCode(DESIRED_TRAINING_DAYS_OPTIONS, desiredDaysChoice)}</p>
+                </div>
+                <div className="rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+                  <p className="text-zinc-500">Environment</p>
+                  <p className="text-zinc-100">
+                    {labelForCode(TRAINING_ENVIRONMENT_OPTIONS, onboarding?.training_environment)}
+                  </p>
+                </div>
+                <div className="col-span-2 rounded-md border border-white/10 bg-black/20 px-2 py-1.5">
+                  <p className="text-zinc-500">Discovery</p>
+                  <p className="text-zinc-100">{labelForCode(DISCOVERY_SOURCE_OPTIONS, onboarding?.discovery_source)}</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
           <Card title="Actions" variant="tertiary">
             <div className="grid grid-cols-2 gap-2">
               <Link
@@ -124,12 +209,43 @@ export default async function ProfilePage({
             <div className="space-y-2">
               <p className="text-xs text-zinc-500">Session and account actions</p>
               <LogoutButton />
+              <p className="text-xs text-zinc-500">
+                <Link
+                  href="/privacy"
+                  className="font-medium text-zinc-300 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-zinc-100"
+                >
+                  Privacy
+                </Link>
+                <span className="px-2 text-zinc-600">·</span>
+                <a
+                  href={`mailto:${SUPPORT_CONTACT_EMAIL}`}
+                  className="font-medium text-zinc-300 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-zinc-100"
+                >
+                  Support
+                </a>
+              </p>
             </div>
           </Card>
         </section>
       ) : null}
 
       {view === "edit" ? <ProfileSettingsForm initialValues={formValues} /> : null}
+
+      {view === "training-preferences" ? (
+        <TrainingPreferencesForm
+          initialValues={{
+            primaryGoal: onboarding?.primary_goal ?? "",
+            trainingExperience: onboarding?.training_experience ?? "",
+            desiredTrainingDaysChoice: desiredDaysChoice,
+            trainingEnvironment: onboarding?.training_environment ?? "",
+            discoverySource: onboarding?.discovery_source ?? "",
+            heightUnit: heightDefaults.unit,
+            heightFeet: heightDefaults.feet,
+            heightInches: heightDefaults.inches,
+            heightCentimeters: heightDefaults.centimeters,
+          }}
+        />
+      ) : null}
 
       {view === "notifications" && preferencesResult.data ? (
         <section className="mx-auto w-full max-w-xl space-y-2.5">
