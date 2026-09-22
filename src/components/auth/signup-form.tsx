@@ -78,7 +78,7 @@ export function SignupForm() {
         }
 
         navigated = true;
-        window.location.assign("/");
+        window.location.assign("/onboarding");
         return;
       }
 

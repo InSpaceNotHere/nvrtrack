@@ -5,7 +5,11 @@ import { useMemo, useState } from "react";
 
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
-export function LogoutButton() {
+interface LogoutButtonProps {
+  compact?: boolean;
+}
+
+export function LogoutButton({ compact = false }: LogoutButtonProps) {
   const router = useRouter();
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
 
@@ -39,7 +43,11 @@ export function LogoutButton() {
         type="button"
         onClick={handleLogout}
         disabled={loading}
-        className="inline-flex h-10 items-center justify-center rounded-xl border border-rose-400/35 px-4 text-sm font-medium text-rose-200 transition-colors hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-70"
+        className={`inline-flex items-center justify-center rounded-xl font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
+          compact
+            ? "h-8 border border-white/15 px-3 text-xs text-zinc-300 hover:bg-white/10"
+            : "h-10 border border-rose-400/35 px-4 text-sm text-rose-200 hover:bg-rose-500/10"
+        }`}
       >
         {loading ? "Logging out..." : "Log Out"}
       </button>

@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
+
+import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredE2EEnv } from "./e2e-env";
+
+test.setTimeout(120_000);
 
 test("authentication smoke flow", async ({ page }) => {
   const email = requiredE2EEnv("E2E_TEST_EMAIL");
@@ -15,7 +19,7 @@ test("authentication smoke flow", async ({ page }) => {
   await page.getByRole("button", { name: "Log In" }).click();
 
   // 3) Authenticated user can access /
-  await expect(page).toHaveURL("/");
+  await completeOnboardingIfNeeded(page);
   await expect(page.getByRole("heading", { name: /today overview/i })).toBeVisible();
 
   // 4) Session persists after refresh
@@ -23,9 +27,9 @@ test("authentication smoke flow", async ({ page }) => {
   await expect(page).toHaveURL("/");
   await expect(page.getByRole("heading", { name: /today overview/i })).toBeVisible();
 
-  // 5) Authenticated user visiting /login redirects to /
+  // 5) Authenticated user visiting /login redirects to Home after onboarding gate
   await page.goto("/login");
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/", { timeout: 20_000 });
 
   // 6) Logout returns to /login
   await page.goto("/profile");

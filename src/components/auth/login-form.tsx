@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
 import { mapAuthErrorMessage } from "@/lib/auth/errors";
+import { ONBOARDING_REQUIRED_VERSION } from "@/lib/onboarding/constants";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
@@ -58,8 +59,18 @@ export function LoginForm() {
         return;
       }
 
+      const profileResult = await supabase
+        .from("profiles")
+        .select("onboarding_version_completed")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      const completedVersion =
+        (profileResult.data as { onboarding_version_completed?: number | null } | null)?.onboarding_version_completed ?? 0;
+      const nextPath =
+        !profileResult.error && completedVersion >= ONBOARDING_REQUIRED_VERSION ? "/" : "/onboarding";
+
       navigated = true;
-      window.location.assign("/");
+      window.location.assign(nextPath);
     } catch (submitError) {
       const message =
         submitError instanceof Error ? submitError.message : "Unable to complete authentication right now.";

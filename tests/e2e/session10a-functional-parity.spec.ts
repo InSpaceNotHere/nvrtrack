@@ -1,6 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredE2EEnv } from "./e2e-env";
+
+test.setTimeout(90_000);
 
 async function login(page: Page) {
   const email = requiredE2EEnv("E2E_TEST_EMAIL");
@@ -10,15 +13,7 @@ async function login(page: Page) {
   await page.getByLabel("Email").fill(email);
   await page.locator('input[autocomplete="current-password"]').fill(password);
   await page.getByRole("button", { name: "Log In" }).click();
-  try {
-    await page.waitForURL("**/", { timeout: 10000 });
-  } catch {
-    if (new URL(page.url()).pathname === "/login") {
-      await page.getByRole("button", { name: "Log In" }).click();
-      await page.waitForURL("**/", { timeout: 10000 });
-    }
-  }
-  await expect(page).toHaveURL("/", { timeout: 15000 });
+  await completeOnboardingIfNeeded(page);
 }
 
 function buildUniqueDate(seed: number, dayOffset = 0): string {
