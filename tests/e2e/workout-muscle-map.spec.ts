@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredE2EEnv } from "./e2e-env";
 
 async function login(page: Page) {
@@ -10,7 +11,7 @@ async function login(page: Page) {
   await page.getByLabel("Email").fill(email);
   await page.locator('input[autocomplete="current-password"]').fill(password);
   await page.getByRole("button", { name: "Log In" }).click();
-  await expect(page).toHaveURL("/", { timeout: 20_000 });
+  await completeOnboardingIfNeeded(page);
 }
 
 async function startWorkout(page: Page, workoutName: string) {

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredE2EEnv } from "./e2e-env";
 
 const BRANDED_LABEL = "Protein Bar, Chocolate Peanut Butter";
@@ -18,7 +19,7 @@ async function login(page: Page) {
   await page.getByLabel("Email").fill(email);
   await page.locator('input[autocomplete="current-password"]').fill(password);
   await page.getByRole("button", { name: "Log In" }).click();
-  await expect(page).toHaveURL("/", { timeout: 20_000 });
+  await completeOnboardingIfNeeded(page);
 }
 
 async function openComposer(page: Page) {
