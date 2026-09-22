@@ -97,8 +97,8 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
   }
 
   return (
-    <div className="flex min-h-[calc(100svh-5rem)] flex-col">
-      <header className="flex items-center gap-3 pb-4">
+    <div className="flex h-[calc(100svh-5rem)] flex-col">
+      <header className="flex items-center gap-3 pb-2">
         <Link
           href={cancelHref}
           className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl text-sm font-medium text-zinc-200 hover:bg-white/8"
@@ -111,8 +111,8 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
         </div>
       </header>
 
-      <div className="flex-1 space-y-6 pb-[7.5rem]">
-        <section className="space-y-3">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-2">
+        <section className="space-y-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Food</h2>
           <Field label="Name" error={errors.name}>
             <Input
@@ -122,7 +122,7 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
               aria-invalid={Boolean(errors.name)}
               autoComplete="off"
               placeholder="Greek yogurt"
-              className="h-12 rounded-2xl"
+              className="h-11 rounded-2xl"
             />
           </Field>
           <Field label="Brand" optional error={errors.brand}>
@@ -132,12 +132,12 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
               aria-label="Brand"
               autoComplete="off"
               placeholder="Optional"
-              className="h-12 rounded-2xl"
+              className="h-11 rounded-2xl"
             />
           </Field>
         </section>
 
-        <section className="space-y-3">
+        <section className="space-y-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Serving</h2>
           <div className="grid grid-cols-[1fr_1.1fr] gap-2">
             <Field label="Amount" error={errors.serving_size}>
@@ -147,7 +147,7 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
                 aria-label="Serving amount"
                 aria-invalid={Boolean(errors.serving_size)}
                 inputMode="decimal"
-                className="h-12 rounded-2xl"
+                className="h-11 rounded-2xl"
               />
             </Field>
             <Field label="Unit" error={errors.serving_unit}>
@@ -156,7 +156,7 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
                 onChange={(event) => setServingUnit(event.target.value)}
                 aria-label="Serving unit"
                 aria-invalid={Boolean(errors.serving_unit)}
-                className="h-12 rounded-2xl"
+                className="h-11 rounded-2xl"
               />
             </Field>
           </div>
@@ -181,7 +181,7 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
           <p className="text-[11px] text-zinc-600">Examples: 1 serving, 30 g, 1 oz</p>
         </section>
 
-        <section className="space-y-3">
+        <section className="space-y-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Per serving</h2>
           <div className="grid grid-cols-2 gap-2">
             <Field label="Calories" error={errors.calories}>
@@ -191,7 +191,7 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
                 aria-label="Calories"
                 aria-invalid={Boolean(errors.calories)}
                 inputMode="decimal"
-                className="h-12 rounded-2xl"
+                className="h-11 rounded-2xl"
               />
             </Field>
             <Field label="Protein (g)" error={errors.protein_g}>
@@ -201,7 +201,7 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
                 aria-label="Protein"
                 aria-invalid={Boolean(errors.protein_g)}
                 inputMode="decimal"
-                className="h-12 rounded-2xl"
+                className="h-11 rounded-2xl"
               />
             </Field>
             <Field label="Carbs (g)" error={errors.carbohydrate_g}>
@@ -211,7 +211,7 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
                 aria-label="Carbs"
                 aria-invalid={Boolean(errors.carbohydrate_g)}
                 inputMode="decimal"
-                className="h-12 rounded-2xl"
+                className="h-11 rounded-2xl"
               />
             </Field>
             <Field label="Fat (g)" error={errors.fat_g}>
@@ -221,20 +221,19 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
                 aria-label="Fat"
                 aria-invalid={Boolean(errors.fat_g)}
                 inputMode="decimal"
-                className="h-12 rounded-2xl"
+                className="h-11 rounded-2xl"
               />
             </Field>
           </div>
         </section>
+      </div>
 
+      <div className="border-t border-white/8 bg-[var(--ds-color-bg-base)] pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         {formError ? (
-          <p className="text-sm text-rose-300" role="alert">
+          <p className="mb-2 text-sm text-rose-300" role="alert">
             {formError}
           </p>
         ) : null}
-      </div>
-
-      <div className="sticky bottom-0 -mx-3 mt-auto border-t border-white/8 bg-[var(--ds-color-bg-base)] px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <Button
           type="button"
           variant="primary"
@@ -268,7 +267,7 @@ function Field({
       </span>
       {children}
       {error ? (
-        <p className="text-xs text-rose-300" role="alert">
+        <p className="text-xs text-rose-300" role="alert" data-custom-food-error="">
           {error}
         </p>
       ) : null}
