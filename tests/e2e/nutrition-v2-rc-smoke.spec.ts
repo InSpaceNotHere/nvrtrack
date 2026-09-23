@@ -39,7 +39,7 @@ async function shot(page: Page, name: string) {
   fs.mkdirSync(localDir, { recursive: true });
   fs.mkdirSync(ARTIFACTS, { recursive: true });
   const localPath = path.join(localDir, name);
-  await page.screenshot({ path: localPath, fullPage: true });
+  await page.screenshot({ path: localPath, fullPage: false });
   fs.copyFileSync(localPath, path.join(ARTIFACTS, name));
 }
 
@@ -69,7 +69,7 @@ test("Nutrition V2 RC isolated account smoke, viewports, and no USDA", async ({ 
   await expect(page.getByRole("heading", { name: "Snacks" })).toBeVisible();
   await expect(page.getByText("No food entries logged for this date.")).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Primary" })).toHaveCount(1);
-  await shot(page, "nutrition_today_empty_390.png");
+  await shot(page, "nutrition_v2_rc_today_empty_390.png");
   await assertNoHorizontalOverflow(page);
 
   await page.getByRole("link", { name: "Previous day" }).click();
@@ -88,16 +88,16 @@ test("Nutrition V2 RC isolated account smoke, viewports, and no USDA", async ({ 
   await expect(page.getByRole("tab", { name: "Common" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "My Foods" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Custom" })).toBeVisible();
-  await shot(page, "add_food_empty_personal_390.png");
+  await shot(page, "nutrition_v2_rc_add_food_empty_390.png");
   await assertNoHorizontalOverflow(page);
 
   await page.getByRole("tab", { name: "My Foods" }).click();
   await expect(page.getByRole("heading", { name: "My Foods" })).toBeVisible();
-  await shot(page, "add_food_my_foods_empty_390.png");
+  await shot(page, "nutrition_v2_rc_my_foods_empty_390.png");
 
   await page.getByRole("tab", { name: "Custom" }).click();
   await expect(page.getByRole("link", { name: "Create Custom Food" })).toBeVisible();
-  await shot(page, "add_food_custom_tab_390.png");
+  await shot(page, "nutrition_v2_rc_custom_tab_390.png");
 
   await page.getByRole("tab", { name: "Common" }).click();
   await page.getByLabel("Search foods").fill("chicken breast");
@@ -105,7 +105,7 @@ test("Nutrition V2 RC isolated account smoke, viewports, and no USDA", async ({ 
   await expect(page.getByRole("button", { name: /Chicken Breast, cooked/i })).toHaveCount(0);
   await expect(page.getByText(/Chicken, broiler/i)).toHaveCount(0);
   await expect(page.getByText(/FDC/i)).toHaveCount(0);
-  await shot(page, "add_food_search_grouped_390.png");
+  await shot(page, "nutrition_v2_rc_search_grouped_390.png");
 
   await page.getByRole("button", { name: /^Chicken Breast/i }).first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -115,13 +115,13 @@ test("Nutrition V2 RC isolated account smoke, viewports, and no USDA", async ({ 
   await page.getByRole("radio", { name: "oz", exact: true }).click();
   await page.getByRole("radio", { name: "serving", exact: true }).click();
   await page.getByRole("radio", { name: "g", exact: true }).click();
-  await shot(page, "portion_sheet_390.png");
+  await shot(page, "nutrition_v2_rc_portion_sheet_390.png");
   await page.getByRole("button", { name: "Add to Breakfast" }).click();
 
   await expect(page.getByRole("heading", { name: "Nutrition" })).toBeVisible();
   await expect(page.locator("li").filter({ hasText: "Chicken Breast" }).first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Primary" })).toHaveCount(1);
-  await shot(page, "nutrition_today_populated_390.png");
+  await shot(page, "nutrition_v2_rc_today_populated_390.png");
 
   const nutritionCalories = await calorieFigure(page);
   await page.goto("/");
@@ -139,12 +139,13 @@ test("Nutrition V2 RC isolated account smoke, viewports, and no USDA", async ({ 
   }
   await expect(page.getByRole("button", { name: /Remove Chicken Breast from favorites/i }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Favorites" })).toBeVisible();
-  await shot(page, "add_food_favorites_390.png");
+  await page.getByRole("heading", { name: "Favorites" }).scrollIntoViewIfNeeded();
+  await shot(page, "nutrition_v2_rc_favorites_390.png");
   await page.getByRole("button", { name: /Remove Chicken Breast from favorites/i }).first().click();
 
   await openCreateCustomFood(page);
   await expect(page.getByRole("navigation", { name: "Primary" })).toHaveCount(0);
-  await shot(page, "custom_food_form_390.png");
+  await shot(page, "nutrition_v2_rc_custom_food_form_390.png");
   await page.getByRole("button", { name: "Back" }).or(page.getByRole("link", { name: "Back" })).click();
   await expect(page.getByRole("heading", { name: "Add Food" })).toBeVisible();
   await createAndLogCustomFood(
@@ -161,8 +162,8 @@ test("Nutrition V2 RC isolated account smoke, viewports, and no USDA", async ({ 
   await expect(page.locator("li").filter({ hasText: "RC Yogurt" }).first()).toBeVisible();
 
   for (const size of [
-    { width: 360, height: 640, file: "nutrition_today_360.png" },
-    { width: 430, height: 932, file: "nutrition_today_430.png" },
+    { width: 360, height: 640, file: "nutrition_v2_rc_today_360.png" },
+    { width: 430, height: 932, file: "nutrition_v2_rc_today_430.png" },
   ] as const) {
     await page.setViewportSize({ width: size.width, height: size.height });
     await page.goto("/nutrition");

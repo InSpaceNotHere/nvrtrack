@@ -23,7 +23,12 @@ export function normalizeDateParam(
     return { selectedDate: input, wasFallback: false };
   }
 
-  return { selectedDate: getTodayDateString(normalizeTimeZone(timeZone), reference), wasFallback: true };
+  const selectedDate = getTodayDateString(normalizeTimeZone(timeZone), reference);
+  if (input === undefined) {
+    return { selectedDate, wasFallback: false };
+  }
+
+  return { selectedDate, wasFallback: true };
 }
 
 export function addDaysToDateString(date: string, dayDelta: number): string {
