@@ -1,6 +1,6 @@
 # NVRTRACK Nutrition V2 — product / technical brief
 
-**Status:** research only. No redesign implemented. No schema change. No USDA code removed. No seed. No Preview. No Production.
+**Status:** Nutrition V2 Phase 4 removed live USDA runtime search. The reviewed static `food_catalog` remains. No schema change.
 
 **Baseline:** Onboarding V2 + Privacy RC `1388c98` (`cursor/onboarding-privacy-rc-8c10`).  
 **Research branch:** `cursor/nutrition-discovery-audit-8c10`.

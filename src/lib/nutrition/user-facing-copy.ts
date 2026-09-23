@@ -5,6 +5,8 @@ export const FORBIDDEN_NUTRITION_UI_PATTERNS = [
   /schema cache/i,
   /pgrst/i,
   /42p01/i,
+  /Search USDA/i,
+  /\/api\/usda\/search/i,
 ];
 
 export function sanitizeFavoritesUserMessage(message: string): string {

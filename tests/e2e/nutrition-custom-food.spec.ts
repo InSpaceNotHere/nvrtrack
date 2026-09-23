@@ -87,11 +87,12 @@ test("create custom food, validate, log, favorite, edit snapshot, and delete wit
   await page.getByRole("button", { name: "Close", exact: true }).click();
 
   await page.getByRole("tab", { name: "My Foods" }).click();
-  await expect(page.getByRole("button", { name: new RegExp(`^${foodName}`) })).toBeVisible();
-  await expect(page.getByText("FAGE")).toBeVisible();
-  await expect(page.getByText("170 g").first()).toBeVisible();
+  const myFoods = page.locator("section").filter({ has: page.getByRole("heading", { name: "My Foods" }) });
+  await expect(myFoods.getByRole("button", { name: new RegExp(`^${foodName}`) })).toHaveCount(1);
+  await expect(myFoods.getByText("FAGE")).toBeVisible();
+  await expect(myFoods.getByText("170 g")).toBeVisible();
 
-  await page.getByRole("button", { name: new RegExp(`^${foodName}`) }).click();
+  await myFoods.getByRole("button", { name: new RegExp(`^${foodName}`) }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Add to Breakfast" }).click();
   await expect(mealEntry(page, foodName)).toBeVisible();
@@ -114,6 +115,7 @@ test("create custom food, validate, log, favorite, edit snapshot, and delete wit
   await expect(page.getByRole("heading", { name: "Edit Custom Food" })).toBeVisible();
   await page.getByLabel("Calories").fill("999");
   await page.getByRole("button", { name: "Save Changes" }).click();
+  await expect(page.getByRole("heading", { name: "Add Food" })).toBeVisible();
   await page.goto(`/nutrition?date=${date}`);
   await expect(mealEntry(page, foodName).getByText(/120/)).toBeVisible();
   await expect(mealEntry(page, foodName).getByText("999")).toHaveCount(0);
