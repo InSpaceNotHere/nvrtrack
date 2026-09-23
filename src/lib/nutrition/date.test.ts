@@ -23,6 +23,10 @@ describe("nutrition date utilities", () => {
       selectedDate: "2026-07-20",
       wasFallback: true,
     });
+    expect(normalizeDateParam(undefined, reference, "UTC")).toEqual({
+      selectedDate: "2026-07-20",
+      wasFallback: false,
+    });
   });
 
   it("adds and subtracts day offsets safely", () => {
