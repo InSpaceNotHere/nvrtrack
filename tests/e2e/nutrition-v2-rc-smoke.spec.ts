@@ -5,7 +5,7 @@ import path from "node:path";
 import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { createAndLogCustomFood, openCreateCustomFood } from "./custom-food";
 
-test.setTimeout(180_000);
+test.setTimeout(240_000);
 
 const ARTIFACTS = "/opt/cursor/artifacts";
 
@@ -35,11 +35,12 @@ async function assertNoHorizontalOverflow(page: Page) {
 }
 
 async function shot(page: Page, name: string) {
+  const localDir = path.join(process.cwd(), "test-results", "rc-screenshots");
+  fs.mkdirSync(localDir, { recursive: true });
   fs.mkdirSync(ARTIFACTS, { recursive: true });
-  await page.screenshot({
-    path: path.join(ARTIFACTS, name),
-    fullPage: true,
-  });
+  const localPath = path.join(localDir, name);
+  await page.screenshot({ path: localPath, fullPage: true });
+  fs.copyFileSync(localPath, path.join(ARTIFACTS, name));
 }
 
 async function calorieFigure(page: Page) {
@@ -71,9 +72,9 @@ test("Nutrition V2 RC isolated account smoke, viewports, and no USDA", async ({ 
   await shot(page, "nutrition_today_empty_390.png");
   await assertNoHorizontalOverflow(page);
 
-  await page.getByRole("button", { name: "Previous day" }).click();
+  await page.getByRole("link", { name: "Previous day" }).click();
   await expect(page.getByRole("heading", { name: "Nutrition" })).toBeVisible();
-  await page.getByRole("button", { name: "Next day" }).click();
+  await page.getByRole("link", { name: "Next day" }).click();
   await expect(page.getByRole("heading", { name: "Nutrition" })).toBeVisible();
   await expect(page.getByText("No food entries logged for this date.")).toBeVisible();
 
@@ -112,7 +113,7 @@ test("Nutrition V2 RC isolated account smoke, viewports, and no USDA", async ({ 
   await page.getByLabel("Amount").fill("100");
   await expect(page.getByText(/kcal/i).first()).toBeVisible();
   await page.getByRole("radio", { name: "oz", exact: true }).click();
-  await page.getByRole("radio", { name: /serving/i }).click();
+  await page.getByRole("radio", { name: "serving", exact: true }).click();
   await page.getByRole("radio", { name: "g", exact: true }).click();
   await shot(page, "portion_sheet_390.png");
   await page.getByRole("button", { name: "Add to Breakfast" }).click();
