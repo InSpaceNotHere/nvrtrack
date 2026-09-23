@@ -26,6 +26,17 @@ test("privacy page is public and linked from login, signup, onboarding, and prof
   await expect(page.locator("body")).not.toContainText("OWNER_LEGAL_REVIEW_DRAFT");
   await expect(page.locator("body")).not.toContainText("Owner / legal review");
   await expect(page.getByText("does not currently provide self-service account deletion")).toBeVisible();
+  await expect(
+    page.getByText(
+      "NVRTRACK uses Supabase for authentication, database, and file storage, and Vercel to host the web application.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Some built-in Common foods originated from reviewed USDA FoodData Central source data stored in NVRTRACK. Searching and logging foods does not send your search text or account information to USDA.",
+    ),
+  ).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(/receive information as needed/i);
 
   await page.goto("/login");
   await expect(page.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");

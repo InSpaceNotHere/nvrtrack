@@ -26,6 +26,23 @@ describe("food display names", () => {
     expect(humanizeUsdaStyleLabel("Rice, white, long-grain, regular, enriched, cooked")).toBe("White Rice");
   });
 
+  it("renders historical rows from snapshot fields when food_id and catalog_food_id are null", () => {
+    expect(
+      getFoodEntryDisplayName({
+        fdc_id: 171140,
+        food_name: "Chicken, broilers or fryers, breast, skinless, boneless, meat only, cooked, braised",
+        source_description: "Chicken, broilers or fryers, breast, skinless, boneless, meat only, cooked, braised",
+      }),
+    ).toBe("Chicken Breast");
+    expect(
+      getFoodEntryDisplayName({
+        fdc_id: null,
+        food_name: "Label Yogurt (historical)",
+        source_description: "old live usda description that must not replace the snapshot",
+      }),
+    ).toBe("Label Yogurt (historical)");
+  });
+
   it("keeps historical entry provenance while showing a human label", () => {
     expect(
       getFoodEntryDisplayName({

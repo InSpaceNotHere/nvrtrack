@@ -44,9 +44,14 @@ describe("public privacy notice", () => {
 
   it("identifies current processors without unverified processing promises", () => {
     const text = getPrivacyNoticePlainText();
-    expect(text).toMatch(/Supabase for authentication, database, and file storage/);
-    expect(text).toMatch(/hosted on Vercel/);
-    expect(text).toMatch(/originated from reviewed USDA FoodData Central source data stored in NVRTRACK/);
+    expect(text).toContain(
+      "NVRTRACK uses Supabase for authentication, database, and file storage, and Vercel to host the web application.",
+    );
+    expect(text).toContain(
+      "Some built-in Common foods originated from reviewed USDA FoodData Central source data stored in NVRTRACK. Searching and logging foods does not send your search text or account information to USDA.",
+    );
+    expect(text).not.toMatch(/receive information as needed/i);
+    expect(text).not.toMatch(/does not describe how those providers use information/i);
     expect(text).not.toMatch(/send your search text to USDA/);
     expect(text).not.toMatch(/may send your search text/);
   });

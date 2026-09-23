@@ -99,6 +99,37 @@ describe("nutrition calculations", () => {
     expect(calculateDailyTotals([])).toEqual(createEmptyTotals());
   });
 
+  it("sums historical snapshots without live catalog or saved-food fields", () => {
+    const historicalEntries = [
+      {
+        servings: 1,
+        calories_per_serving: 165,
+        protein_per_serving_g: 31,
+        carbohydrate_per_serving_g: 0,
+        fat_per_serving_g: 3.6,
+        fiber_per_serving_g: 0,
+      },
+      {
+        servings: 2,
+        calories_per_serving: 120,
+        protein_per_serving_g: 18,
+        carbohydrate_per_serving_g: 6,
+        fat_per_serving_g: 0,
+        fiber_per_serving_g: 0,
+      },
+    ];
+    const todayTotals = calculateDailyTotals(historicalEntries);
+    const homeTotals = calculateDailyTotals(historicalEntries);
+    expect(todayTotals).toEqual(homeTotals);
+    expect(todayTotals).toEqual({
+      calories: 405,
+      protein_g: 67,
+      carbohydrate_g: 12,
+      fat_g: 3.6,
+      fiber_g: 0,
+    });
+  });
+
   it("groups totals by meal", () => {
     const mealTotals = calculateMealTotals([
       {

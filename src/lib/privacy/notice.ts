@@ -55,10 +55,8 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     id: "services",
     title: "Services NVRTRACK uses",
     paragraphs: [
-      "NVRTRACK uses Supabase for authentication, database, and file storage.",
-      "The NVRTRACK web application is hosted on Vercel.",
+      "NVRTRACK uses Supabase for authentication, database, and file storage, and Vercel to host the web application.",
       "Some built-in Common foods originated from reviewed USDA FoodData Central source data stored in NVRTRACK. Searching and logging foods does not send your search text or account information to USDA.",
-      "These services receive information as needed to provide authentication, hosting, and storage. This notice does not describe how those providers use information beyond providing those services.",
     ],
   },
   {
