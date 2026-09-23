@@ -18,6 +18,7 @@ const NUTRITION_UI_FILES = [
   "src/app/(protected)/nutrition/add/page.tsx",
   "src/app/(protected)/nutrition/foods/new/page.tsx",
   "src/app/(protected)/actions/nutrition-favorites-actions.ts",
+  "src/app/(protected)/actions/nutrition-actions.ts",
 ];
 
 function quotedStrings(source: string): string[] {

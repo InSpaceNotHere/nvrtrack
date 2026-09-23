@@ -1,4 +1,4 @@
-export const PRIVACY_NOTICE_LAST_UPDATED = "September 22, 2026";
+export const PRIVACY_NOTICE_LAST_UPDATED = "September 23, 2026";
 export const PRIVACY_NOTICE_TITLE = "Privacy";
 
 export const PRIVACY_CONTACT_EMAIL = "privacy@nvrtrack.com";
@@ -57,8 +57,8 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     paragraphs: [
       "NVRTRACK uses Supabase for authentication, database, and file storage.",
       "The NVRTRACK web application is hosted on Vercel.",
-      "When you search foods while signed in, NVRTRACK may send your search text to USDA FoodData Central to look up food information. That search request is not used to send your email address or profile answers to USDA.",
-      "These services receive information as needed to provide authentication, hosting, storage, and food search. This notice does not describe how those providers use information beyond providing those services.",
+      "Some built-in Common foods originated from reviewed USDA FoodData Central source data stored in NVRTRACK. Searching and logging foods does not send your search text or account information to USDA.",
+      "These services receive information as needed to provide authentication, hosting, and storage. This notice does not describe how those providers use information beyond providing those services.",
     ],
   },
   {

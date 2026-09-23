@@ -24,7 +24,7 @@ test("common catalog logging flow with amount edit/delete and custom fallback", 
   await login(page);
   const usdaRequests: string[] = [];
   page.on("request", (request) => {
-    if (request.url().includes("api.nal.usda.gov")) {
+    if (request.url().includes("api.nal.usda.gov") || request.url().includes("/api/usda/search") || request.url().includes("fdc/v1")) {
       usdaRequests.push(request.url());
     }
   });

@@ -90,6 +90,7 @@ The app currently includes:
   - optional save-to-My-Foods reuses existing user+FDC records and avoids uncontrolled duplicates
   - editing saved USDA nutrition marks rows as `usda_modified` while preserving provenance metadata
   - fixture-backed USDA mode supports permanent E2E coverage without live USDA dependency
+- Nutrition V2 Phase 4: live USDA runtime search/logging is removed. The reviewed local `food_catalog` remains. `USDA_FDC_API_KEY` is not required to run, build, deploy, or use Add Food.
 
 ## Technology
 
@@ -946,9 +947,11 @@ npm run lint
 npm run build
 ```
 
-### Required environment variable
+### Catalog generation environment (optional)
 
-- `USDA_FDC_API_KEY` must be present in server environment (`.env.local` for local development).
+Live USDA is **not** required to run NVRTRACK, build, deploy, or use Nutrition.
+
+- `USDA_FDC_API_KEY` is optional and only used by catalog generation scripts (`npm run usda:discover`, `npm run usda:fetch-reviewed`).
 - Never expose this key to browser code or commit it to git.
 
 ## Session 9.5B Phase 2B: Common Food Catalog Logging (Pilot 20)
@@ -1150,6 +1153,8 @@ Phase 2C intentionally keeps Common mode local and reviewed:
 These capabilities belong to the later live USDA search phase, not this deterministic reviewed catalog phase.
 
 ## Session 9.5B Phase 2D: Live USDA Search + Trusted Logging + Save to My Foods
+
+**Status (Nutrition V2 Phase 4):** Live USDA runtime search and logging are removed. Historical `usda_live` snapshots, `fdc_id` provenance, and the reviewed Common catalog remain. The app no longer calls FoodData Central at runtime and does not require `USDA_FDC_API_KEY`.
 
 ### Architecture boundary (server-only USDA key)
 

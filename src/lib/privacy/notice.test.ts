@@ -46,7 +46,9 @@ describe("public privacy notice", () => {
     const text = getPrivacyNoticePlainText();
     expect(text).toMatch(/Supabase for authentication, database, and file storage/);
     expect(text).toMatch(/hosted on Vercel/);
-    expect(text).toMatch(/USDA FoodData Central/);
+    expect(text).toMatch(/originated from reviewed USDA FoodData Central source data stored in NVRTRACK/);
+    expect(text).not.toMatch(/send your search text to USDA/);
+    expect(text).not.toMatch(/may send your search text/);
   });
 
   it("uses concise onboarding wording for profile save, setup, and discovery", () => {

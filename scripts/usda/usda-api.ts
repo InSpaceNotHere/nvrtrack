@@ -1,5 +1,5 @@
 import { normalizeUsdaFoodDetailResponse, normalizeUsdaSearchResponse } from "../../src/lib/usda/normalization";
-import { normalizeUsdaFdcId, normalizeUsdaSearchRequest } from "../../src/lib/usda/search";
+import { normalizeUsdaFdcId, normalizeUsdaSearchRequest } from "./search-request";
 import type {
   NormalizedUsdaFoodDetail,
   NormalizedUsdaSearchResult,

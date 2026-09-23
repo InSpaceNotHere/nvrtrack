@@ -1,5 +1,5 @@
-import type { UsdaSearchRequest } from "./types";
-import { UsdaClientError } from "./types";
+import type { UsdaSearchRequest } from "../../src/lib/usda/types";
+import { UsdaClientError } from "../../src/lib/usda/types";
 
 export const USDA_SEARCH_MIN_QUERY_LENGTH = 2;
 export const USDA_SEARCH_MAX_PAGE_SIZE = 25;
@@ -40,9 +40,7 @@ export function normalizeUsdaSearchRequest(input: UsdaSearchRequest): Normalized
     );
   }
 
-  const dataTypes = (input.dataTypes ?? [])
-    .map((value) => value.trim())
-    .filter(Boolean);
+  const dataTypes = (input.dataTypes ?? []).map((value) => value.trim()).filter(Boolean);
 
   return {
     query,
