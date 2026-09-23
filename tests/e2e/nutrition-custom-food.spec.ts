@@ -89,8 +89,8 @@ test("create custom food, validate, log, favorite, edit snapshot, and delete wit
   await page.getByRole("tab", { name: "My Foods" }).click();
   const myFoods = page.locator("section").filter({ has: page.getByRole("heading", { name: "My Foods" }) });
   await expect(myFoods.getByRole("button", { name: new RegExp(`^${foodName}`) })).toHaveCount(1);
-  await expect(myFoods.getByText("FAGE")).toBeVisible();
-  await expect(myFoods.getByText("170 g")).toBeVisible();
+  await expect(myFoods.getByRole("button", { name: new RegExp(`^${foodName}`) })).toContainText("FAGE");
+  await expect(myFoods.getByRole("button", { name: new RegExp(`^${foodName}`) })).toContainText("170 g");
 
   await myFoods.getByRole("button", { name: new RegExp(`^${foodName}`) }).click();
   await expect(page.getByRole("dialog")).toBeVisible();

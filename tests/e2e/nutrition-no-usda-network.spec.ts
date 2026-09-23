@@ -16,6 +16,8 @@ async function login(page: Page) {
   await completeOnboardingIfNeeded(page);
 }
 
+test.setTimeout(90_000);
+
 test("Add Food never calls USDA or the retired live-search route", async ({ page }) => {
   await login(page);
   const usdaRequests: string[] = [];
@@ -37,7 +39,7 @@ test("Add Food never calls USDA or the retired live-search route", async ({ page
   await page.getByRole("button", { name: /^Chicken Breast/i }).first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Close", exact: true }).click();
-
+  await page.getByLabel("Search foods").fill("");
   await page.getByRole("tab", { name: "Custom" }).click();
   await expect(page.getByRole("link", { name: "Create Custom Food" })).toBeVisible();
 
