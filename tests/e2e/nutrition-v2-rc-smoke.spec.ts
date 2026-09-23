@@ -68,6 +68,7 @@ test("Nutrition V2 RC isolated account smoke, viewports, and no USDA", async ({ 
   await expect(page.getByRole("heading", { name: "Dinner" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Snacks" })).toBeVisible();
   await expect(page.getByText("No food entries logged for this date.")).toBeVisible();
+  await expect(page.getByText("Invalid date reset to today.")).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "Primary" })).toHaveCount(1);
   await shot(page, "nutrition_v2_rc_today_empty_390.png");
   await assertNoHorizontalOverflow(page);
