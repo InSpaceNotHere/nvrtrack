@@ -699,6 +699,34 @@ export async function clearWeekdayProgramSchedule(): Promise<DataAccessResult<Wo
   return ok(rows);
 }
 
+export async function clearOpenScheduleOverridesFrom(
+  fromDate: string,
+): Promise<DataAccessResult<{ deleted: number }>> {
+  if (!isValidDateString(fromDate)) {
+    return fail({ code: "INVALID_INPUT", message: "From date must be valid." });
+  }
+  const auth = await getAuthenticatedContext();
+  if (auth.error) {
+    return auth;
+  }
+  const supabase = auth.data.supabase;
+  const { data, error } = await supabase
+    .from("workout_schedule_overrides")
+    .delete()
+    .eq("user_id", auth.data.user.id)
+    .gte("plan_date", fromDate)
+    .neq("status", "completed")
+    .select("id");
+  if (error) {
+    return fail({
+      code: "DB_ERROR",
+      message: "Failed to clear open schedule overrides.",
+      cause: error.message,
+    });
+  }
+  return ok({ deleted: asRows<{ id: string }>(data).length });
+}
+
 export async function setScheduleOverride(
   planDate: string,
   input: SetScheduleOverrideInput,
