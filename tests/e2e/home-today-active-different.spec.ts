@@ -105,8 +105,9 @@ test("home scheduled start does not duplicate workouts on repeated taps", async 
   const scheduledHeadline = await page.getByTestId("home-workout-name").innerText();
   const scheduledTemplateName = extractScheduledTemplateName(scheduledHeadline);
   await expect(page.getByTestId("home-workout-name")).toContainText(scheduledTemplateName);
-  const startButton = page.getByRole("button", { name: "Start Workout" }).first();
+  const startButton = page.getByTestId("home-start-scheduled");
   await expect(startButton).toBeVisible();
+  await expect(startButton).toHaveText("Start Workout");
 
   // Native double-fire: Playwright's locator.click() waits for enabled, so a second
   // overlapping click would stall on the pending/disabled Start button until timeout.
@@ -131,7 +132,7 @@ test("home scheduled start does not duplicate workouts on repeated taps", async 
       return "idle";
     }, { timeout: 5000 })
     .not.toBe("idle");
-  await startButton.click({ timeout: 1000 }).catch(() => undefined);
+  await startButton.click({ force: true }).catch(() => undefined);
 
   await expect
     .poll(async () => (await getActiveWorkouts(client, userId)).length, { timeout: 30000 })
@@ -147,6 +148,7 @@ test("home scheduled start does not duplicate workouts on repeated taps", async 
 
   await page.goto("/");
   await expect(page.getByRole("link", { name: "Resume Workout" })).toBeVisible();
+  await expect(page.getByTestId("home-start-scheduled")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Start Workout" })).toHaveCount(0);
   await expect.poll(async () => (await getActiveWorkouts(client, userId)).length).toBe(1);
 });

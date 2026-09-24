@@ -47,6 +47,7 @@ export function WorkoutCardPrimaryActionButton({ action }: WorkoutCardPrimaryAct
       <button
         type="button"
         disabled={busy}
+        data-testid="home-start-scheduled"
         aria-busy={busy}
         onClick={() => {
           if (startingRef.current) {
