@@ -21,7 +21,7 @@ export function IconButton({ label, icon, tone = "default", className, ...props 
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-[var(--ds-radius-md)] border transition-colors disabled:cursor-not-allowed disabled:opacity-70",
+        "inline-flex h-8 w-8 items-center justify-center rounded-[var(--ds-radius-md)] border transition-colors ds-press disabled:cursor-not-allowed disabled:opacity-70",
         toneClass[tone],
         className,
       )}

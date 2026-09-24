@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import {
@@ -36,7 +35,6 @@ interface CustomFoodFormProps {
 }
 
 export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: CustomFoodFormProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState(initial.name);
   const [brand, setBrand] = useState(initial.brand);
@@ -91,7 +89,6 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
         setFormError("Couldn't save this food.");
         return;
       }
-      router.refresh();
       onSaved(result.food.id);
     });
   }

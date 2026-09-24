@@ -183,3 +183,65 @@ body {
   color: var(--ds-color-text-secondary);
   font-weight: 500;
 }
+
+button,
+a,
+[role="button"],
+[role="tab"],
+[role="radio"] {
+  touch-action: manipulation;
+}
+
+.ds-press {
+  transition:
+    transform var(--ds-motion-fast) var(--ds-motion-ease),
+    opacity var(--ds-motion-fast) var(--ds-motion-ease),
+    background-color var(--ds-motion-fast) var(--ds-motion-ease);
+}
+
+.ds-press:active:not(:disabled) {
+  transform: scale(0.98);
+  opacity: 0.92;
+}
+
+.ds-sheet-backdrop {
+  background: rgba(0, 0, 0, 0.8);
+  opacity: 0;
+  transition: opacity var(--ds-motion-medium) var(--ds-motion-ease);
+}
+
+.ds-sheet-backdrop[data-entered="true"] {
+  opacity: 1;
+}
+
+.ds-sheet-panel {
+  transform: translateY(18px);
+  opacity: 0.88;
+  transition:
+    transform var(--ds-motion-medium) var(--ds-motion-ease),
+    opacity var(--ds-motion-medium) var(--ds-motion-ease);
+}
+
+.ds-sheet-panel[data-entered="true"] {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-press,
+  .ds-sheet-backdrop,
+  .ds-sheet-panel,
+  .ds-row-out {
+    transition: none;
+  }
+
+  .ds-press:active:not(:disabled) {
+    transform: none;
+    opacity: 0.85;
+  }
+
+  .ds-sheet-panel {
+    transform: none;
+    opacity: 1;
+  }
+}

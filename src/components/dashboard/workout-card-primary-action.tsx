@@ -31,7 +31,7 @@ export function WorkoutCardPrimaryActionButton({ action }: WorkoutCardPrimaryAct
     return (
       <Link
         href={action.href}
-        className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+        className="ds-press inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
       >
         {action.label}
       </Link>
@@ -54,7 +54,7 @@ export function WorkoutCardPrimaryActionButton({ action }: WorkoutCardPrimaryAct
             setErrorMessage(result.message);
           });
         }}
-        className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-70"
+        className="ds-press inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isPending ? "Starting..." : action.label}
       </button>

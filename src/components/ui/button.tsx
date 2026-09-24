@@ -26,7 +26,7 @@ export function Button({ className, variant = "secondary", size = "md", ...props
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-[var(--ds-radius-md)] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70",
+        "inline-flex items-center justify-center rounded-[var(--ds-radius-md)] font-semibold transition-colors ds-press disabled:cursor-not-allowed disabled:opacity-70",
         variantClass[variant],
         sizeClass[size],
         className,

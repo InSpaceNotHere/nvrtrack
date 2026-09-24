@@ -27,7 +27,7 @@ export function Tabs<T extends string>({ value, options, onChange, ariaLabel, cl
             aria-selected={value === option.value}
             onClick={() => onChange(option.value)}
             className={cn(
-              "whitespace-nowrap rounded-lg px-1.5 py-1.5 text-[11px] transition-colors sm:px-3 sm:text-sm",
+              "ds-press whitespace-nowrap rounded-lg px-1.5 py-1.5 text-[11px] transition-colors sm:px-3 sm:text-sm",
               value === option.value ? "bg-white/12 font-medium text-white" : "text-zinc-400 hover:text-zinc-200",
             )}
           >
