@@ -125,20 +125,38 @@ test("training home empty state, program management, and remove keep history", a
     await expect(history).toBeVisible();
     await library.scrollIntoViewIfNeeded();
     await expect(library).toBeVisible();
-    const nav = page.getByRole("navigation", { name: "Primary" });
+    const nav = page.locator('nav.fixed[aria-label="Primary"]');
     await expect(nav).toBeVisible();
     const clearance = await page.evaluate(() => {
+      const historyEl = document.querySelector('[data-testid="training-workout-history"]');
       const libraryEl = document.querySelector('[data-testid="training-exercise-library"]');
-      const navEl = document.querySelector('nav[aria-label="Primary"]');
-      if (!libraryEl || !navEl) {
-        return { ok: false, gap: 0 };
+      const navEl = document.querySelector('nav.fixed[aria-label="Primary"]');
+      if (!historyEl || !libraryEl || !navEl) {
+        return { ok: false, gap: 0, historyOk: false, libraryOk: false };
       }
-      libraryEl.scrollIntoView({ block: "end" });
-      const libraryBox = libraryEl.getBoundingClientRect();
-      const navBox = navEl.getBoundingClientRect();
-      return { ok: libraryBox.bottom <= navBox.top + 1, gap: navBox.top - libraryBox.bottom };
+      const navBox = () => navEl.getBoundingClientRect();
+      const isAboveNav = (el: Element) => {
+        const box = el.getBoundingClientRect();
+        return box.top >= 0 && box.bottom <= navBox().top + 1;
+      };
+      historyEl.scrollIntoView({ block: "center" });
+      const historyOk = isAboveNav(historyEl);
+      libraryEl.scrollIntoView({ block: "center" });
+      const libraryOk = isAboveNav(libraryEl);
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      const lastContent = document.querySelector('[data-testid="training-exercise-library"]');
+      const lastBox = lastContent?.getBoundingClientRect();
+      const paddingOk = !!lastBox && lastBox.bottom <= navBox().top + 1;
+      return {
+        ok: historyOk && libraryOk,
+        historyOk,
+        libraryOk,
+        paddingOk,
+        gap: navBox().top - (lastBox?.bottom ?? 0),
+      };
     });
-    expect(clearance.ok, `library obscured at ${viewport.width}x${viewport.height} gap=${clearance.gap}`).toBe(true);
+    expect(clearance.historyOk, `history not reachable at ${viewport.width}x${viewport.height}`).toBe(true);
+    expect(clearance.libraryOk, `library not reachable at ${viewport.width}x${viewport.height}`).toBe(true);
   }
 
   await assertMobileReachability({ width: 390, height: 664 });
