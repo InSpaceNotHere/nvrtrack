@@ -52,4 +52,20 @@ test("catalog add exercise panel supports select, add, close, and reopen", async
 
   await addPanel.getByRole("button", { name: /^Close$/ }).click();
   await expect(addPanel.getByLabel("Search catalog")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "+ Add Set" }).click();
+  await expect(page.getByText("Set 1")).toBeVisible();
+  await page.getByLabel(/Weight/).fill("135");
+  await page.getByLabel("Reps").fill("8");
+  await page.getByRole("button", { name: "Save Set" }).click();
+  await expect(page.getByText("Set updated.")).toBeVisible();
+  await page.getByRole("button", { name: "Mark Complete" }).click();
+  await expect(page.getByText("Set marked complete.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mark Incomplete" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByLabel(/Weight/).first()).toHaveValue("135");
+  await expect(page.getByLabel("Reps").first()).toHaveValue("8");
+  await expect(page.getByRole("button", { name: "Mark Incomplete" })).toBeVisible();
+  await expect(page.getByText("Set 1")).toHaveCount(1);
 });

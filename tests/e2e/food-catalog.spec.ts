@@ -77,28 +77,32 @@ test("common catalog logging flow with amount edit/delete and custom fallback", 
   await page.getByLabel("Amount").fill("100");
   await page.getByRole("radio", { name: "g", exact: true }).click();
   await expect(page.getByText(/kcal/i).first()).toBeVisible();
-  await page.getByRole("button", { name: "Add to Breakfast" }).click();
+  const addBreakfast = page.getByRole("button", { name: "Add to Breakfast" });
+  await addBreakfast.evaluate((button) => {
+    (button as HTMLButtonElement).click();
+    (button as HTMLButtonElement).click();
+  });
 
-  const logged = page.locator("li").filter({ hasText: "Ground Beef 85/15" }).first();
-  await expect(logged).toBeVisible();
-  await expect(logged.getByText("100 g")).toBeVisible();
+  const logged = page.locator("li").filter({ hasText: "Ground Beef 85/15" });
+  await expect(logged).toHaveCount(1);
+  await expect(logged.first().getByText("100 g")).toBeVisible();
   await expect(page.getByText(/FDC/i)).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "Primary" })).toHaveCount(1);
 
   await page.reload();
-  await expect(logged).toBeVisible();
+  await expect(logged).toHaveCount(1);
 
-  await logged.getByRole("button", { name: "Edit" }).click();
+  await logged.first().getByRole("button", { name: "Edit" }).click();
   await page.getByLabel("Amount").fill("4");
   await page.getByRole("radio", { name: "oz", exact: true }).click();
   await page.getByRole("button", { name: "Save Entry" }).click();
-  await expect(logged.getByText("4 oz")).toBeVisible();
+  await expect(logged.first().getByText("4 oz")).toBeVisible();
 
   await page.reload();
-  await expect(logged.getByText("4 oz")).toBeVisible();
+  await expect(logged.first().getByText("4 oz")).toBeVisible();
 
-  await logged.getByRole("button", { name: "Delete" }).click();
-  await logged.getByRole("button", { name: "Confirm Delete" }).click();
+  await logged.first().getByRole("button", { name: "Delete" }).click();
+  await logged.first().getByRole("button", { name: "Confirm Delete" }).click();
   await expect(page.getByText("Ground Beef 85/15")).toHaveCount(0);
   await expect(page.getByText("No food entries logged for this date.")).toBeVisible();
   await expect(page.getByRole("alert").filter({ hasText: /database|failed|stack/i })).toHaveCount(0);

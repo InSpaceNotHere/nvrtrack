@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -184,6 +184,7 @@ export function WorkoutLogger({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [mutatingSetId, setMutatingSetId] = useState<string | null>(null);
+  const removingExerciseRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null);
   const [tone, setTone] = useState<"success" | "error">("success");
 
@@ -756,6 +757,10 @@ export function WorkoutLogger({
   }
 
   function removeExercise(workoutExerciseId: string) {
+    if (removingExerciseRef.current) {
+      return;
+    }
+    removingExerciseRef.current = true;
     setMessage(null);
     startTransition(async () => {
       const result = await removeWorkoutExerciseAction(workout.id, workoutExerciseId);
@@ -766,9 +771,11 @@ export function WorkoutLogger({
           current.includes(workoutExerciseId) ? current : [...current, workoutExerciseId],
         );
         setDeleteExerciseConfirmId(null);
+        removingExerciseRef.current = false;
         return;
       }
 
+      removingExerciseRef.current = false;
       setErrorMessage(result.message);
     });
   }

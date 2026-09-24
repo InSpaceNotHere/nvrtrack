@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import {
   deleteFoodEntryAction,
   updateCatalogFoodEntryAction,
@@ -70,6 +70,7 @@ export function NutritionTodayView({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [localEntries, setLocalEntries] = useState(entries);
   const [entriesSnapshot, setEntriesSnapshot] = useState(entries);
+  const deletingRef = useRef(false);
   if (entries !== entriesSnapshot) {
     setEntriesSnapshot(entries);
     setLocalEntries(entries);
@@ -156,6 +157,10 @@ export function NutritionTodayView({
   }
 
   function handleDelete(entryId: string) {
+    if (deletingRef.current) {
+      return;
+    }
+    deletingRef.current = true;
     const previous = localEntries;
     setLocalEntries((rows) => removeFoodEntryById(rows, entryId));
     setDeleteConfirmId(null);
@@ -163,11 +168,13 @@ export function NutritionTodayView({
     startTransition(async () => {
       const result = await deleteFoodEntryAction(entryId);
       if (result.status === "error") {
+        deletingRef.current = false;
         setLocalEntries(previous);
         setMessageTone("error");
         setMessage(result.message);
         return;
       }
+      deletingRef.current = false;
       setMessageTone("success");
       setMessage("Food entry deleted.");
     });

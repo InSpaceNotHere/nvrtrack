@@ -157,6 +157,7 @@ export function AddFoodView({
   const [favoriteItems, setFavoriteItems] = useState(favoriteFoods);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const favoriteInFlight = useRef(new Set<string>());
+  const loggingRef = useRef(false);
 
   const mealLabel = MEAL_LABELS[mealType];
   const searching = query.trim().length > 0;
@@ -282,12 +283,14 @@ export function AddFoodView({
   }
 
   function handleLogSelected() {
-    if (!target || isPending) {
+    if (!target || isPending || loggingRef.current) {
       return;
     }
+    loggingRef.current = true;
     startTransition(async () => {
       if (target.kind === "catalog") {
         if (amountUnit === "servings") {
+          loggingRef.current = false;
           setErrorMessage("Choose grams, ounces, or serving.");
           return;
         }
@@ -299,6 +302,7 @@ export function AddFoodView({
           meal_type: mealType,
         });
         if (result.status === "error") {
+          loggingRef.current = false;
           setErrorMessage(result.message);
           return;
         }
@@ -315,6 +319,7 @@ export function AddFoodView({
           servings: amountValue,
         });
         if (result.status === "error") {
+          loggingRef.current = false;
           setErrorMessage(result.message);
           return;
         }
@@ -337,6 +342,7 @@ export function AddFoodView({
         fat_per_serving_g: String(target.entry.fat_per_serving_g),
       });
       if (result.status === "error") {
+        loggingRef.current = false;
         setErrorMessage(result.message);
         return;
       }
