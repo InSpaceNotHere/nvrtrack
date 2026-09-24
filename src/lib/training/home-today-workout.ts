@@ -82,18 +82,6 @@ export function resolveHomeTodayWorkout(input: ResolveHomeTodayWorkoutInput): Ho
     todaysCompletedWorkout,
   });
 
-  if (plannerUninitialized) {
-    return {
-      state: "no_program",
-      weekdayLabel,
-      workoutName: "No workout planned today",
-      templateId: null,
-      workoutId: null,
-      isActiveWorkoutSameAsPlanned: false,
-      scheduledContextName: null,
-    };
-  }
-
   if (activeWorkout) {
     return {
       state: "active",
@@ -113,6 +101,18 @@ export function resolveHomeTodayWorkout(input: ResolveHomeTodayWorkoutInput): Ho
       workoutName: baseWorkoutName,
       templateId: todayPlan?.template_id ?? null,
       workoutId: todaysCompletedWorkout?.id ?? todayPlan?.workout_id ?? null,
+      isActiveWorkoutSameAsPlanned: false,
+      scheduledContextName: null,
+    };
+  }
+
+  if (plannerUninitialized) {
+    return {
+      state: "no_program",
+      weekdayLabel,
+      workoutName: "No workout planned today",
+      templateId: null,
+      workoutId: null,
       isActiveWorkoutSameAsPlanned: false,
       scheduledContextName: null,
     };

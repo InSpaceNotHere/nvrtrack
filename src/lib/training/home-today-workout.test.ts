@@ -156,7 +156,23 @@ describe("resolveHomeTodayWorkout", () => {
     expect(resolved.state).toBe("moved");
   });
 
-  it("returns no_program only when planner is uninitialized", () => {
+  it("keeps an active workout even when no program is assigned", () => {
+    const resolved = resolveHomeTodayWorkout(
+      buildInput({
+        plannerUninitialized: true,
+        activeWorkout: {
+          id: "workout-active",
+          name: "Hotel Pump",
+          workout_date: "2026-09-21",
+        },
+      }),
+    );
+
+    expect(resolved.state).toBe("active");
+    expect(resolved.workoutName).toBe("Hotel Pump");
+  });
+
+  it("returns no_program when the planner is uninitialized and nothing is in progress", () => {
     const resolved = resolveHomeTodayWorkout(
       buildInput({
         plannerUninitialized: true,
