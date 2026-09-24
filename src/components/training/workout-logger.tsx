@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -183,6 +183,8 @@ export function WorkoutLogger({
 }: WorkoutLoggerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [mutatingSetId, setMutatingSetId] = useState<string | null>(null);
+  const removingExerciseRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null);
   const [tone, setTone] = useState<"success" | "error">("success");
 
@@ -466,7 +468,6 @@ export function WorkoutLogger({
       });
       if (result.status === "success") {
         setSuccessMessage(result.message);
-        router.refresh();
         return;
       }
 
@@ -506,7 +507,6 @@ export function WorkoutLogger({
           });
         }
         closeComposer();
-        router.refresh();
         return;
       }
 
@@ -555,7 +555,6 @@ export function WorkoutLogger({
             });
           }
           closeComposer();
-          router.refresh();
           return;
         }
         setErrorMessage(resultFromSavedCustom.message);
@@ -586,7 +585,6 @@ export function WorkoutLogger({
             });
           }
           closeComposer();
-          router.refresh();
           return;
         }
 
@@ -612,7 +610,6 @@ export function WorkoutLogger({
           });
         }
         closeComposer();
-        router.refresh();
         return;
       }
 
@@ -652,12 +649,13 @@ export function WorkoutLogger({
 
   function saveSet(setId: string) {
     const draft = setDrafts[setId];
-    if (!draft) {
+    if (!draft || mutatingSetId) {
       return;
     }
 
     setMessage(null);
-    startTransition(async () => {
+    setMutatingSetId(setId);
+    void (async () => {
       const effectiveWeightUnit = draft.weight_unit || preferredWeightUnit;
       const result = await updateWorkoutSetAction(workout.id, setId, {
         set_type: draft.set_type,
@@ -670,15 +668,19 @@ export function WorkoutLogger({
       });
       if (result.status === "success") {
         setSuccessMessage(result.message);
-        router.refresh();
+        setMutatingSetId(null);
         return;
       }
 
       setErrorMessage(result.message);
-    });
+      setMutatingSetId(null);
+    })();
   }
 
   function toggleSetCompleted(set: WorkoutSetRow, nextChecked: boolean) {
+    if (mutatingSetId) {
+      return;
+    }
     updateSetDraft(set.id, { is_completed: nextChecked });
 
     const draft = {
@@ -687,7 +689,8 @@ export function WorkoutLogger({
     };
 
     setMessage(null);
-    startTransition(async () => {
+    setMutatingSetId(set.id);
+    void (async () => {
       const effectiveWeightUnit = draft.weight_unit || preferredWeightUnit;
       const result = await updateWorkoutSetAction(workout.id, set.id, {
         set_type: draft.set_type,
@@ -700,13 +703,14 @@ export function WorkoutLogger({
       });
       if (result.status === "success") {
         setSuccessMessage(nextChecked ? "Set marked complete." : "Set marked incomplete.");
-        router.refresh();
+        setMutatingSetId(null);
         return;
       }
 
       updateSetDraft(set.id, { is_completed: set.is_completed });
       setErrorMessage(result.message);
-    });
+      setMutatingSetId(null);
+    })();
   }
 
   function moveSet(exerciseId: string, setId: string, direction: "up" | "down") {
@@ -753,6 +757,10 @@ export function WorkoutLogger({
   }
 
   function removeExercise(workoutExerciseId: string) {
+    if (removingExerciseRef.current) {
+      return;
+    }
+    removingExerciseRef.current = true;
     setMessage(null);
     startTransition(async () => {
       const result = await removeWorkoutExerciseAction(workout.id, workoutExerciseId);
@@ -763,10 +771,11 @@ export function WorkoutLogger({
           current.includes(workoutExerciseId) ? current : [...current, workoutExerciseId],
         );
         setDeleteExerciseConfirmId(null);
-        router.refresh();
+        removingExerciseRef.current = false;
         return;
       }
 
+      removingExerciseRef.current = false;
       setErrorMessage(result.message);
     });
   }
@@ -782,7 +791,6 @@ export function WorkoutLogger({
         setSuccessMessage(result.message);
         setNeedsCompleteConfirm(false);
         router.push(`/training/workouts/${workout.id}?view=summary`);
-        router.refresh();
         return;
       }
 
@@ -799,7 +807,6 @@ export function WorkoutLogger({
       const result = await deleteWorkoutAction(workout.id);
       if (result.status === "success") {
         router.push("/training");
-        router.refresh();
         return;
       }
       setErrorMessage(result.message);
@@ -1040,22 +1047,22 @@ export function WorkoutLogger({
                             <Button
                               type="button"
                               onClick={() => toggleSetCompleted(set, !draft.is_completed)}
-                              disabled={isPending}
+                              disabled={mutatingSetId !== null || isPending}
                               variant={draft.is_completed ? "secondary" : "primary"}
                               size="sm"
                               className="h-8 rounded-md px-2.5 text-xs"
                             >
-                              {draft.is_completed ? "Mark Incomplete" : "Mark Complete"}
+                              {mutatingSetId === set.id ? "Updating..." : draft.is_completed ? "Mark Incomplete" : "Mark Complete"}
                             </Button>
                             <Button
                               type="button"
                               onClick={() => saveSet(set.id)}
-                              disabled={isPending}
+                              disabled={mutatingSetId !== null || isPending}
                               variant="secondary"
                               size="sm"
                               className="h-8 rounded-md px-2.5 text-xs"
                             >
-                              {isPending ? "Saving..." : "Save Set"}
+                              {mutatingSetId === set.id ? "Saving..." : "Save Set"}
                             </Button>
                           </>
                         ) : null}

@@ -213,13 +213,13 @@ export function FoodPortionSheet({
         type="button"
         aria-label="Close portion"
         onClick={onClose}
-        className="absolute inset-0 bg-black/80"
+        className="ds-sheet-backdrop absolute inset-0"
       />
       <section
         role="dialog"
         aria-modal="true"
         aria-label={target.name}
-        className="relative flex max-h-[100svh] w-full max-w-md flex-col overflow-hidden rounded-t-[1.75rem] border border-white/12 bg-[#10151f] shadow-[0_-18px_50px_rgba(0,0,0,0.55)] sm:rounded-3xl"
+        className="ds-sheet-panel relative flex max-h-[100svh] w-full max-w-md flex-col overflow-hidden rounded-t-[1.75rem] border border-white/12 bg-[#10151f] shadow-[0_-18px_50px_rgba(0,0,0,0.55)] sm:rounded-3xl"
         style={{ marginBottom: keyboardInset }}
       >
         <div className="flex justify-center pt-2 sm:hidden">
@@ -234,12 +234,12 @@ export function FoodPortionSheet({
                 onClick={onToggleFavorite}
                 aria-label={favorited ? `Remove ${target.name} from favorites` : `Add ${target.name} to favorites`}
                 aria-pressed={favorited}
-                className="flex h-10 min-w-10 items-center justify-center text-zinc-500 hover:text-zinc-200"
+                className="ds-press flex h-10 min-w-10 items-center justify-center text-zinc-500 hover:text-zinc-200"
               >
                 <Star className={cn("h-4 w-4", favorited ? "fill-amber-300 text-amber-300" : "fill-none")} aria-hidden="true" />
               </button>
             ) : null}
-            <button type="button" onClick={onClose} className="h-10 min-w-10 text-sm text-zinc-400 hover:text-white" aria-label="Close">
+            <button type="button" onClick={onClose} className="ds-press h-10 min-w-10 text-sm text-zinc-400 hover:text-white" aria-label="Close">
               Close
             </button>
           </div>

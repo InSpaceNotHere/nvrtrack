@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useRef, useState, useTransition } from "react";
 import {
   deleteFoodEntryAction,
   updateCatalogFoodEntryAction,
@@ -21,6 +20,7 @@ import {
 import { addDaysToDateString } from "@/lib/nutrition/date";
 import { getFoodEntryDisplayName } from "@/lib/nutrition/food-display-name";
 import { MEAL_LABELS, MEAL_ORDER } from "@/lib/nutrition/meals";
+import { removeFoodEntryById, replaceFoodEntry } from "@/lib/nutrition/optimistic-entries";
 import type { MealType } from "@/lib/nutrition/types";
 import { formatCalendarDate } from "@/lib/timezone";
 import type { SupportedAmountUnit } from "@/lib/nutrition/serving";
@@ -60,7 +60,6 @@ export function NutritionTodayView({
   fatGoal,
   dataErrorMessage,
 }: NutritionTodayViewProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"success" | "error">("success");
@@ -69,11 +68,18 @@ export function NutritionTodayView({
   const [amountUnit, setAmountUnit] = useState<PortionUnit>("g");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [localEntries, setLocalEntries] = useState(entries);
+  const [entriesSnapshot, setEntriesSnapshot] = useState(entries);
+  const deletingRef = useRef(false);
+  if (entries !== entriesSnapshot) {
+    setEntriesSnapshot(entries);
+    setLocalEntries(entries);
+  }
 
   const previousDate = addDaysToDateString(selectedDate, -1);
   const nextDate = addDaysToDateString(selectedDate, 1);
-  const dailyTotals = useMemo(() => calculateDailyTotals(entries), [entries]);
-  const mealTotals = useMemo(() => calculateMealTotals(entries), [entries]);
+  const dailyTotals = useMemo(() => calculateDailyTotals(localEntries), [localEntries]);
+  const mealTotals = useMemo(() => calculateMealTotals(localEntries), [localEntries]);
   const groupedEntries = useMemo(() => {
     const map: Record<MealType, FoodEntryRow[]> = {
       breakfast: [],
@@ -81,13 +87,13 @@ export function NutritionTodayView({
       dinner: [],
       snack: [],
     };
-    for (const entry of entries) {
+    for (const entry of localEntries) {
       if (entry.meal_type === "breakfast" || entry.meal_type === "lunch" || entry.meal_type === "dinner" || entry.meal_type === "snack") {
         map[entry.meal_type].push(entry);
       }
     }
     return map;
-  }, [entries]);
+  }, [localEntries]);
 
   const dateTitle = selectedDate === todayDate ? "Today" : formatCalendarDate(selectedDate);
 
@@ -116,55 +122,61 @@ export function NutritionTodayView({
     if (!editingEntry) {
       return;
     }
+    const current = editingEntry;
+    setEditingEntry(null);
+    setErrorMessage(null);
     startTransition(async () => {
-      if (isAmountBasedEntry(editingEntry) && amountUnit !== "servings") {
-        const result = await updateCatalogFoodEntryAction(editingEntry.id, {
-          amount_value: amountValue,
-          amount_unit: amountUnit,
-          entry_date: editingEntry.entry_date,
-          meal_type: editingEntry.meal_type,
-          note: editingEntry.note ?? undefined,
-        });
-        if (result.status === "error") {
-          setErrorMessage(result.message);
-          setMessageTone("error");
-          setMessage(result.message);
-          return;
-        }
-      } else {
-        const result = await updateFoodEntryAction(editingEntry.id, {
-          entry_date: editingEntry.entry_date,
-          meal_type: editingEntry.meal_type,
-          servings: amountValue,
-          note: editingEntry.note ?? undefined,
-        });
-        if (result.status === "error") {
-          setErrorMessage(result.message);
-          setMessageTone("error");
-          setMessage(result.message);
-          return;
-        }
-      }
-      setEditingEntry(null);
-      setMessageTone("success");
-      setMessage("Food entry updated.");
-      router.refresh();
-    });
-  }
-
-  function handleDelete(entryId: string) {
-    startTransition(async () => {
-      const result = await deleteFoodEntryAction(entryId);
+      const result =
+        isAmountBasedEntry(current) && amountUnit !== "servings"
+          ? await updateCatalogFoodEntryAction(current.id, {
+              amount_value: amountValue,
+              amount_unit: amountUnit,
+              entry_date: current.entry_date,
+              meal_type: current.meal_type,
+              note: current.note ?? undefined,
+            })
+          : await updateFoodEntryAction(current.id, {
+              entry_date: current.entry_date,
+              meal_type: current.meal_type,
+              servings: amountValue,
+              note: current.note ?? undefined,
+            });
       if (result.status === "error") {
+        setEditingEntry(current);
+        setErrorMessage(result.message);
         setMessageTone("error");
         setMessage(result.message);
         return;
       }
-      setDeleteConfirmId(null);
-      setEditingEntry(null);
+      if (result.entry) {
+        setLocalEntries((rows) => replaceFoodEntry(rows, result.entry as FoodEntryRow));
+      }
+      setMessageTone("success");
+      setMessage("Food entry updated.");
+    });
+  }
+
+  function handleDelete(entryId: string) {
+    if (deletingRef.current) {
+      return;
+    }
+    deletingRef.current = true;
+    const previous = localEntries;
+    setLocalEntries((rows) => removeFoodEntryById(rows, entryId));
+    setDeleteConfirmId(null);
+    setEditingEntry(null);
+    startTransition(async () => {
+      const result = await deleteFoodEntryAction(entryId);
+      if (result.status === "error") {
+        deletingRef.current = false;
+        setLocalEntries(previous);
+        setMessageTone("error");
+        setMessage(result.message);
+        return;
+      }
+      deletingRef.current = false;
       setMessageTone("success");
       setMessage("Food entry deleted.");
-      router.refresh();
     });
   }
 
@@ -180,7 +192,8 @@ export function NutritionTodayView({
         <div className="flex gap-1">
           <Link
             href={`/nutrition?date=${previousDate}`}
-            className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl text-zinc-200 hover:bg-white/8"
+            scroll={false}
+            className="ds-press inline-flex h-10 min-w-10 items-center justify-center rounded-xl text-zinc-200 hover:bg-white/8"
             aria-label="Previous day"
           >
             ‹
@@ -188,14 +201,16 @@ export function NutritionTodayView({
           {selectedDate !== todayDate ? (
             <Link
               href={`/nutrition?date=${todayDate}`}
-              className="inline-flex h-10 items-center justify-center rounded-xl px-2 text-xs font-medium text-zinc-200 hover:bg-white/8"
+              scroll={false}
+              className="ds-press inline-flex h-10 items-center justify-center rounded-xl px-2 text-xs font-medium text-zinc-200 hover:bg-white/8"
             >
               Today
             </Link>
           ) : null}
           <Link
             href={`/nutrition?date=${nextDate}`}
-            className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl text-zinc-200 hover:bg-white/8"
+            scroll={false}
+            className="ds-press inline-flex h-10 min-w-10 items-center justify-center rounded-xl text-zinc-200 hover:bg-white/8"
             aria-label="Next day"
           >
             ›
@@ -258,7 +273,7 @@ export function NutritionTodayView({
                   return (
                     <li key={entry.id} className="rounded-xl px-1 py-2">
                       <div className="flex items-start justify-between gap-3">
-                        <button type="button" onClick={() => startEdit(entry)} className="min-w-0 text-left">
+                        <button type="button" onClick={() => startEdit(entry)} className="ds-press min-w-0 text-left">
                           <p className="truncate text-sm font-medium text-white">{name}</p>
                           <p className="mt-0.5 text-[11px] text-zinc-500">
                             {amountLabel(entry)}
@@ -316,7 +331,7 @@ export function NutritionTodayView({
               </ul>
               <Link
                 href={`/nutrition/add?meal=${meal}&date=${selectedDate}`}
-                className="mt-1 inline-flex h-10 items-center text-sm font-medium text-[#9db4ff]"
+                className="ds-press mt-1 inline-flex h-10 items-center text-sm font-medium text-[#9db4ff]"
                 aria-label={`Add Food to ${MEAL_LABELS[meal]}`}
               >
                 + Add food
@@ -326,7 +341,7 @@ export function NutritionTodayView({
         })}
       </div>
 
-      {!entries.length ? (
+      {!localEntries.length ? (
         <p className="text-sm text-zinc-500">No food entries logged for this date.</p>
       ) : null}
 

@@ -59,7 +59,7 @@ export function WeightChart({ entries, unit }: WeightChartProps) {
             key={option.value}
             type="button"
             onClick={() => setRange(option.value)}
-            className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
+            className={`ds-press rounded-md border px-2.5 py-1 text-xs transition-colors ${
               range === option.value
                 ? "border-white/35 bg-white/15 text-white"
                 : "border-white/12 text-zinc-400 hover:bg-white/10 hover:text-zinc-200"

@@ -102,9 +102,9 @@ export function ProgressPhotoManager({ initialRows, initialNextOffset, available
     startTransition(async () => {
       const result = await deleteProgressPhotoAction(photoId);
       setFeedback(result.message, result.status === "success" ? "success" : "error");
-      if (result.status === "success") {
+  if (result.status === "success") {
         setRows((existing) => existing.filter((row) => row.id !== photoId));
-        router.refresh();
+        return;
       }
     });
   }
@@ -321,13 +321,14 @@ export function ProgressPhotoManager({ initialRows, initialNextOffset, available
               variant="secondary"
               size="sm"
               className="h-8 rounded-md px-2.5 text-xs"
+              disabled={isPending}
               onClick={() => {
                 startTransition(async () => {
                   await ensureComparisonRows();
                 });
               }}
             >
-              Load Selected Dates
+              {isPending ? "Loading..." : "Load Selected Dates"}
             </Button>
           </>
         ) : (

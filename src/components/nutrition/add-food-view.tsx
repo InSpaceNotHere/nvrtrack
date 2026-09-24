@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -156,6 +156,8 @@ export function AddFoodView({
   const [favoriteKeys, setFavoriteKeys] = useState(() => new Set(favoriteIdentities.map((identity) => identity.key)));
   const [favoriteItems, setFavoriteItems] = useState(favoriteFoods);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const favoriteInFlight = useRef(new Set<string>());
+  const loggingRef = useRef(false);
 
   const mealLabel = MEAL_LABELS[mealType];
   const searching = query.trim().length > 0;
@@ -224,6 +226,10 @@ export function AddFoodView({
     if (!favoritesEnabled) {
       return;
     }
+    if (favoriteInFlight.current.has(identity.key)) {
+      return;
+    }
+    favoriteInFlight.current.add(identity.key);
     const nextFavorited = !favoriteKeys.has(identity.key);
     setFavoriteKeys((current) => {
       const next = new Set(current);
@@ -272,16 +278,19 @@ export function AddFoodView({
         }
         setMessage(sanitizeFavoritesUserMessage(result.message));
       }
+      favoriteInFlight.current.delete(identity.key);
     });
   }
 
   function handleLogSelected() {
-    if (!target) {
+    if (!target || isPending || loggingRef.current) {
       return;
     }
+    loggingRef.current = true;
     startTransition(async () => {
       if (target.kind === "catalog") {
         if (amountUnit === "servings") {
+          loggingRef.current = false;
           setErrorMessage("Choose grams, ounces, or serving.");
           return;
         }
@@ -293,11 +302,11 @@ export function AddFoodView({
           meal_type: mealType,
         });
         if (result.status === "error") {
+          loggingRef.current = false;
           setErrorMessage(result.message);
           return;
         }
         router.push(`/nutrition?date=${entryDate}`);
-        router.refresh();
         return;
       }
 
@@ -310,11 +319,11 @@ export function AddFoodView({
           servings: amountValue,
         });
         if (result.status === "error") {
+          loggingRef.current = false;
           setErrorMessage(result.message);
           return;
         }
         router.push(`/nutrition?date=${entryDate}`);
-        router.refresh();
         return;
       }
 
@@ -333,11 +342,11 @@ export function AddFoodView({
         fat_per_serving_g: String(target.entry.fat_per_serving_g),
       });
       if (result.status === "error") {
+        loggingRef.current = false;
         setErrorMessage(result.message);
         return;
       }
       router.push(`/nutrition?date=${entryDate}`);
-      router.refresh();
     });
   }
 
@@ -427,7 +436,7 @@ export function AddFoodView({
       <header className="flex items-center gap-3">
         <Link
           href={`/nutrition?date=${entryDate}`}
-          className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl text-sm font-medium text-zinc-200 hover:bg-white/8"
+          className="ds-press inline-flex h-10 min-w-10 items-center justify-center rounded-xl text-sm font-medium text-zinc-200 hover:bg-white/8"
         >
           Back
         </Link>
@@ -561,7 +570,7 @@ export function AddFoodView({
           <p className="text-sm text-zinc-400">Save a food from a nutrition label, then add it with the usual portion sheet.</p>
           <Link
             href={customFoodCreateHref({ meal: mealType, date: entryDate })}
-            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-white text-sm font-semibold text-black"
+            className="ds-press inline-flex h-12 w-full items-center justify-center rounded-2xl bg-white text-sm font-semibold text-black"
           >
             Create Custom Food
           </Link>

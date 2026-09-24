@@ -29,7 +29,7 @@ export function MobileBottomNav() {
               <Link
                 href={item.href}
                 className={cn(
-                  "flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-[0.7rem] text-[10px] transition-colors",
+                  "ds-press flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-[0.7rem] text-[10px] transition-colors",
                   active
                     ? "bg-[var(--ds-color-bg-elevated)] text-white"
                     : "text-zinc-500 hover:bg-white/5 hover:text-zinc-300 active:bg-white/10",

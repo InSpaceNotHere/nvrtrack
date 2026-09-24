@@ -105,10 +105,35 @@ test("home scheduled start does not duplicate workouts on repeated taps", async 
   const scheduledHeadline = await page.getByTestId("home-workout-name").innerText();
   const scheduledTemplateName = extractScheduledTemplateName(scheduledHeadline);
   await expect(page.getByTestId("home-workout-name")).toContainText(scheduledTemplateName);
-  const startButton = page.getByRole("button", { name: "Start Workout" }).first();
+  const startButton = page.getByTestId("home-start-scheduled");
   await expect(startButton).toBeVisible();
+  await expect(startButton).toHaveText("Start Workout");
 
-  await Promise.allSettled([startButton.click(), startButton.click()]);
+  // Native double-fire: Playwright's locator.click() waits for enabled, so a second
+  // overlapping click would stall on the pending/disabled Start button until timeout.
+  await startButton.evaluate((button) => {
+    (button as HTMLButtonElement).click();
+    (button as HTMLButtonElement).click();
+  });
+  await expect
+    .poll(async () => {
+      if (/\/training\/workouts\/[^/?]+/.test(page.url())) {
+        return "navigated";
+      }
+      try {
+        const text = (await startButton.textContent()) ?? "";
+        const disabled = await startButton.isDisabled();
+        if (text.includes("Starting") && disabled) {
+          return "pending";
+        }
+      } catch {
+        return "gone";
+      }
+      return "idle";
+    }, { timeout: 5000 })
+    .not.toBe("idle");
+  await startButton.click({ force: true }).catch(() => undefined);
+
   await expect
     .poll(async () => (await getActiveWorkouts(client, userId)).length, { timeout: 30000 })
     .toBe(1);
@@ -117,9 +142,15 @@ test("home scheduled start does not duplicate workouts on repeated taps", async 
   expect(activeWorkouts).toHaveLength(1);
   expect(activeWorkouts[0]?.name).toBeTruthy();
 
+  await expect(page).toHaveURL(/\/training\/workouts\/[^/?]+(?:\?.*)?$/, { timeout: 30000 });
+  await page.reload();
+  await expect(page.getByRole("heading", { name: activeWorkouts[0]!.name })).toBeVisible();
+
   await page.goto("/");
   await expect(page.getByRole("link", { name: "Resume Workout" })).toBeVisible();
+  await expect(page.getByTestId("home-start-scheduled")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Start Workout" })).toHaveCount(0);
+  await expect.poll(async () => (await getActiveWorkouts(client, userId)).length).toBe(1);
 });
 
 test("home prioritizes different active workout and returns to scheduled start when completed", async ({ page }) => {

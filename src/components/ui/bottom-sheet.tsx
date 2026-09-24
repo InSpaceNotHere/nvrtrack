@@ -17,12 +17,12 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center md:hidden">
-      <button type="button" aria-label="Close sheet" onClick={onClose} className="absolute inset-0 bg-black/70" />
+      <button type="button" aria-label="Close sheet" onClick={onClose} className="ds-sheet-backdrop absolute inset-0" />
       <section
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative w-full rounded-t-[var(--ds-radius-xl)] border border-white/10 bg-[var(--ds-color-bg-surface)] p-4 pb-5 shadow-[var(--ds-shadow-lg)]",
+          "ds-sheet-panel relative w-full rounded-t-[var(--ds-radius-xl)] border border-white/10 bg-[var(--ds-color-bg-surface)] p-4 pb-5 shadow-[var(--ds-shadow-lg)]",
           className,
         )}
       >

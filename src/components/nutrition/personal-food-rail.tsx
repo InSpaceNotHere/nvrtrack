@@ -39,7 +39,7 @@ export function PersonalFoodRail({
               <button
                 type="button"
                 onClick={() => onSelect(item)}
-                className={cn("min-h-[72px] flex-1 px-3 py-2.5 text-left", favoritesEnabled ? "pr-9" : "")}
+                className={cn("ds-press min-h-[72px] flex-1 px-3 py-2.5 text-left", favoritesEnabled ? "pr-9" : "")}
               >
                 <span className="line-clamp-2 break-words text-[13px] font-medium leading-4 text-white">{item.name}</span>
                 <span className="mt-1 block text-[11px] leading-4 text-zinc-400">
@@ -58,7 +58,7 @@ export function PersonalFoodRail({
                   onClick={() => onToggleFavorite(item)}
                   aria-label={favorited ? `Remove ${item.name} from favorites` : `Add ${item.name} to favorites`}
                   aria-pressed={favorited}
-                  className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 hover:bg-white/8 hover:text-zinc-200"
+                  className="ds-press absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 hover:bg-white/8 hover:text-zinc-200"
                 >
                   <Star className={cn("h-3.5 w-3.5", favorited ? "fill-amber-300 text-amber-300" : "fill-none")} aria-hidden="true" />
                 </button>

@@ -1,8 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 
 import {
@@ -36,7 +35,6 @@ interface CustomFoodFormProps {
 }
 
 export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: CustomFoodFormProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState(initial.name);
   const [brand, setBrand] = useState(initial.brand);
@@ -48,6 +46,7 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
   const [fat, setFat] = useState(initial.fat_g);
   const [errors, setErrors] = useState<SavedFoodFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const savingRef = useRef(false);
 
   const title = mode === "create" ? "Create Custom Food" : "Edit Custom Food";
   const submitLabel = mode === "create" ? "Save Food" : "Save Changes";
@@ -67,6 +66,9 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
   }
 
   function handleSubmit() {
+    if (savingRef.current || isPending) {
+      return;
+    }
     const next = payload();
     const local = normalizeSavedFoodInput(next);
     if (!local.data) {
@@ -77,21 +79,23 @@ export function CustomFoodForm({ mode, foodId, initial, cancelHref, onSaved }: C
 
     setErrors({});
     setFormError(null);
+    savingRef.current = true;
     startTransition(async () => {
       const result =
         mode === "edit" && foodId
           ? await updateSavedFoodAction(foodId, next)
           : await createSavedFoodAction(next);
       if (result.status === "error") {
+        savingRef.current = false;
         setErrors(result.errors);
         setFormError(result.message);
         return;
       }
       if (!result.food) {
+        savingRef.current = false;
         setFormError("Couldn't save this food.");
         return;
       }
-      router.refresh();
       onSaved(result.food.id);
     });
   }

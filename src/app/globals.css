@@ -183,3 +183,67 @@ body {
   color: var(--ds-color-text-secondary);
   font-weight: 500;
 }
+
+button,
+a,
+[role="button"],
+[role="tab"],
+[role="radio"] {
+  touch-action: manipulation;
+}
+
+.ds-press {
+  transition:
+    transform var(--ds-motion-fast) var(--ds-motion-ease),
+    opacity var(--ds-motion-fast) var(--ds-motion-ease),
+    background-color var(--ds-motion-fast) var(--ds-motion-ease);
+}
+
+.ds-press:active:not(:disabled) {
+  transform: scale(0.98);
+  opacity: 0.92;
+}
+
+.ds-sheet-backdrop {
+  background: rgba(0, 0, 0, 0.8);
+  animation: ds-sheet-backdrop-in var(--ds-motion-medium) var(--ds-motion-ease);
+}
+
+.ds-sheet-panel {
+  animation: ds-sheet-in var(--ds-motion-medium) var(--ds-motion-ease);
+}
+
+@keyframes ds-sheet-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ds-sheet-in {
+  from {
+    transform: translateY(18px);
+    opacity: 0.88;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-press,
+  .ds-sheet-backdrop,
+  .ds-sheet-panel,
+  .ds-row-out {
+    transition: none;
+    animation: none;
+  }
+
+  .ds-press:active:not(:disabled) {
+    transform: none;
+    opacity: 0.85;
+  }
+}

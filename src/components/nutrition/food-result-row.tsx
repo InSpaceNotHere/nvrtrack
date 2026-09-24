@@ -40,7 +40,7 @@ export function FoodResultRow({
         <button
           type="button"
           onClick={onSelect}
-          className="flex min-h-12 min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left hover:bg-white/[0.04]"
+          className="ds-press flex min-h-12 min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left hover:bg-white/[0.04]"
         >
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[15px] font-medium leading-5 text-white">{name}</span>
@@ -60,7 +60,7 @@ export function FoodResultRow({
             onClick={onToggleFavorite}
             aria-label={favorited ? `Remove ${name} from favorites` : `Add ${name} to favorites`}
             aria-pressed={favorited}
-            className="flex min-h-12 min-w-12 shrink-0 items-center justify-center text-zinc-500 hover:text-zinc-200"
+            className="ds-press flex min-h-12 min-w-12 shrink-0 items-center justify-center text-zinc-500 hover:text-zinc-200"
           >
             <Star className={cn("h-4 w-4", favorited ? "fill-amber-300 text-amber-300" : "fill-none")} aria-hidden="true" />
           </button>

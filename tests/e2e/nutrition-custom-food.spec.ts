@@ -42,9 +42,9 @@ function mealEntry(page: Page, name: string) {
 }
 
 test("create custom food, validate, log, favorite, edit snapshot, and delete without rewriting history", async ({
-  page,
+  browser,
 }) => {
-  await loginPrimary(page);
+  const page = await signupIsolatedUser(browser, `${Date.now()}`);
   const date = uniqueTestDate();
   const foodName = `Label Yogurt ${Date.now()}`;
   await page.goto(`/nutrition/add?meal=breakfast&date=${date}`);
