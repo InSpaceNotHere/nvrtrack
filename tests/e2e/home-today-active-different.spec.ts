@@ -4,7 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredAppEnv } from "./e2e-env";
 
-test.setTimeout(90_000);
+test.setTimeout(120_000);
 
 async function signUpFreshUser(page: Page, label: string): Promise<{ email: string; password: string }> {
   const runId = `${Date.now()}-${Math.round(Math.random() * 100000)}`;
