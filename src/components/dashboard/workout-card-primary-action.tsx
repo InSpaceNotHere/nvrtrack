@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import { startOrResumeTodayScheduledWorkoutAction } from "@/app/(protected)/actions/planner-actions";
 import { Toast } from "@/components/ui/toast";
@@ -26,6 +26,7 @@ export function WorkoutCardPrimaryActionButton({ action }: WorkoutCardPrimaryAct
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const startingRef = useRef(false);
 
   if (action.kind === "link") {
     return (
@@ -44,6 +45,10 @@ export function WorkoutCardPrimaryActionButton({ action }: WorkoutCardPrimaryAct
         type="button"
         disabled={isPending}
         onClick={() => {
+          if (startingRef.current) {
+            return;
+          }
+          startingRef.current = true;
           startTransition(async () => {
             setErrorMessage(null);
             const result = await startOrResumeTodayScheduledWorkoutAction();
@@ -51,6 +56,7 @@ export function WorkoutCardPrimaryActionButton({ action }: WorkoutCardPrimaryAct
               router.push(`/training/workouts/${result.workoutId}`);
               return;
             }
+            startingRef.current = false;
             setErrorMessage(result.message);
           });
         }}

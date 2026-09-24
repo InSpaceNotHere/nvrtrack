@@ -757,20 +757,18 @@ export function WorkoutLogger({
 
   function removeExercise(workoutExerciseId: string) {
     setMessage(null);
-    const previousRemoved = optimisticRemovedExerciseIds;
-    setOptimisticRemovedExerciseIds((current) =>
-      current.includes(workoutExerciseId) ? current : [...current, workoutExerciseId],
-    );
-    setOptimisticExercises((current) => current.filter((exercise) => exercise.id !== workoutExerciseId));
-    setDeleteExerciseConfirmId(null);
     startTransition(async () => {
       const result = await removeWorkoutExerciseAction(workout.id, workoutExerciseId);
       if (result.status === "success") {
         setSuccessMessage(result.message);
+        setOptimisticExercises((current) => current.filter((exercise) => exercise.id !== workoutExerciseId));
+        setOptimisticRemovedExerciseIds((current) =>
+          current.includes(workoutExerciseId) ? current : [...current, workoutExerciseId],
+        );
+        setDeleteExerciseConfirmId(null);
         return;
       }
 
-      setOptimisticRemovedExerciseIds(previousRemoved);
       setErrorMessage(result.message);
     });
   }
