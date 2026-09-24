@@ -687,6 +687,18 @@ export async function setWeekdaySchedule(
   return ok(asRow<WorkoutWeekdayScheduleRow>(created.data)!);
 }
 
+export async function clearWeekdayProgramSchedule(): Promise<DataAccessResult<WorkoutWeekdayScheduleRow[]>> {
+  const rows: WorkoutWeekdayScheduleRow[] = [];
+  for (let weekday = 0; weekday <= 6; weekday += 1) {
+    const result = await setWeekdaySchedule(weekday, { template_id: null, is_rest_day: false });
+    if (result.error) {
+      return result;
+    }
+    rows.push(result.data);
+  }
+  return ok(rows);
+}
+
 export async function setScheduleOverride(
   planDate: string,
   input: SetScheduleOverrideInput,

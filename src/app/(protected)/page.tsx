@@ -24,6 +24,7 @@ import { getWeightEntries } from "@/lib/data/weight";
 import { calculateDailyTotals } from "@/lib/nutrition/calculations";
 import { getTodayDateString } from "@/lib/nutrition/date";
 import { normalizeTimeZone } from "@/lib/timezone";
+import { hasAssignedWeeklyProgram } from "@/lib/training/current-program";
 import { resolveHomeTodayWorkout, formatTodayWorkoutHeadline } from "@/lib/training/home-today-workout";
 import { buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
 import { buildPlannerWeek, buildWeekDates, findPlannerDayForDate } from "@/lib/training/planner";
@@ -157,7 +158,7 @@ export default async function HomePage() {
 
   const todayPlan = findPlannerDayForDate(plannerWeek, todayDate);
   const tomorrowPlan = findPlannerDayForDate(tomorrowPlannerWeek, tomorrowDate);
-  const plannerUninitialized = (templatesResult.data ?? []).length === 0 && plannerWeek.every((day) => day.status === "none");
+  const plannerUninitialized = !hasAssignedWeeklyProgram(weekdayScheduleResult.data ?? []);
   const weekdayLabel = todayPlan?.weekday_label ?? new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(referenceDate);
   const resolvedTodayWorkout = resolveHomeTodayWorkout({
     todayDate,

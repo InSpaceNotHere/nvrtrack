@@ -1,9 +1,9 @@
 import Link from "next/link";
 
+import { TrainingHomeView } from "@/components/training/training-home-view";
 import { ReadyMadePlansLibrary } from "@/components/training/ready-made-plans-library";
 import { WorkoutPlanner } from "@/components/training/workout-planner";
 import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { StateChip } from "@/components/ui/state-chip";
 import { getExerciseCatalog } from "@/lib/data/exercise-catalog";
 import { getMyExercises } from "@/lib/data/exercises";
@@ -21,6 +21,7 @@ import {
   getMyRecentWorkouts,
   getWorkoutSetsForWorkoutExerciseIds,
 } from "@/lib/data/workouts";
+import { inferCurrentProgramSummary, hasAssignedWeeklyProgram } from "@/lib/training/current-program";
 import { sortWorkoutsForHistory } from "@/lib/training/calculations";
 import { buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
 import { buildWeekDates, buildPlannerWeek, findPlannerDayForDate } from "@/lib/training/planner";
@@ -72,16 +73,7 @@ interface TodayTrainingSummary {
   muscleFocus: string | null;
   actionLabel: string;
   actionHref: string | null;
-}
-
-function toState(status: string): "planned" | "completed" | "skipped" | "moved" | "rest" | "missing" | "active" {
-  if (status === "scheduled") return "planned";
-  if (status === "completed") return "completed";
-  if (status === "skipped") return "skipped";
-  if (status === "moved") return "moved";
-  if (status === "rest") return "rest";
-  if (status === "active") return "active";
-  return "missing";
+  startScheduled: boolean;
 }
 
 function toWeekStripStatus(status: string): WeekStripStatus {
@@ -116,25 +108,6 @@ function shortWorkoutLabel(label: string | null): string {
     return "—";
   }
   return label.length <= 8 ? label : `${label.slice(0, 8)}…`;
-}
-
-function shortStatusLabel(status: WeekStripStatus): string {
-  if (status === "completed") return "done";
-  if (status === "scheduled") return "plan";
-  if (status === "active") return "live";
-  if (status === "rest") return "rest";
-  if (status === "skipped") return "skip";
-  if (status === "moved") return "move";
-  return "none";
-}
-
-function weekStatusDotClass(status: WeekStripStatus): string {
-  if (status === "completed") return "bg-emerald-400";
-  if (status === "active") return "bg-[#87a3ff]";
-  if (status === "scheduled") return "bg-sky-400";
-  if (status === "rest") return "bg-zinc-500";
-  if (status === "skipped" || status === "moved") return "bg-amber-400";
-  return "bg-zinc-700";
 }
 
 function asSingleParam(value: string | string[] | undefined): string | undefined {
@@ -204,6 +177,7 @@ function applyFixturePresentation(
         muscleFocus: "Primary focus: chest, front delts, triceps",
         actionLabel: "Resume Workout",
         actionHref: "/training/workouts/fixture-active",
+        startScheduled: false,
       },
       weekStrip,
       completedThisWeek: 2,
@@ -233,6 +207,7 @@ function applyFixturePresentation(
         muscleFocus: "Primary focus: quads, glutes, hamstrings",
         actionLabel: "Start Workout",
         actionHref: "/training/start",
+        startScheduled: true,
       },
       weekStrip,
       completedThisWeek: 2,
@@ -255,6 +230,7 @@ function applyFixturePresentation(
         muscleFocus: "Primary focus: quads, glutes, hamstrings",
         actionLabel: "Start Workout",
         actionHref: "/training/start",
+        startScheduled: true,
       },
       weekStrip,
       completedThisWeek: 3,
@@ -277,6 +253,7 @@ function applyFixturePresentation(
         muscleFocus: null,
         actionLabel: "Open Program",
         actionHref: "/training?view=program",
+        startScheduled: false,
       },
       weekStrip,
       completedThisWeek: 4,
@@ -299,6 +276,7 @@ function applyFixturePresentation(
         muscleFocus: "Primary focus: quads, glutes, hamstrings",
         actionLabel: "View Summary",
         actionHref: "/training?view=history",
+        startScheduled: false,
       },
       weekStrip,
       completedThisWeek: 5,
@@ -320,6 +298,7 @@ function applyFixturePresentation(
       muscleFocus: null,
       actionLabel: "Open Program",
       actionHref: "/training?view=program",
+      startScheduled: false,
     },
     weekStrip,
     completedThisWeek: 0,
@@ -515,6 +494,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         muscleFocus: todayPlan ? buildPrimaryFocusLabel(todayPlan.muscle_targeting, 3) : null,
         actionLabel: todayPlannedActionLabel,
         actionHref: todayPlannedActionHref,
+        startScheduled: todayPlannedStatus === "scheduled",
       }
     : {
         status: activeWorkout ? "active" : todayPlannedStatus,
@@ -524,6 +504,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         muscleFocus: todayPlan ? buildPrimaryFocusLabel(todayPlan.muscle_targeting, 3) : null,
         actionLabel: activeWorkout ? "Resume Workout" : todayPlannedActionLabel,
         actionHref: activeWorkout ? `/training/workouts/${activeWorkout.id}` : todayPlannedActionHref,
+        startScheduled: !activeWorkout && todayPlannedStatus === "scheduled",
       };
 
   let weekStrip: WeekStripDay[] = plannerWeek.map((day) => ({
@@ -551,7 +532,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       }
     : null;
   let completedWeekCount = completedThisWeek;
-  let plannerUninitialized = (templatesResult.data ?? []).length === 0 && plannerWeek.every((day) => day.status === "none");
+  let plannerUninitialized = !hasAssignedWeeklyProgram(weekdayScheduleResult.data ?? []);
 
   let dedupeActiveAndToday = isActiveWorkoutSameAsToday;
 
@@ -571,33 +552,24 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   }
 
   const shouldRenderTodayCard = !activeSession || !dedupeActiveAndToday;
-
-  const tools = [
-    {
-      title: "Choose a Plan",
-      description: "Preset library",
-      href: "/training?view=plans",
-    },
-    {
-      title: "Manage Program",
-      description: "Planner + templates",
-      href: "/training?view=program",
-    },
-    {
-      title: "Workout History",
-      description: "Past sessions",
-      href: "/training?view=history",
-    },
-    {
-      title: "Exercise Library",
-      description: "Catalog + custom",
-      href: "/training/exercises",
-    },
-  ] as const;
+  const currentProgram = inferCurrentProgramSummary({
+    templates: templatesResult.data ?? [],
+    weekdayRows: weekdayScheduleResult.data ?? [],
+    weekDays: weekStrip,
+    todayDate,
+  });
+  const fixtureProgram = !plannerUninitialized
+    ? {
+        name: "Classic PPL",
+        frequencyLabel: "4 days / week",
+        splitLabel: "push / pull / legs",
+        nextLabel: "Fri · Pull",
+      }
+    : null;
 
   return (
-    <div className="mx-auto w-full max-w-[860px] space-y-2.5">
-      <PageHeader title="Training" />
+    <div className="mx-auto w-full max-w-[760px] space-y-3">
+      <h1 className="text-[15px] font-semibold tracking-tight text-white">Training</h1>
 
       {dataErrorMessage ? (
         <Card variant="tertiary">
@@ -723,166 +695,26 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
         </>
       ) : (
         <>
-          {fixture ? (
-            <Card variant="tertiary">
-              <div className="flex items-center justify-between gap-2">
-                <StateChip state="warning" label="Fixture Preview" className="text-[10px]" />
-                <p className="text-[11px] text-zinc-400">Deterministic state: {fixture}</p>
-              </div>
-            </Card>
-          ) : null}
-
-          {activeSession ? (
-            <Card title="Active Workout" variant="primary">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-base font-semibold text-zinc-100">{activeSession.workoutName}</p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                      <StateChip state="active" className="text-[10px]" />
-                      <p className="text-xs text-zinc-400">{activeSession.elapsedLabel}</p>
-                    </div>
-                  </div>
-                  <Link
-                    href={`/training/workouts/${activeSession.workoutId}`}
-                    className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
-                  >
-                    Resume Workout
-                  </Link>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs text-zinc-400">
-                  <p className="rounded-md border border-white/10 bg-black/20 px-2 py-1">Exercises: {activeSession.exerciseCount}</p>
-                  <p className="rounded-md border border-white/10 bg-black/20 px-2 py-1">Sets: {activeSession.completedSetCount}/{activeSession.totalSetCount}</p>
-                </div>
-              </div>
-            </Card>
-          ) : null}
-
-          {shouldRenderTodayCard ? (
-            <Card title="Today" variant="secondary">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="text-base font-semibold text-zinc-100">{todaySummary.workoutName}</p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                      <StateChip state={toState(todaySummary.status)} className="text-[10px]" />
-                      <p className="text-xs text-zinc-400">
-                        {todaySummary.exerciseCount} exercises
-                        {todaySummary.durationMinutes !== null ? ` • ~${todaySummary.durationMinutes} min` : ""}
-                      </p>
-                    </div>
-                  </div>
-                  {todaySummary.actionHref ? (
-                    <Link
-                      href={todaySummary.actionHref}
-                      className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-zinc-200"
-                    >
-                      {todaySummary.actionLabel}
-                    </Link>
-                  ) : null}
-                </div>
-                <p className="text-[11px] text-zinc-500">
-                  {todaySummary.muscleFocus ?? (todaySummary.status === "rest" ? "Recovery and mobility focus." : "Muscle focus updates after a plan is assigned.")}
-                </p>
-              </div>
-            </Card>
-          ) : null}
-
-          <Card title="This Week" variant="secondary">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-xs text-zinc-500">Completed this week: {completedWeekCount}</p>
-              <Link
-                href="/training?view=program"
-                className="inline-flex h-7 items-center justify-center rounded-md border border-white/15 px-2 text-[11px] font-medium text-zinc-100 transition-colors hover:bg-white/10"
-              >
-                Program
-              </Link>
-            </div>
-            <ul className="grid grid-cols-7 gap-1.5">
-              {weekStrip.map((day) => (
-                <li key={day.date} className="rounded-md border border-white/10 bg-black/20 px-1 py-1.5 text-center">
-                  <p className="text-[10px] uppercase tracking-[0.08em] text-zinc-500">{day.weekdayLabel}</p>
-                  <div className="mt-0.5 flex items-center justify-center gap-1 text-[9px] uppercase tracking-[0.06em] text-zinc-500">
-                    <span className={`h-1.5 w-1.5 rounded-full ${weekStatusDotClass(day.status)}`} aria-hidden="true" />
-                    <span>{shortStatusLabel(day.status)}</span>
-                  </div>
-                  <p className="mt-0.5 truncate text-[10px] text-zinc-300">{day.workoutLabel}</p>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card title="Training Tools" variant="tertiary">
-            <div className="grid grid-cols-2 gap-2">
-              {tools.map((tool) => (
-                <Link
-                  key={tool.title}
-                  href={tool.href}
-                  className="rounded-lg border border-white/12 bg-black/20 px-2 py-2 transition-colors hover:bg-white/10"
-                >
-                  <p className="text-xs font-semibold text-zinc-100">{tool.title}</p>
-                  <p className="text-[11px] text-zinc-500">{tool.description}</p>
-                </Link>
-              ))}
-            </div>
-          </Card>
-
-          <Card title="Recent Context" variant="tertiary">
-            {recentContext ? (
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-zinc-100">{recentContext.workoutName}</p>
-                  <p className="text-xs text-zinc-500">{formatDate(recentContext.workoutDate)}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Link
-                    href={recentContext.workoutHref}
-                    className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                  >
-                    Open
-                  </Link>
-                  <Link
-                    href="/training?view=history"
-                    className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                  >
-                    History
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm text-zinc-400">No completed workouts yet.</p>
-                <Link
-                  href="/training?view=history"
-                  className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                >
-                  View History
-                </Link>
-              </div>
-            )}
-          </Card>
-
-          {plannerUninitialized ? (
-            <Card variant="tertiary">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm text-zinc-300">Planner isn&apos;t configured yet.</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Link
-                    href="/training?view=program"
-                    className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                  >
-                    Create Starter Schedule
-                  </Link>
-                  <Link
-                    href="/training?view=plans"
-                    className="inline-flex h-8 items-center justify-center rounded-md border border-white/15 px-2.5 text-xs font-medium text-zinc-100 transition-colors hover:bg-white/10"
-                  >
-                    Choose a Plan
-                  </Link>
-                </div>
-              </div>
-            </Card>
-          ) : null}
+          <TrainingHomeView
+            fixtureLabel={fixture}
+            activeSession={activeSession}
+            hideTodayWhenActive={!shouldRenderTodayCard}
+            todaySummary={todaySummary}
+            program={fixture ? fixtureProgram : currentProgram}
+            hasAssignedProgram={!plannerUninitialized}
+            weekStrip={weekStrip}
+            todayDate={todayDate}
+            completedThisWeek={completedWeekCount}
+            recentWorkout={
+              recentContext
+                ? {
+                    workoutName: recentContext.workoutName,
+                    workoutDateLabel: formatDate(recentContext.workoutDate),
+                    workoutHref: recentContext.workoutHref,
+                  }
+                : null
+            }
+          />
         </>
       )}
     </div>

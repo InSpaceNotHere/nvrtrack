@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import {
   clearScheduleOverride,
+  clearWeekdayProgramSchedule,
   createWorkoutTemplate,
   duplicateWorkoutTemplate,
   getMyScheduleOverridesForRange,
@@ -16,6 +17,7 @@ import {
   setWeekdaySchedule,
   type WorkoutTemplateType,
 } from "@/lib/data/workout-planner";
+import { hasAssignedWeeklyProgram } from "@/lib/training/current-program";
 import { importReadyMadePreset } from "@/lib/data/ready-made-presets";
 import { getMyProfile } from "@/lib/data/profile";
 import {
@@ -141,6 +143,37 @@ export async function duplicateWorkoutTemplateAction(templateId: string): Promis
   return {
     status: "success",
     message: "Template duplicated.",
+  };
+}
+
+export async function removeCurrentProgramAction(): Promise<PlannerActionResult> {
+  const current = await getMyWeekdaySchedule();
+  if (current.error) {
+    return {
+      status: "error",
+      message: current.error.message,
+    };
+  }
+  if (!hasAssignedWeeklyProgram(current.data)) {
+    revalidatePlannerViews();
+    return {
+      status: "success",
+      message: "No program is currently assigned.",
+    };
+  }
+
+  const cleared = await clearWeekdayProgramSchedule();
+  if (cleared.error) {
+    return {
+      status: "error",
+      message: cleared.error.message,
+    };
+  }
+
+  revalidatePlannerViews();
+  return {
+    status: "success",
+    message: "Program removed from your schedule. Workout history is unchanged.",
   };
 }
 
@@ -394,7 +427,7 @@ export async function startOrResumeTodayScheduledWorkoutAction(): Promise<{
     referenceDate,
   });
   const todayPlan = findPlannerDayForDate(plannerWeek, todayDate);
-  const plannerUninitialized = (templatesResult.data ?? []).length === 0 && plannerWeek.every((day) => day.status === "none");
+  const plannerUninitialized = !hasAssignedWeeklyProgram(weekdayScheduleResult.data ?? []);
 
   const todaysCompletedWorkout = [...(completedWorkoutsResult.data ?? [])]
     .filter((workout) => workout.workout_date === todayDate && workout.completed_at !== null)
