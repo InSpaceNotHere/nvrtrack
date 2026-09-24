@@ -153,26 +153,12 @@ export function FoodPortionSheet({
   favorited = false,
   onToggleFavorite,
 }: FoodPortionSheetProps) {
-  const [keyboardInset, setKeyboardInset] = useState(0);
-  const [entered, setEntered] = useState(false);
-  const [visibleTarget, setVisibleTarget] = useState<PortionTarget | null>(open ? target : null);
-  const units = availableUnits(visibleTarget);
+  const units = availableUnits(target);
   const preview = useMemo(
-    () => (visibleTarget ? previewFromTarget(visibleTarget, amountValue, amountUnit) : null),
-    [amountUnit, amountValue, visibleTarget],
+    () => (target ? previewFromTarget(target, amountValue, amountUnit) : null),
+    [amountUnit, amountValue, target],
   );
-
-  useEffect(() => {
-    if (open && target) {
-      setVisibleTarget(target);
-      const frame = window.requestAnimationFrame(() => setEntered(true));
-      return () => window.cancelAnimationFrame(frame);
-    }
-    setEntered(false);
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const timer = window.setTimeout(() => setVisibleTarget(null), reduceMotion ? 0 : 220);
-    return () => window.clearTimeout(timer);
-  }, [open, target]);
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   useEffect(() => {
     if (!open) {
@@ -217,7 +203,7 @@ export function FoodPortionSheet({
     };
   }, [open, onClose]);
 
-  if (!visibleTarget) {
+  if (!open || !target) {
     return null;
   }
 
@@ -228,27 +214,25 @@ export function FoodPortionSheet({
         aria-label="Close portion"
         onClick={onClose}
         className="ds-sheet-backdrop absolute inset-0"
-        data-entered={entered ? "true" : "false"}
       />
       <section
         role="dialog"
         aria-modal="true"
-        aria-label={visibleTarget.name}
+        aria-label={target.name}
         className="ds-sheet-panel relative flex max-h-[100svh] w-full max-w-md flex-col overflow-hidden rounded-t-[1.75rem] border border-white/12 bg-[#10151f] shadow-[0_-18px_50px_rgba(0,0,0,0.55)] sm:rounded-3xl"
-        data-entered={entered ? "true" : "false"}
         style={{ marginBottom: keyboardInset }}
       >
         <div className="flex justify-center pt-2 sm:hidden">
           <div className="h-1.5 w-12 rounded-full bg-white/35" aria-hidden="true" />
         </div>
         <div className="flex items-start justify-between gap-3 px-4 pt-3">
-          <h2 className="text-lg font-semibold tracking-tight text-white">{visibleTarget.name}</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-white">{target.name}</h2>
           <div className="flex items-center">
             {onToggleFavorite ? (
               <button
                 type="button"
                 onClick={onToggleFavorite}
-                aria-label={favorited ? `Remove ${visibleTarget.name} from favorites` : `Add ${visibleTarget.name} to favorites`}
+                aria-label={favorited ? `Remove ${target.name} from favorites` : `Add ${target.name} to favorites`}
                 aria-pressed={favorited}
                 className="ds-press flex h-10 min-w-10 items-center justify-center text-zinc-500 hover:text-zinc-200"
               >

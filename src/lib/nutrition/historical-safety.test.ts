@@ -38,7 +38,7 @@ describe("historical nutrition logs stay snapshot-only", () => {
 
   it("renders diary names and calories from the stored entry, not a live catalog row", () => {
     const todayView = read("src/components/nutrition/nutrition-today-view.tsx");
-    expect(todayView).toContain("calculateDailyTotals(entries)");
+    expect(todayView).toContain("calculateDailyTotals(localEntries)");
     expect(todayView).toContain("calculateEntryTotals(entry)");
     expect(todayView).toContain("getFoodEntryDisplayName(entry)");
     expect(todayView).not.toMatch(/getActiveFoodCatalogById/);

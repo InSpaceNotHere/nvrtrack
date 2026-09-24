@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   deleteFoodEntryAction,
   updateCatalogFoodEntryAction,
@@ -69,10 +69,11 @@ export function NutritionTodayView({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [localEntries, setLocalEntries] = useState(entries);
-
-  useEffect(() => {
+  const [entriesSnapshot, setEntriesSnapshot] = useState(entries);
+  if (entries !== entriesSnapshot) {
+    setEntriesSnapshot(entries);
     setLocalEntries(entries);
-  }, [entries]);
+  }
 
   const previousDate = addDaysToDateString(selectedDate, -1);
   const nextDate = addDaysToDateString(selectedDate, 1);
