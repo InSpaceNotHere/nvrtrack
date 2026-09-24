@@ -135,7 +135,7 @@ test("training home empty state, program management, and remove keep history", a
         return { ok: false, gap: 0, historyOk: false, libraryOk: false };
       }
       const navBox = () => navEl.getBoundingClientRect();
-      const isAboveNav = (el: Element) => {
+      const isAboveNav = (el: HTMLElement) => {
         const box = el.getBoundingClientRect();
         return box.top >= 0 && box.bottom <= navBox().top + 1;
       };
