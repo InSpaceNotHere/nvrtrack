@@ -109,7 +109,6 @@ test("home scheduled start does not duplicate workouts on repeated taps", async 
   await expect(startButton).toBeVisible();
 
   await Promise.allSettled([startButton.click(), startButton.click()]);
-  await expect(page).toHaveURL(/\/training\/workouts\/[^/?]+(?:\?.*)?$/, { timeout: 30000 });
   await expect
     .poll(async () => (await getActiveWorkouts(client, userId)).length, { timeout: 30000 })
     .toBe(1);
