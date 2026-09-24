@@ -184,7 +184,7 @@ export function TrainingHomeView({
 
       {programVisible && program ? (
         <section data-testid="training-current-program" className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Current Program</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Current Program</p>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-base font-semibold text-white">{program.name}</p>
@@ -214,7 +214,7 @@ export function TrainingHomeView({
         </section>
       ) : (
         <section data-testid="training-no-program" className="space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Current Program</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Current Program</p>
           <p className="text-base font-semibold text-white">No program selected</p>
           <Link
             href="/training?view=plans"
@@ -231,7 +231,7 @@ export function TrainingHomeView({
 
       <section data-testid="training-week-strip" className="space-y-2">
         <div className="flex items-baseline justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">This Week</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">This Week</p>
           <p className="text-[11px] text-zinc-600">{completedThisWeek} done</p>
         </div>
         <ul className="grid grid-cols-7 gap-1">
@@ -259,7 +259,7 @@ export function TrainingHomeView({
       </section>
 
       <section className="space-y-1 border-t border-white/8 pt-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Training</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">More</p>
         <Link href="/training/history" className="flex h-10 items-center justify-between text-sm text-zinc-200">
           Workout History
           <span className="text-zinc-600">›</span>
@@ -272,7 +272,7 @@ export function TrainingHomeView({
 
       {recentWorkout ? (
         <section className="space-y-1 border-t border-white/8 pt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Recent</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Recent</p>
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-white">{recentWorkout.workoutName}</p>

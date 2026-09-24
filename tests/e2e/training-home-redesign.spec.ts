@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
+import fs from "node:fs";
 
 import { completeOnboardingIfNeeded } from "./complete-onboarding";
 import { requiredAppEnv } from "./e2e-env";
@@ -92,4 +93,28 @@ test("training home empty state, program management, and remove keep history", a
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Start Workout" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Resume Workout" })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.goto("/training?fixture=active-scheduled");
+  await page.screenshot({ path: "/opt/cursor/artifacts/training_redesign_active_390x664.png" });
+  await page.goto("/training?fixture=scheduled");
+  await page.screenshot({ path: "/opt/cursor/artifacts/training_redesign_scheduled_390x664.png" });
+  await page.goto("/training?fixture=rest");
+  await page.screenshot({ path: "/opt/cursor/artifacts/training_redesign_rest_390x664.png" });
+  await page.goto("/training?fixture=scheduled");
+  await page.getByTestId("training-remove-program").click();
+  await expect(page.getByTestId("training-remove-confirm")).toBeVisible();
+  await page.screenshot({ path: "/opt/cursor/artifacts/training_redesign_remove_confirm_390x664.png" });
+  await page.getByRole("button", { name: "Keep Program" }).click();
+  await page.goto("/training?fixture=uninitialized");
+  await page.screenshot({ path: "/opt/cursor/artifacts/training_redesign_no_program_390x664.png" });
+  const currentProgramShot = page.getByTestId("training-current-program");
+  await page.goto("/training?fixture=scheduled");
+  await expect(currentProgramShot).toBeVisible();
+  await page.screenshot({ path: "/opt/cursor/artifacts/training_redesign_current_program_390x664.png" });
+  const height = await page.evaluate(() => document.documentElement.scrollHeight);
+  fs.writeFileSync(
+    "/opt/cursor/artifacts/training_redesign_page_height.json",
+    JSON.stringify({ afterScrollHeight: height, viewport: "390x664" }, null, 2),
+  );
 });
