@@ -173,32 +173,87 @@ function buildSupabase(state: FakeState, counters: FakeCounters, userId = "user-
       },
       update(payload: Record<string, unknown>) {
         counters.update += 1;
-        const rows = filterRows(state[table] as Array<Record<string, unknown>>, filters);
-        for (const row of rows) {
-          Object.assign(row, payload);
-        }
         return {
           eq(key: string, value: unknown) {
             filters.push({ key, value });
             return this;
           },
-          select: async () => ({ data: rows[0] ?? null, error: null }),
-          maybeSingle: async () => ({ data: rows[0] ?? null, error: null }),
+          select() {
+            const apply = () => {
+              const rows = filterRows(state[table] as Array<Record<string, unknown>>, filters);
+              for (const row of rows) {
+                Object.assign(row, payload);
+              }
+              return rows;
+            };
+            return {
+              async maybeSingle() {
+                const rows = apply();
+                return { data: rows[0] ?? null, error: null };
+              },
+              then(
+                resolve: (value: { data: Record<string, unknown> | null; error: null }) => unknown,
+                reject?: (reason: unknown) => unknown,
+              ) {
+                const rows = apply();
+                return Promise.resolve({ data: rows[0] ?? null, error: null }).then(resolve, reject);
+              },
+            };
+          },
+          async maybeSingle() {
+            const rows = filterRows(state[table] as Array<Record<string, unknown>>, filters);
+            for (const row of rows) {
+              Object.assign(row, payload);
+            }
+            return { data: rows[0] ?? null, error: null };
+          },
         };
       },
       delete() {
         counters.delete += 1;
-        return {
+        const extra: Array<(row: Record<string, unknown>) => boolean> = [];
+        const api = {
           eq(key: string, value: unknown) {
             filters.push({ key, value });
             return this;
           },
-          async select() {
-            const rows = filterRows(state[table] as Array<Record<string, unknown>>, filters);
+          gte(key: string, value: string) {
+            extra.push((row) => String(row[key] ?? "") >= value);
+            return this;
+          },
+          neq(key: string, value: unknown) {
+            extra.push((row) => row[key] !== value);
+            return this;
+          },
+          select() {
+            const matching = () =>
+              (state[table] as Array<Record<string, unknown>>).filter(
+                (row) => filters.every((filter) => row[filter.key] === filter.value) && extra.every((fn) => fn(row)),
+              );
+            const apply = () => {
+              const rows = matching();
+              state[table] = (state[table] as Array<Record<string, unknown>>).filter((row) => !rows.includes(row)) as never;
+              return rows;
+            };
+            return {
+              async maybeSingle() {
+                const rows = apply();
+                return { data: rows[0] ?? null, error: null };
+              },
+              then(resolve: (value: { data: Record<string, unknown>[]; error: null }) => unknown, reject?: (reason: unknown) => unknown) {
+                return Promise.resolve({ data: apply(), error: null }).then(resolve, reject);
+              },
+            };
+          },
+          async maybeSingle() {
+            const rows = (state[table] as Array<Record<string, unknown>>).filter(
+              (row) => filters.every((filter) => row[filter.key] === filter.value) && extra.every((fn) => fn(row)),
+            );
             state[table] = (state[table] as Array<Record<string, unknown>>).filter((row) => !rows.includes(row)) as never;
             return { data: rows[0] ?? null, error: null };
           },
         };
+        return api;
       },
       upsert(payload: Array<Record<string, unknown>>) {
         counters.upsert += 1;
@@ -395,5 +450,94 @@ describe("workout planner data read/mutation boundaries", () => {
     expect(counters.update).toBe(0);
     expect(counters.delete).toBe(0);
     expect(counters.upsert).toBe(0);
+  });
+
+  it("clearWeekdayProgramSchedule only nulls weekday assignments and leaves templates in place", async () => {
+    const state = baseState();
+    state.workout_templates.push({
+      id: "template-1",
+      user_id: "user-1",
+      name: "Push",
+      template_type: "push",
+      estimated_duration_minutes: 45,
+      notes: null,
+      is_archived: false,
+      created_at: "2026-07-20T00:00:00.000Z",
+      updated_at: "2026-07-20T00:00:00.000Z",
+    });
+    state.workout_weekday_schedule.push({
+      id: "weekday-1",
+      user_id: "user-1",
+      weekday: 1,
+      template_id: "template-1",
+      is_rest_day: false,
+      created_at: "2026-07-20T00:00:00.000Z",
+      updated_at: "2026-07-20T00:00:00.000Z",
+    });
+    const counters: FakeCounters = { insert: 0, update: 0, delete: 0, upsert: 0 };
+    makeAuth(state, counters);
+
+    const result = await plannerModule.clearWeekdayProgramSchedule();
+
+    expect(result.error).toBeNull();
+    expect(state.workout_templates).toHaveLength(1);
+    expect(state.workout_weekday_schedule.every((row) => row.template_id === null && row.is_rest_day === false)).toBe(true);
+  });
+
+  it("clearOpenScheduleOverridesFrom removes open planner overrides but keeps completed ones", async () => {
+    const state = baseState();
+    const now = "2026-07-20T00:00:00.000Z";
+    state.workout_schedule_overrides.push(
+      {
+        id: "override-open",
+        user_id: "user-1",
+        plan_date: "2026-07-21",
+        template_id: "template-1",
+        status: "scheduled",
+        is_rest_day: false,
+        moved_to_date: null,
+        moved_from_date: null,
+        workout_id: null,
+        notes: null,
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: "override-completed",
+        user_id: "user-1",
+        plan_date: "2026-07-22",
+        template_id: "template-1",
+        status: "completed",
+        is_rest_day: false,
+        moved_to_date: null,
+        moved_from_date: null,
+        workout_id: "workout-1",
+        notes: null,
+        created_at: now,
+        updated_at: now,
+      },
+      {
+        id: "override-past",
+        user_id: "user-1",
+        plan_date: "2026-07-10",
+        template_id: "template-1",
+        status: "skipped",
+        is_rest_day: false,
+        moved_to_date: null,
+        moved_from_date: null,
+        workout_id: null,
+        notes: null,
+        created_at: now,
+        updated_at: now,
+      },
+    );
+    const counters: FakeCounters = { insert: 0, update: 0, delete: 0, upsert: 0 };
+    makeAuth(state, counters);
+
+    const result = await plannerModule.clearOpenScheduleOverridesFrom("2026-07-20");
+
+    expect(result.error).toBeNull();
+    expect(result.data?.deleted).toBe(1);
+    expect(state.workout_schedule_overrides.map((row) => row.id).sort()).toEqual(["override-completed", "override-past"]);
   });
 });

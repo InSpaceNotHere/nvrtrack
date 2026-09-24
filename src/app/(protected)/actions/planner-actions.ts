@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import {
+  clearOpenScheduleOverridesFrom,
   clearScheduleOverride,
   clearWeekdayProgramSchedule,
+  getTodayWeekPlannerSeed,
   createWorkoutTemplate,
   duplicateWorkoutTemplate,
   getMyScheduleOverridesForRange,
@@ -154,23 +156,39 @@ export async function removeCurrentProgramAction(): Promise<PlannerActionResult>
       message: current.error.message,
     };
   }
+  const weekSeed = await getTodayWeekPlannerSeed();
+  if (weekSeed.error) {
+    return {
+      status: "error",
+      message: weekSeed.error.message,
+    };
+  }
+
+  if (hasAssignedWeeklyProgram(current.data)) {
+    const cleared = await clearWeekdayProgramSchedule();
+    if (cleared.error) {
+      return {
+        status: "error",
+        message: cleared.error.message,
+      };
+    }
+  }
+
+  const overrides = await clearOpenScheduleOverridesFrom(weekSeed.data.startDate);
+  if (overrides.error) {
+    return {
+      status: "error",
+      message: overrides.error.message,
+    };
+  }
+
+  revalidatePlannerViews();
   if (!hasAssignedWeeklyProgram(current.data)) {
-    revalidatePlannerViews();
     return {
       status: "success",
       message: "No program is currently assigned.",
     };
   }
-
-  const cleared = await clearWeekdayProgramSchedule();
-  if (cleared.error) {
-    return {
-      status: "error",
-      message: cleared.error.message,
-    };
-  }
-
-  revalidatePlannerViews();
   return {
     status: "success",
     message: "Program removed from your schedule. Workout history is unchanged.",

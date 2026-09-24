@@ -22,6 +22,7 @@ import {
   getWorkoutSetsForWorkoutExerciseIds,
 } from "@/lib/data/workouts";
 import { inferCurrentProgramSummary, hasAssignedWeeklyProgram } from "@/lib/training/current-program";
+import { resolveNonProductionFixtureParam } from "@/lib/training/fixture-preview";
 import { sortWorkoutsForHistory } from "@/lib/training/calculations";
 import { buildPrimaryFocusLabel } from "@/lib/training/muscle-aggregation";
 import { buildWeekDates, buildPlannerWeek, findPlannerDayForDate } from "@/lib/training/planner";
@@ -312,8 +313,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   const view = asSingleParam(resolvedSearchParams.view);
   const presetParam = asSingleParam(resolvedSearchParams.preset);
   const fixtureParam = asSingleParam(resolvedSearchParams.fixture);
-  const allowFixturePreview = process.env.NODE_ENV !== "production";
-  const fixture = allowFixturePreview && isFixture(fixtureParam) ? fixtureParam : null;
+  const fixture = resolveNonProductionFixtureParam(fixtureParam, isFixture);
 
   const [activeWorkoutResult, recentWorkoutsResult, profileResult] = await Promise.all([
     getMyActiveWorkout(),
@@ -696,7 +696,6 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       ) : (
         <>
           <TrainingHomeView
-            fixtureLabel={fixture}
             activeSession={activeSession}
             hideTodayWhenActive={!shouldRenderTodayCard}
             todaySummary={todaySummary}

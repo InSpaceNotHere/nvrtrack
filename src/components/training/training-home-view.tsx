@@ -39,7 +39,6 @@ export interface TrainingTodaySummary {
 }
 
 interface TrainingHomeViewProps {
-  fixtureLabel: string | null;
   activeSession: TrainingActiveSession | null;
   hideTodayWhenActive: boolean;
   todaySummary: TrainingTodaySummary;
@@ -71,7 +70,6 @@ function weekDotClass(status: TrainingWeekStatus): string {
 }
 
 export function TrainingHomeView({
-  fixtureLabel,
   activeSession,
   hideTodayWhenActive,
   todaySummary,
@@ -87,6 +85,7 @@ export function TrainingHomeView({
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"success" | "error">("success");
   const [isPending, startTransition] = useTransition();
+  const [resuming, setResuming] = useState(false);
   const removingRef = useRef(false);
 
   const programVisible = hasAssignedProgram && !removed;
@@ -119,12 +118,6 @@ export function TrainingHomeView({
 
   return (
     <div className="space-y-5">
-      {fixtureLabel ? (
-        <p className="text-[11px] text-zinc-500">
-          Fixture preview: {fixtureLabel}
-        </p>
-      ) : null}
-
       {activeSession ? (
         <section data-testid="training-active-hero" className="rounded-3xl bg-gradient-to-b from-[#121a2c] to-[#0b0f18] px-4 py-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Now</p>
@@ -141,9 +134,11 @@ export function TrainingHomeView({
           </p>
           <Link
             href={`/training/workouts/${activeSession.workoutId}`}
+            aria-busy={resuming}
+            onClick={() => setResuming(true)}
             className="ds-press mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-white text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
           >
-            Resume Workout
+            {resuming ? "Resuming..." : "Resume Workout"}
           </Link>
           {showToday && !removed && today.status === "scheduled" ? (
             <p className="mt-2 text-[11px] text-zinc-500">Scheduled today: {today.workoutName}</p>
@@ -224,7 +219,7 @@ export function TrainingHomeView({
             Choose a Plan
           </Link>
           <Link href="/training?view=program" className="block text-center text-[12px] font-medium text-zinc-400">
-            Create / Manage Custom Program
+            Create Your Own Program
           </Link>
         </section>
       )}
@@ -234,14 +229,14 @@ export function TrainingHomeView({
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">This Week</p>
           <p className="text-[11px] text-zinc-600">{completedThisWeek} done</p>
         </div>
-        <ul className="grid grid-cols-7 gap-1">
+        <ul className="grid min-w-0 grid-cols-7 gap-1 overflow-hidden">
           {(removed ? weekStrip.map((day) => ({ ...day, status: day.status === "completed" ? day.status : ("none" as const), workoutLabel: day.status === "completed" ? day.workoutLabel : "—" })) : weekStrip).map(
             (day) => {
               const isToday = day.date === todayDate;
               return (
                 <li
                   key={day.date}
-                  className={`px-0.5 py-1 text-center ${isToday ? "rounded-lg bg-white/6" : ""}`}
+                  className={`min-w-0 px-0.5 py-1 text-center ${isToday ? "rounded-lg bg-white/6" : ""}`}
                 >
                   <p className={`text-[10px] uppercase tracking-[0.08em] ${isToday ? "text-zinc-200" : "text-zinc-600"}`}>
                     {day.weekdayLabel}
@@ -260,11 +255,19 @@ export function TrainingHomeView({
 
       <section className="space-y-1 border-t border-white/8 pt-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">More</p>
-        <Link href="/training/history" className="flex h-10 items-center justify-between text-sm text-zinc-200">
+        <Link
+          href="/training/history"
+          data-testid="training-workout-history"
+          className="flex h-10 items-center justify-between text-sm text-zinc-200"
+        >
           Workout History
           <span className="text-zinc-600">›</span>
         </Link>
-        <Link href="/training/exercises" className="flex h-10 items-center justify-between text-sm text-zinc-200">
+        <Link
+          href="/training/exercises"
+          data-testid="training-exercise-library"
+          className="flex h-10 items-center justify-between text-sm text-zinc-200"
+        >
           Exercise Library
           <span className="text-zinc-600">›</span>
         </Link>
