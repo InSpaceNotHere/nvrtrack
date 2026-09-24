@@ -173,17 +173,40 @@ function buildSupabase(state: FakeState, counters: FakeCounters, userId = "user-
       },
       update(payload: Record<string, unknown>) {
         counters.update += 1;
-        const rows = filterRows(state[table] as Array<Record<string, unknown>>, filters);
-        for (const row of rows) {
-          Object.assign(row, payload);
-        }
         return {
           eq(key: string, value: unknown) {
             filters.push({ key, value });
             return this;
           },
-          select: async () => ({ data: rows[0] ?? null, error: null }),
-          maybeSingle: async () => ({ data: rows[0] ?? null, error: null }),
+          select() {
+            const apply = () => {
+              const rows = filterRows(state[table] as Array<Record<string, unknown>>, filters);
+              for (const row of rows) {
+                Object.assign(row, payload);
+              }
+              return rows;
+            };
+            return {
+              async maybeSingle() {
+                const rows = apply();
+                return { data: rows[0] ?? null, error: null };
+              },
+              then(
+                resolve: (value: { data: Record<string, unknown> | null; error: null }) => unknown,
+                reject?: (reason: unknown) => unknown,
+              ) {
+                const rows = apply();
+                return Promise.resolve({ data: rows[0] ?? null, error: null }).then(resolve, reject);
+              },
+            };
+          },
+          async maybeSingle() {
+            const rows = filterRows(state[table] as Array<Record<string, unknown>>, filters);
+            for (const row of rows) {
+              Object.assign(row, payload);
+            }
+            return { data: rows[0] ?? null, error: null };
+          },
         };
       },
       delete() {
