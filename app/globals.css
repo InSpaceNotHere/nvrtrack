@@ -83,12 +83,11 @@ button:disabled {
   color: #102440;
 }
 
-.brand-mark {
-  font-size: 28px;
-  font-style: italic;
-  font-weight: 900;
-  letter-spacing: -0.11em;
-  line-height: 1;
+.brand-logo {
+  display: block;
+  width: 62px;
+  height: auto;
+  image-rendering: auto;
 }
 
 .brand-divider {
@@ -124,8 +123,6 @@ button:disabled {
 
 .intro {
   display: flex;
-  justify-content: space-between;
-  gap: 36px;
   align-items: center;
   padding: 26px 0 20px;
 }
@@ -172,20 +169,6 @@ p {
   flex: 1 1 auto;
 }
 
-.benefits {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(142px, 1fr));
-  gap: 22px;
-}
-
-.benefit {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.benefit-icon,
 .section-icon {
   display: grid;
   flex: 0 0 auto;
@@ -197,18 +180,6 @@ p {
   background: var(--accent-soft);
   font-size: 16px;
   font-weight: 850;
-}
-
-.benefit > span:last-child {
-  display: grid;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.3;
-}
-
-.benefit strong {
-  color: var(--text);
-  font-size: 14px;
 }
 
 .sample-card {
@@ -245,6 +216,19 @@ p {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.preset-button.selected,
+.preset-button[aria-pressed="true"] {
+  color: #fff;
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 2px 6px rgb(37 121 237 / 20%);
+}
+
+.preset-button.selected:hover,
+.preset-button[aria-pressed="true"]:hover {
+  background: var(--accent-dark);
 }
 
 .workspace {
@@ -316,6 +300,19 @@ label {
   font-weight: 700;
 }
 
+.label-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-weight: 700;
+}
+
+.required-indicator {
+  color: #52657a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .hint {
   color: var(--muted);
   font-size: 14px;
@@ -339,6 +336,7 @@ textarea {
   border: 1px solid #c5d1df;
   border-radius: 6px;
   background: #fff;
+  font-weight: 400;
   box-shadow: 0 1px 2px rgb(23 41 63 / 2%);
   transition:
     border-color 120ms ease,
@@ -676,12 +674,6 @@ textarea:focus {
     font-size: 30px;
   }
 
-  .benefits {
-    width: 100%;
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
   .sample-actions,
   .export-actions {
     display: grid;
@@ -728,8 +720,8 @@ textarea:focus {
     gap: 9px;
   }
 
-  .brand-mark {
-    font-size: 24px;
+  .brand-logo {
+    width: 56px;
   }
 
   .brand-divider {

@@ -12,6 +12,7 @@ import { SAMPLES } from "@/lib/samples";
 
 type Tab = "social" | "email" | "video";
 type ResultSource = "sample" | "live";
+const SAMPLE_LABELS = ["Handyman", "Event services", "Fitness coach"] as const;
 
 const fieldLimits: Record<keyof CampaignInput, number | undefined> = {
   businessName: 120,
@@ -32,6 +33,7 @@ export default function Home() {
   const [pack, setPack] = useState<ContentPack | null>(null);
   const [snapshot, setSnapshot] = useState<CampaignInput | null>(null);
   const [source, setSource] = useState<ResultSource | null>(null);
+  const [selectedSampleId, setSelectedSampleId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("social");
   const [loading, setLoading] = useState(false);
   const [edited, setEdited] = useState(false);
@@ -55,6 +57,7 @@ export default function Home() {
     value: CampaignInput[K],
   ) {
     setInput((current) => ({ ...current, [key]: value }));
+    setSelectedSampleId(null);
     setFieldErrors([]);
     setMessage("");
   }
@@ -71,9 +74,10 @@ export default function Home() {
     setPack(structuredClone(sample.pack));
     setSnapshot({ ...sample.input });
     setSource("sample");
+    setSelectedSampleId(sample.id);
     setEdited(false);
     setFieldErrors([]);
-    setMessage(`${sample.label} loaded locally. No AI request was made.`);
+    setMessage("");
     setTab("social");
   }
 
@@ -83,6 +87,7 @@ export default function Home() {
     setPack(null);
     setSnapshot(null);
     setSource(null);
+    setSelectedSampleId(null);
     setEdited(false);
     setFieldErrors([]);
     setMessage("Workbench reset.");
@@ -136,6 +141,7 @@ export default function Home() {
       setPack(data.pack);
       setSnapshot(submitted);
       setSource("live");
+      setSelectedSampleId(null);
       setEdited(false);
       setMessage("Live content pack generated from the submitted snapshot.");
       setTab("social");
@@ -183,7 +189,13 @@ export default function Home() {
       <header className="site-header">
         <div className="shell header-inner">
           <div className="brand" aria-label="NVR Content">
-            <span className="brand-mark">NVR</span>
+            <img
+              className="brand-logo"
+              src="/nvr-shared-logo.png"
+              width="84"
+              height="30"
+              alt="NVR"
+            />
             <span className="brand-divider" aria-hidden="true" />
             <span className="brand-product">NVR Content</span>
           </div>
@@ -200,37 +212,26 @@ export default function Home() {
             <h1 id="page-title">Turn your business ideas into content.</h1>
             <p>Choose an example. Review the drafts. Edit and copy.</p>
           </div>
-          <div className="benefits" aria-label="How this workbench helps">
-            <div className="benefit">
-              <span className="benefit-icon" aria-hidden="true">↗</span>
-              <span><strong>Start faster</strong>Use prepared examples</span>
-            </div>
-            <div className="benefit">
-              <span className="benefit-icon" aria-hidden="true">▤</span>
-              <span><strong>Multiple formats</strong>Posts, email, video</span>
-            </div>
-            <div className="benefit">
-              <span className="benefit-icon" aria-hidden="true">✓</span>
-              <span><strong>You’re in control</strong>Review and edit</span>
-            </div>
-          </div>
         </section>
 
         <section className="sample-card" aria-labelledby="samples-title">
           <div>
             <span className="sample-kicker">Prepared examples</span>
             <h2 id="samples-title">Choose a fictional sample</h2>
-            <p>Loads instantly with no AI call.</p>
+            <p>Prepared examples are ready to review.</p>
           </div>
           <div className="sample-actions">
             {SAMPLES.map((sample, index) => (
               <button
-                className="button secondary"
+                className={`button secondary preset-button ${
+                  selectedSampleId === sample.id ? "selected" : ""
+                }`}
                 type="button"
                 key={sample.id}
+                aria-pressed={selectedSampleId === sample.id}
                 onClick={() => loadSample(index)}
               >
-                {sample.label}
+                {SAMPLE_LABELS[index]}
               </button>
             ))}
           </div>
@@ -258,7 +259,9 @@ export default function Home() {
             </div>
 
             <label>
-              Business name <span aria-hidden="true">*</span>
+              <span className="label-title">
+                Business name <strong className="required-indicator">Required</strong>
+              </span>
               <input
                 required
                 maxLength={fieldLimits.businessName}
@@ -269,7 +272,9 @@ export default function Home() {
               />
             </label>
             <label>
-              Business facts <span aria-hidden="true">*</span>
+              <span className="label-title">
+                Business facts <strong className="required-indicator">Required</strong>
+              </span>
               <span className="hint">
                 Services, location, and other approved information
               </span>
@@ -284,7 +289,9 @@ export default function Home() {
               />
             </label>
             <label>
-              Target audience <span aria-hidden="true">*</span>
+              <span className="label-title">
+                Target audience <strong className="required-indicator">Required</strong>
+              </span>
               <input
                 required
                 maxLength={fieldLimits.targetAudience}
@@ -303,7 +310,10 @@ export default function Home() {
               </div>
             </div>
             <label>
-              Topic or offer to promote <span aria-hidden="true">*</span>
+              <span className="label-title">
+                Topic or offer to promote
+                <strong className="required-indicator">Required</strong>
+              </span>
               <textarea
                 required
                 rows={3}
@@ -327,7 +337,9 @@ export default function Home() {
                 </select>
               </label>
               <label>
-                Desired next action <span className="optional">Optional</span>
+                <span className="label-title">
+                  Desired next action <span className="optional">Optional</span>
+                </span>
                 <span className="hint">For example, “Request a quote.”</span>
                 <input
                   maxLength={fieldLimits.nextAction}
@@ -339,7 +351,9 @@ export default function Home() {
               </label>
             </div>
             <label>
-              Things to avoid <span className="optional">Optional</span>
+              <span className="label-title">
+                Things to avoid <span className="optional">Optional</span>
+              </span>
               <span className="hint">For example, “Do not mention discounts.”</span>
               <textarea
                 rows={3}
@@ -366,8 +380,8 @@ export default function Home() {
               {loading ? "Generating…" : "Generate content"}
             </button>
             <p className="privacy-note">
-              Samples stay local. Live generation sends submitted fields to the
-              configured OpenAI model; credentials remain server-side.
+              Live AI is not connected in this sample. If configured, submitted
+              fields are sent to OpenAI.
             </p>
           </form>
 
@@ -412,10 +426,7 @@ export default function Home() {
                   ✦
                 </div>
                 <h3>Start with your details or a Sample Demo</h3>
-                <p>
-                  Custom live generation needs a server-side provider key. The app
-                  still starts and all three prepared demos work without one.
-                </p>
+                <p>Choose a prepared example or add your own details to begin.</p>
               </div>
             ) : (
               <>

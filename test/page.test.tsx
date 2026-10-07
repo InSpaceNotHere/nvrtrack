@@ -36,19 +36,15 @@ describe("portfolio workbench", () => {
     expect(
       screen.getByText("Choose an example. Review the drafts. Edit and copy."),
     ).toBeVisible();
-    await user.click(
-      screen.getByRole("button", { name: "Sample Demo: Handyman service" }),
-    );
-    expect(screen.getByText(/loaded locally/i)).toBeInTheDocument();
+    const handyman = screen.getByRole("button", { name: "Handyman" });
+    await user.click(handyman);
+    expect(handyman).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByText(/loaded locally/i)).not.toBeInTheDocument();
     expect(
       (screen.getByLabelText("Social post 1") as HTMLTextAreaElement).value,
     ).toContain("Small fixes");
 
-    await user.click(
-      screen.getByRole("button", {
-        name: "Sample Demo: Event-service business",
-      }),
-    );
+    await user.click(screen.getByRole("button", { name: "Event services" }));
     expect(
       (screen.getByLabelText("Social post 1") as HTMLTextAreaElement).value,
     ).toContain("strong event plan");
@@ -56,15 +52,13 @@ describe("portfolio workbench", () => {
 
     await user.click(screen.getByRole("button", { name: "Reset" }));
     expect(screen.queryByLabelText("Social post 1")).not.toBeInTheDocument();
-    expect(screen.getByText(/starts and all three prepared demos work/i)).toBeVisible();
+    expect(screen.getByText(/choose a prepared example/i)).toBeVisible();
   });
 
   it("marks drafts stale and keeps harmless HTML as editable text", async () => {
     const user = userEvent.setup();
     render(<Home />);
-    await user.click(
-      screen.getByRole("button", { name: "Sample Demo: Handyman service" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Handyman" }));
     await user.type(screen.getByLabelText(/Business name/), " updated");
     expect(screen.getByText(/drafts stale/i)).toBeVisible();
 
@@ -84,9 +78,7 @@ describe("portfolio workbench", () => {
       return "blob:test";
     });
     render(<Home />);
-    await user.click(
-      screen.getByRole("button", { name: "Sample Demo: Handyman service" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Handyman" }));
 
     const post = screen.getByLabelText("Social post 1");
     await user.clear(post);
@@ -121,15 +113,11 @@ describe("portfolio workbench", () => {
       }),
     );
     render(<Home />);
-    await user.click(
-      screen.getByRole("button", { name: "Sample Demo: Handyman service" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Handyman" }));
     await user.click(screen.getByRole("button", { name: "Generate content" }));
     expect(screen.getByRole("button", { name: "Generating…" })).toBeDisabled();
 
-    await user.click(
-      screen.getByRole("button", { name: "Sample Demo: Fitness coach" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Fitness coach" }));
     resolveFetch(
       new Response(JSON.stringify({ pack: livePack }), {
         status: 200,
