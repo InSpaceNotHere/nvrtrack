@@ -714,11 +714,14 @@ textarea:focus {
 
 @media (max-width: 520px) {
   .site-header {
-    min-height: 60px;
+    min-height: 96px;
   }
 
   .header-inner {
-    gap: 10px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding-block: 10px;
   }
 
   .brand {
@@ -738,7 +741,6 @@ textarea:focus {
   }
 
   .demo-badge {
-    max-width: 132px;
     min-height: 34px;
     padding: 6px 9px;
     font-size: 12px;
