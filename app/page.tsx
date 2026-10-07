@@ -181,25 +181,46 @@ export default function Home() {
   return (
     <main>
       <header className="site-header">
-        <div className="shell brand">NVR | NVR Content</div>
+        <div className="shell header-inner">
+          <div className="brand" aria-label="NVR Content">
+            <span className="brand-mark">NVR</span>
+            <span className="brand-divider" aria-hidden="true" />
+            <span className="brand-product">NVR Content</span>
+          </div>
+          <div className="demo-badge">
+            <span aria-hidden="true">◆</span>
+            Sample demo · Prepared data
+          </div>
+        </div>
       </header>
 
       <div className="shell">
         <section className="intro" aria-labelledby="page-title">
-          <div>
+          <div className="intro-copy">
             <h1 id="page-title">Turn your business ideas into content.</h1>
             <p>Add your business details. Generate drafts. Review before sharing.</p>
           </div>
-          <div className="review-note" role="note">
-            <strong>Review before sharing</strong>
-            <span>Drafts may need edits and are never automatically approved.</span>
+          <div className="benefits" aria-label="How this workbench helps">
+            <div className="benefit">
+              <span className="benefit-icon" aria-hidden="true">↗</span>
+              <span><strong>Start faster</strong>Use prepared examples</span>
+            </div>
+            <div className="benefit">
+              <span className="benefit-icon" aria-hidden="true">▤</span>
+              <span><strong>Multiple formats</strong>Posts, email, video</span>
+            </div>
+            <div className="benefit">
+              <span className="benefit-icon" aria-hidden="true">✓</span>
+              <span><strong>You’re in control</strong>Review and edit</span>
+            </div>
           </div>
         </section>
 
         <section className="sample-card" aria-labelledby="samples-title">
           <div>
-            <h2 id="samples-title">Try a fictional Sample Demo</h2>
-            <p>Prepared examples load locally and never call AI.</p>
+            <span className="sample-kicker">Prepared examples</span>
+            <h2 id="samples-title">Choose a fictional sample</h2>
+            <p>Loads instantly with no AI call.</p>
           </div>
           <div className="sample-actions">
             {SAMPLES.map((sample, index) => (
@@ -224,9 +245,12 @@ export default function Home() {
             }}
           >
             <div className="section-heading">
-              <div>
+              <div className="heading-with-icon">
+                <span className="section-icon" aria-hidden="true">▤</span>
+                <div>
                 <h2>Business details</h2>
                 <p>Use only information you approve for draft content.</p>
+                </div>
               </div>
               <button className="text-button" type="button" onClick={reset}>
                 Reset
@@ -271,7 +295,13 @@ export default function Home() {
               />
             </label>
 
-            <h2 className="campaign-title">This campaign</h2>
+            <div className="campaign-title">
+              <span className="section-icon" aria-hidden="true">↗</span>
+              <div>
+                <h2>This campaign</h2>
+                <p>Tell us what you want to promote.</p>
+              </div>
+            </div>
             <label>
               Topic or offer to promote <span aria-hidden="true">*</span>
               <textarea
@@ -282,30 +312,32 @@ export default function Home() {
                 onChange={(event) => updateInput("topic", event.target.value)}
               />
             </label>
-            <label>
-              Tone
-              <select
-                value={input.tone}
-                onChange={(event) =>
-                  updateInput("tone", event.target.value as CampaignInput["tone"])
-                }
-              >
-                <option>Friendly</option>
-                <option>Professional</option>
-                <option>Direct</option>
-              </select>
-            </label>
-            <label>
-              Desired next action <span className="optional">Optional</span>
-              <span className="hint">For example, “Request a quote.”</span>
-              <input
-                maxLength={fieldLimits.nextAction}
-                value={input.nextAction}
-                onChange={(event) =>
-                  updateInput("nextAction", event.target.value)
-                }
-              />
-            </label>
+            <div className="campaign-row">
+              <label>
+                Tone
+                <select
+                  value={input.tone}
+                  onChange={(event) =>
+                    updateInput("tone", event.target.value as CampaignInput["tone"])
+                  }
+                >
+                  <option>Friendly</option>
+                  <option>Professional</option>
+                  <option>Direct</option>
+                </select>
+              </label>
+              <label>
+                Desired next action <span className="optional">Optional</span>
+                <span className="hint">For example, “Request a quote.”</span>
+                <input
+                  maxLength={fieldLimits.nextAction}
+                  value={input.nextAction}
+                  onChange={(event) =>
+                    updateInput("nextAction", event.target.value)
+                  }
+                />
+              </label>
+            </div>
             <label>
               Things to avoid <span className="optional">Optional</span>
               <span className="hint">For example, “Do not mention discounts.”</span>
@@ -334,22 +366,25 @@ export default function Home() {
               {loading ? "Generating…" : "Generate content"}
             </button>
             <p className="privacy-note">
-              Live generation sends this submitted data to the configured OpenAI
-              model. Credentials stay on the server. Sample Demos stay local.
+              Samples stay local. Live generation sends submitted fields to the
+              configured OpenAI model; credentials remain server-side.
             </p>
           </form>
 
           <section className="card output-card" aria-labelledby="drafts-title">
             <div className="section-heading output-heading">
-              <div>
-                <h2 id="drafts-title">Content pack</h2>
-                <p>
-                  {source === "sample"
-                    ? "Fictional Sample Demo result"
-                    : source === "live"
-                      ? "Live AI draft"
-                      : "Your drafts will appear here."}
-                </p>
+              <div className="heading-with-icon">
+                <span className="section-icon" aria-hidden="true">▤</span>
+                <div>
+                  <h2 id="drafts-title">Your content drafts</h2>
+                  <p>
+                    {source === "sample"
+                      ? "Prepared sample · Review and edit below."
+                      : source === "live"
+                        ? "Live AI draft · Review and edit below."
+                        : "Review, edit, and export your content here."}
+                  </p>
+                </div>
               </div>
               {pack && (
                 <span className={`status-badge ${stale ? "stale" : ""}`}>
@@ -359,7 +394,14 @@ export default function Home() {
             </div>
 
             {message && (
-              <div className="message" role="status">
+              <div
+                className={`message ${
+                  /failed|not configured|correct|too many|timed out/i.test(message)
+                    ? "warning"
+                    : ""
+                }`}
+                role="status"
+              >
                 {message}
               </div>
             )}
@@ -420,7 +462,12 @@ export default function Home() {
                     {pack.socialPosts.map((post, index) => (
                       <article className="draft" key={index}>
                         <div className="draft-heading">
-                          <h3>Social post {index + 1}</h3>
+                          <h3>
+                            <span className="draft-number" aria-hidden="true">
+                              {index + 1}
+                            </span>
+                            Social post {index + 1}
+                          </h3>
                           <button
                             className="text-button"
                             type="button"
@@ -432,6 +479,7 @@ export default function Home() {
                           </button>
                         </div>
                         <textarea
+                          className="draft-textarea"
                           aria-label={`Social post ${index + 1}`}
                           rows={7}
                           value={post}
@@ -478,6 +526,7 @@ export default function Home() {
                     <label>
                       Body
                       <textarea
+                        className="draft-textarea email-body"
                         rows={14}
                         value={pack.email.body}
                         onChange={(event) =>
@@ -506,6 +555,7 @@ export default function Home() {
                       </button>
                     </div>
                     <textarea
+                      className="draft-textarea video-body"
                       aria-label="Video script"
                       rows={12}
                       value={pack.videoScript}
@@ -529,9 +579,12 @@ export default function Home() {
               </>
             )}
 
-            <div className="persistent-review">
-              <strong>Review before sharing.</strong> Check every claim, link, and
-              call to action before using a draft.
+            <div className="persistent-review" role="note">
+              <span className="review-icon" aria-hidden="true">i</span>
+              <span>
+                <strong>Review before sharing.</strong> Check every claim, link,
+                and call to action before using a draft.
+              </span>
             </div>
           </section>
         </div>
