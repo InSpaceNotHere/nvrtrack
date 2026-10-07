@@ -218,16 +218,16 @@ p {
   gap: 8px;
 }
 
-.preset-button.selected,
-.preset-button[aria-pressed="true"] {
+.button.secondary.preset-button.selected,
+.button.secondary.preset-button[aria-pressed="true"] {
   color: #fff;
   border-color: var(--accent);
   background: var(--accent);
   box-shadow: 0 2px 6px rgb(37 121 237 / 20%);
 }
 
-.preset-button.selected:hover,
-.preset-button[aria-pressed="true"]:hover {
+.button.secondary.preset-button.selected:hover,
+.button.secondary.preset-button[aria-pressed="true"]:hover {
   background: var(--accent-dark);
 }
 
