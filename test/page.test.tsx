@@ -33,6 +33,9 @@ describe("portfolio workbench", () => {
     const user = userEvent.setup();
     render(<Home />);
 
+    expect(
+      screen.getByText("Choose an example. Review the drafts. Edit and copy."),
+    ).toBeVisible();
     await user.click(
       screen.getByRole("button", { name: "Sample Demo: Handyman service" }),
     );

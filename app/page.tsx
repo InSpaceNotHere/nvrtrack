@@ -198,7 +198,7 @@ export default function Home() {
         <section className="intro" aria-labelledby="page-title">
           <div className="intro-copy">
             <h1 id="page-title">Turn your business ideas into content.</h1>
-            <p>Add your business details. Generate drafts. Review before sharing.</p>
+            <p>Choose an example. Review the drafts. Edit and copy.</p>
           </div>
           <div className="benefits" aria-label="How this workbench helps">
             <div className="benefit">
