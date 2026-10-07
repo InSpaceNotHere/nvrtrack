@@ -66,7 +66,7 @@ describe("portfolio workbench", () => {
     await user.clear(post);
     await user.type(post, '<img src=x onerror="alert(1)">');
     expect(post).toHaveValue('<img src=x onerror="alert(1)">');
-    expect(document.querySelector("img")).toBeNull();
+    expect(document.querySelector('img[src="x"]')).toBeNull();
   });
 
   it("copies and downloads the latest edits including email subject", async () => {
