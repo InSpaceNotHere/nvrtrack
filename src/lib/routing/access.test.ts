@@ -21,6 +21,11 @@ describe("route access", () => {
     expect(isProtectedRoute("/login")).toBe(false);
     expect(isProtectedRoute("/signup")).toBe(false);
   });
+
+  it("protects the Command Center Today route", () => {
+    expect(isProtectedRoute("/today")).toBe(true);
+    expect(isPublicRoute("/today")).toBe(false);
+  });
 });
 
 describe("privacy surface dependency inventory", () => {
