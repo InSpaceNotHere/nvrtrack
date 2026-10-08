@@ -35,3 +35,5 @@ It still defines `organizations`, `organization_members`, `opportunities`, `busi
 - Reset demo workspace restores the Juniper seed after a confirmation
 
 Estimated impact stays labeled **Estimated**. This phase does not store measured results.
+
+Future research and automation monitoring are recorded in `docs/NVR_LABS_BRIDGE_V1.md`. NVR Labs stays the research system. OpenTelemetry conventions are the candidate technical telemetry format. Neither is wired up in this MVP.

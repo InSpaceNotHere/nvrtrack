@@ -35,3 +35,41 @@ The expected upstream file, `examples/nvrtrack/business-research-result-v1.json`
 ## Why transport waits
 
 There is no HTTP call, Python process, tunnel, queue, or background worker. The next phase can add a `ResearchEngine` transport that returns this same contract. The screens should not need to change when that arrives.
+
+Bridge v1 does not collect telemetry and does not call external research catalogs.
+
+## Future boundaries
+
+NVR Labs remains the research and evidence system. NVRTRACK does not call Census, BLS, O*NET, or OpenAlex itself. Those sources, if used, stay behind NVR Labs and arrive only as a versioned research result.
+
+NVRTRACK also does not take a raw research API of its own. External research keeps entering through the NVR Labs contract above.
+
+## Future implementation monitoring
+
+When shipped automations need monitoring, prefer OpenTelemetry semantic conventions, including the GenAI and agent conventions, over a private telemetry format.
+
+The intended path is:
+
+Implementation → OpenTelemetry spans, events, and metrics → a normalized implementation record → NVRTRACK → business-impact calculations.
+
+NVRTRACK keeps the business outcome:
+
+- response time
+- tasks completed
+- labor capacity
+- conversions
+- measured hours saved
+- whether a result is estimated or measured
+
+OpenTelemetry keeps the technical record:
+
+- runs
+- duration
+- failures
+- model and provider calls
+- agent spans
+- token usage when a system reports it
+
+Langfuse core is a possible later source of LLM observability. It is not a dependency of NVRTRACK, and Bridge v1 does not install or call it.
+
+None of this monitoring is built yet. Bridge v1 stops at the research-result contract and the owner-facing briefing.
