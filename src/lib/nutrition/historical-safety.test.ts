@@ -30,7 +30,7 @@ describe("historical nutrition logs stay snapshot-only", () => {
     expect(todayPage).toContain("entries={entriesResult.data ?? []}");
     expect(todayPage).not.toMatch(/food_catalog/);
 
-    const rootPage = read("src/app/(protected)/page.tsx");
+    const rootPage = read("src/app/(command)/page.tsx");
     expect(rootPage).toContain("redirect(POST_AUTH_HOME)");
     expect(rootPage).not.toMatch(/food_catalog/);
     expect(rootPage).not.toContain("getMyFoodEntriesForDate");

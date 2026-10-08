@@ -4,7 +4,7 @@ export default function ImplementationsPage() {
   return (
     <ComingLater
       title="Implementations"
-      summary="Shipped automations and health tracking are planned for Phase 1B."
+      summary="Coming in the next phase. Shipped automations will live here once there is something real to track."
     />
   );
 }

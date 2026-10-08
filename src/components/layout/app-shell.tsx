@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { DesktopSidebar } from "@/components/layout/desktop-sidebar";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
+import { isBusinessRoute } from "@/lib/command-center/routes";
 import { ONBOARDING_REQUIRED_VERSION } from "@/lib/onboarding/constants";
 import { isPublicRoute } from "@/lib/routing/access";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -29,7 +30,7 @@ export function AppShell({ children }: AppShellProps) {
     let cancelled = false;
 
     async function runGateCheck() {
-      if (!supabase || isPublicPath) {
+      if (!supabase || isPublicPath || isBusinessRoute(pathname)) {
         return;
       }
 
