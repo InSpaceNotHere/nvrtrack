@@ -72,7 +72,7 @@ describe("command center attention", () => {
     expect(items.map((item) => item.kind)).toEqual([
       "overdue_task",
       "high_priority_task",
-      "open_opportunity",
+      "high_priority_opportunity",
     ]);
   });
 
@@ -92,9 +92,9 @@ describe("command center attention", () => {
 
     expect(snapshot).toEqual({
       openOpportunityCount: 1,
+      highPriorityOpportunityCount: 1,
       openTaskCount: 2,
       overdueTaskCount: 1,
-      estimatedHoursPerMonth: 3,
     });
   });
 

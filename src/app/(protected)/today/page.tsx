@@ -1,4 +1,6 @@
 import { CompleteTaskButton } from "@/components/command-center/complete-task-button";
+import { CreateWorkspaceForm } from "@/components/command-center/create-workspace-form";
+import { SchemaMissingState } from "@/components/command-center/schema-missing";
 import { TodayCreateForms } from "@/components/command-center/today-create-forms";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -8,29 +10,13 @@ import { StateChip } from "@/components/ui/state-chip";
 import {
   buildAttentionItems,
   buildBusinessSnapshot,
-  buildImpactSnapshot,
   buildRecommendedActions,
   isOpenTask,
 } from "@/lib/command-center/attention";
+import { resolveFirstRunState } from "@/lib/command-center/first-run";
 import { getCommandCenterToday } from "@/lib/data/command-center";
 
 export const dynamic = "force-dynamic";
-
-function formatHours(value: number | null): string {
-  if (value === null) {
-    return "—";
-  }
-  return `${value}`;
-}
-
-function formatMoney(cents: number | null): string {
-  if (cents === null) {
-    return "—";
-  }
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    cents / 100,
-  );
-}
 
 export default async function CommandCenterTodayPage() {
   const result = await getCommandCenterToday();
@@ -39,36 +25,40 @@ export default async function CommandCenterTodayPage() {
   if (result.error) {
     return (
       <div>
-        <PageHeader
-          eyebrow="Command Center"
-          title="Today"
-          subtitle="What needs attention in the business."
-        />
-        <EmptyState
-          title="Command Center is not ready"
-          description={
-            result.error.code === "NOT_CONFIGURED"
-              ? "Supabase is not configured in this environment."
-              : result.error.message
-          }
-        />
+        <PageHeader eyebrow="NVRTRACK" title="Today" subtitle="What needs my attention in the business?" />
+        <EmptyState title="Today could not load" description={result.error.message} />
       </div>
     );
+  }
+
+  const firstRun = resolveFirstRunState({
+    schemaReady: result.data.schemaReady,
+    organization: result.data.organization,
+  });
+
+  if (firstRun === "schema_missing") {
+    return <SchemaMissingState />;
+  }
+
+  if (firstRun === "create_workspace") {
+    return <CreateWorkspaceForm />;
   }
 
   const { organization, tasks, opportunities, activity } = result.data;
   const attention = buildAttentionItems({ tasks, opportunities, now });
   const snapshot = buildBusinessSnapshot({ tasks, opportunities, now });
-  const impact = buildImpactSnapshot(opportunities);
   const recommended = buildRecommendedActions({ tasks, opportunities, now });
   const openTasks = tasks.filter(isOpenTask);
+  const storedEstimatedHours = opportunities
+    .map((item) => item.estimated_hours_per_month)
+    .filter((value): value is number => value !== null);
 
   return (
     <div className="space-y-5">
       <PageHeader
         eyebrow="Command Center"
         title="Today"
-        subtitle={`What needs attention in ${organization.name}.`}
+        subtitle={`What needs my attention in ${organization?.name}?`}
       />
 
       <section aria-labelledby="attention-heading" className="space-y-3">
@@ -78,7 +68,7 @@ export default async function CommandCenterTodayPage() {
         {attention.length === 0 ? (
           <EmptyState
             title="Nothing needs attention"
-            description="Overdue tasks, high-priority work, and open opportunities will show up here."
+            description="Overdue tasks, high-priority work, and open opportunities will show up here from saved rows."
           />
         ) : (
           <ul className="space-y-2">
@@ -93,7 +83,7 @@ export default async function CommandCenterTodayPage() {
                     {item.kind === "overdue_task" || item.kind === "high_priority_task" ? (
                       <CompleteTaskButton taskId={item.entityId} />
                     ) : (
-                      <StateChip state={item.kind === "open_opportunity" ? "planned" : "warning"} />
+                      <StateChip state="planned" />
                     )}
                   </div>
                 </Card>
@@ -108,37 +98,28 @@ export default async function CommandCenterTodayPage() {
           Business snapshot
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard title="Open opportunities" value={String(snapshot.openOpportunityCount)} />
-          <MetricCard title="Open tasks" value={String(snapshot.openTaskCount)} />
-          <MetricCard title="Overdue tasks" value={String(snapshot.overdueTaskCount)} />
+          <MetricCard title="Open tasks" value={String(snapshot.openTaskCount)} detail="From business_tasks" />
+          <MetricCard title="Overdue tasks" value={String(snapshot.overdueTaskCount)} detail="Open tasks past due_at" />
           <MetricCard
-            title="Est. hours / month"
-            value={formatHours(snapshot.estimatedHoursPerMonth)}
-            detail="From stored opportunity estimates only."
+            title="Active opportunities"
+            value={String(snapshot.openOpportunityCount)}
+            detail="identified through testing"
+          />
+          <MetricCard
+            title="High-priority opportunities"
+            value={String(snapshot.highPriorityOpportunityCount)}
+            detail="high or urgent and still active"
           />
         </div>
-      </section>
-
-      <section aria-labelledby="impact-heading" className="space-y-3">
-        <h2 id="impact-heading" className="text-sm font-semibold uppercase tracking-[0.09em] text-zinc-200">
-          AI impact
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+        {storedEstimatedHours.length > 0 ? (
           <MetricCard
-            title="Hours / month"
-            value={formatHours(impact.estimatedHoursPerMonth)}
-            detail="Measured: not recorded"
+            title="Estimated hours / month"
+            value={String(storedEstimatedHours.reduce((total, value) => total + value, 0))}
+            detail="Stored opportunity estimates only. Measured hours are not recorded."
           >
             <StateChip state="estimated" label="Estimated" />
           </MetricCard>
-          <MetricCard
-            title="Revenue influenced"
-            value={formatMoney(impact.estimatedRevenueCents)}
-            detail="Measured: not recorded"
-          >
-            <StateChip state="estimated" label="Estimated" />
-          </MetricCard>
-        </div>
+        ) : null}
       </section>
 
       <section aria-labelledby="actions-heading" className="space-y-3">
@@ -161,16 +142,19 @@ export default async function CommandCenterTodayPage() {
         )}
       </section>
 
-      <TodayCreateForms organizationId={organization.id} />
+      {organization ? <TodayCreateForms organizationId={organization.id} /> : null}
 
       <section aria-labelledby="open-work-heading" className="grid gap-4 lg:grid-cols-2">
-        <Card title="Open tasks" subtitle={`${openTasks.length} active`}>
+        <Card title="Open tasks" subtitle={`${openTasks.length} from this workspace`}>
           {openTasks.length === 0 ? (
             <p className="text-sm text-zinc-400">No open tasks yet.</p>
           ) : (
             <ul className="space-y-2">
               {openTasks.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-3 rounded-[var(--ds-radius-md)] border border-white/8 px-3 py-2">
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 rounded-[var(--ds-radius-md)] border border-white/8 px-3 py-2"
+                >
                   <div>
                     <p className="text-sm text-white">{item.title}</p>
                     <p className="text-xs text-zinc-500">
@@ -183,7 +167,7 @@ export default async function CommandCenterTodayPage() {
             </ul>
           )}
         </Card>
-        <Card title="Activity" subtitle="Append-only events for this organization">
+        <Card title="Recent activity" subtitle="Append-only events from this workspace">
           {activity.length === 0 ? (
             <p className="text-sm text-zinc-400">No activity recorded yet.</p>
           ) : (

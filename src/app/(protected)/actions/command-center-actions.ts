@@ -1,12 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-import { completeBusinessTask, createBusinessTask, createOpportunity } from "@/lib/data/command-center";
-import { asWorkPriority } from "@/lib/command-center/parse";
+import { asOpportunityStatus, asWorkPriority } from "@/lib/command-center/parse";
+import { POST_AUTH_HOME } from "@/lib/command-center/routes";
+import {
+  completeBusinessTask,
+  createBusinessTask,
+  createOpportunity,
+  createOrganization,
+  updateOpportunityStatus,
+} from "@/lib/data/command-center";
 
-function revalidateToday() {
-  revalidatePath("/today");
+function revalidateBusinessViews() {
+  ["/today", "/tasks", "/opportunities", "/activity", "/businesses"].forEach((path) => revalidatePath(path));
 }
 
 function readString(formData: FormData, key: string): string {
@@ -39,6 +47,21 @@ function parseDueAt(value: string): string | null {
   return new Date(parsed).toISOString();
 }
 
+export async function createWorkspaceAction(formData: FormData): Promise<void> {
+  const name = readString(formData, "name");
+  if (!name) {
+    return;
+  }
+
+  const result = await createOrganization({ name });
+  if (result.error) {
+    return;
+  }
+
+  revalidateBusinessViews();
+  redirect(POST_AUTH_HOME);
+}
+
 export async function createTaskAction(formData: FormData): Promise<void> {
   const organizationId = readString(formData, "organizationId");
   const title = readString(formData, "title");
@@ -54,7 +77,7 @@ export async function createTaskAction(formData: FormData): Promise<void> {
     return;
   }
 
-  revalidateToday();
+  revalidateBusinessViews();
 }
 
 export async function completeTaskAction(formData: FormData): Promise<void> {
@@ -64,7 +87,7 @@ export async function completeTaskAction(formData: FormData): Promise<void> {
     return;
   }
 
-  revalidateToday();
+  revalidateBusinessViews();
 }
 
 export async function createOpportunityAction(formData: FormData): Promise<void> {
@@ -75,7 +98,8 @@ export async function createOpportunityAction(formData: FormData): Promise<void>
   const proposedSolution = readString(formData, "proposedSolution") || null;
   const estimatedHoursPerMonth = parseOptionalNumber(readString(formData, "estimatedHoursPerMonth"));
   const estimatedRevenue = parseOptionalNumber(readString(formData, "estimatedRevenue"));
-  const priority = asWorkPriority(readString(formData, "priority") || "medium");
+  const priority = asWorkPriority(readString(formData, "priority") || "high");
+  const status = asOpportunityStatus(readString(formData, "status") || "identified");
 
   if (!organizationId || !title) {
     return;
@@ -90,11 +114,23 @@ export async function createOpportunityAction(formData: FormData): Promise<void>
     estimatedHoursPerMonth,
     estimatedRevenueCents: estimatedRevenue === null ? null : Math.round(estimatedRevenue * 100),
     priority,
+    status,
   });
 
   if (result.error) {
     return;
   }
 
-  revalidateToday();
+  revalidateBusinessViews();
+}
+
+export async function updateOpportunityStatusAction(formData: FormData): Promise<void> {
+  const opportunityId = readString(formData, "opportunityId");
+  const status = asOpportunityStatus(readString(formData, "status"));
+  const result = await updateOpportunityStatus(opportunityId, status);
+  if (result.error) {
+    return;
+  }
+
+  revalidateBusinessViews();
 }

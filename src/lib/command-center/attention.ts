@@ -33,6 +33,12 @@ export function isActiveOpportunity(opportunity: Pick<Opportunity, "status">): b
   );
 }
 
+export function isHighPriorityOpportunity(
+  opportunity: Pick<Opportunity, "status" | "priority">,
+): boolean {
+  return isActiveOpportunity(opportunity) && (opportunity.priority === "high" || opportunity.priority === "urgent");
+}
+
 export function buildAttentionItems(input: {
   tasks: BusinessTask[];
   opportunities: Opportunity[];
@@ -70,13 +76,14 @@ export function buildAttentionItems(input: {
       continue;
     }
 
+    const highPriority = isHighPriorityOpportunity(opportunity);
     items.push({
       id: `open-opportunity-${opportunity.id}`,
-      kind: "open_opportunity",
+      kind: highPriority ? "high_priority_opportunity" : "open_opportunity",
       title: opportunity.title,
       detail: `${capitalize(opportunity.status)} · ${capitalize(opportunity.priority)} priority`,
       entityId: opportunity.id,
-      rank: opportunity.priority === "urgent" ? 4 : 5,
+      rank: highPriority ? (opportunity.priority === "urgent" ? 4 : 5) : 6,
     });
   }
 
@@ -91,15 +98,13 @@ export function buildBusinessSnapshot(input: {
   const openTasks = input.tasks.filter(isOpenTask);
   const overdueTasks = input.tasks.filter((task) => isOverdueTask(task, input.now));
   const openOpportunities = input.opportunities.filter(isActiveOpportunity);
-  const estimatedHours = sumNullable(
-    openOpportunities.map((opportunity) => opportunity.estimated_hours_per_month),
-  );
+  const highPriorityOpportunities = input.opportunities.filter(isHighPriorityOpportunity);
 
   return {
     openOpportunityCount: openOpportunities.length,
+    highPriorityOpportunityCount: highPriorityOpportunities.length,
     openTaskCount: openTasks.length,
     overdueTaskCount: overdueTasks.length,
-    estimatedHoursPerMonth: estimatedHours,
   };
 }
 

@@ -138,3 +138,22 @@ function jsonObject(value: Json): Record<string, unknown> {
 export function personalOrganizationSlug(userId: string): string {
   return `personal-${userId.replaceAll("-", "").slice(0, 12)}`;
 }
+
+export function organizationSlugFromName(name: string, uniqueSuffix: string): string {
+  const base =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "workspace";
+  const suffix = uniqueSuffix.replace(/[^a-z0-9]/g, "").slice(0, 8) || "org";
+  return `${base}-${suffix}`;
+}
+
+export function isMissingBusinessSchema(message: string | undefined): boolean {
+  if (!message) {
+    return false;
+  }
+  const normalized = message.toLowerCase();
+  return normalized.includes("schema cache") || normalized.includes("could not find the table");
+}

@@ -51,11 +51,17 @@ export function TodayCreateForms({ organizationId }: TodayCreateFormsProps) {
                 <Input name="department" maxLength={80} placeholder="Finance" />
               </FormField>
               <FormField label="Priority">
-                <Select name="priority" defaultValue="medium">
+                <Select name="priority" defaultValue="high">
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
                   <option value="urgent">Urgent</option>
+                </Select>
+              </FormField>
+              <FormField label="Status">
+                <Select name="status" defaultValue="identified">
+                  <option value="identified">Identified</option>
+                  <option value="approved">Approved</option>
                 </Select>
               </FormField>
             </FormGrid>

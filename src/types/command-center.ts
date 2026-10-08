@@ -80,7 +80,11 @@ export interface ActivityEvent {
   created_at: string;
 }
 
-export type AttentionKind = "overdue_task" | "high_priority_task" | "open_opportunity";
+export type AttentionKind =
+  | "overdue_task"
+  | "high_priority_task"
+  | "open_opportunity"
+  | "high_priority_opportunity";
 
 export interface AttentionItem {
   id: string;
@@ -101,9 +105,9 @@ export interface RecommendedAction {
 
 export interface BusinessSnapshot {
   openOpportunityCount: number;
+  highPriorityOpportunityCount: number;
   openTaskCount: number;
   overdueTaskCount: number;
-  estimatedHoursPerMonth: number | null;
 }
 
 export interface ImpactSnapshot {

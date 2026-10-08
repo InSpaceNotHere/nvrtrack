@@ -605,7 +605,7 @@ export function OnboardingV1Flow({
               variant="primary"
               className="h-12 w-full rounded-2xl text-base"
               onClick={() => {
-                router.replace("/");
+                router.replace("/today");
                 router.refresh();
               }}
             >

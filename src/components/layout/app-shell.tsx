@@ -57,7 +57,7 @@ export function AppShell({ children }: AppShellProps) {
       let redirectTo: string | null = null;
       if (hasCompletedRequiredVersion) {
         if (isOnboardingRoute && onboardingQuery !== "complete") {
-          redirectTo = "/";
+          redirectTo = "/today";
         }
       } else if (!isOnboardingRoute) {
         const routeWorkoutMatch = pathname.match(/^\/training\/workouts\/([^/]+)$/);

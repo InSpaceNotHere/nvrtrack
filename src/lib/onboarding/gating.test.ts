@@ -22,7 +22,7 @@ describe("resolveOnboardingGate", () => {
       activeWorkoutId: null,
     });
 
-    expect(decision).toEqual({ allow: false, redirectTo: "/" });
+    expect(decision).toEqual({ allow: false, redirectTo: "/today" });
   });
 
   it("redirects incomplete users to onboarding by default", () => {
@@ -69,7 +69,7 @@ describe("resolveOnboardingGate", () => {
     expect(decision).toEqual({ allow: false, redirectTo: "/onboarding" });
   });
 
-  it("redirects incomplete users away from home even when an active workout exists", () => {
+  it("lets incomplete users into the business product without fitness onboarding", () => {
     const decision = resolveOnboardingGate({
       pathname: "/",
       completedVersion: 0,
@@ -77,7 +77,18 @@ describe("resolveOnboardingGate", () => {
       activeWorkoutId: "workout-123",
     });
 
-    expect(decision).toEqual({ allow: false, redirectTo: "/onboarding" });
+    expect(decision).toEqual({ allow: true, redirectTo: null });
+  });
+
+  it("allows Today without a completed nutrition onboarding version", () => {
+    const decision = resolveOnboardingGate({
+      pathname: "/today",
+      completedVersion: 0,
+      requiredVersion: 1,
+      activeWorkoutId: null,
+    });
+
+    expect(decision).toEqual({ allow: true, redirectTo: null });
   });
 
   it("allows completed users to stay on the onboarding complete screen", () => {

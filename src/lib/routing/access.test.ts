@@ -26,6 +26,13 @@ describe("route access", () => {
     expect(isProtectedRoute("/today")).toBe(true);
     expect(isPublicRoute("/today")).toBe(false);
   });
+
+  it("protects the business product routes", () => {
+    expect(isProtectedRoute("/tasks")).toBe(true);
+    expect(isProtectedRoute("/opportunities")).toBe(true);
+    expect(isProtectedRoute("/activity")).toBe(true);
+    expect(isProtectedRoute("/account")).toBe(true);
+  });
 });
 
 describe("privacy surface dependency inventory", () => {

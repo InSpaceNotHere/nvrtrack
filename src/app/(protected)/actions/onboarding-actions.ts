@@ -344,7 +344,7 @@ export async function completeOnboardingV1Action(
     status: "success",
     message: "Onboarding completed.",
     fieldErrors: {},
-    redirectTo: "/",
+    redirectTo: "/today",
   };
 }
 
