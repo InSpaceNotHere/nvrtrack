@@ -1,6 +1,20 @@
 # NVRTRACK
 
-NVRTRACK is a mobile-first, private fitness tracking web app focused on speed and simplicity.
+NVRTRACK is becoming an **AI Business Command Center**. This branch still contains the frozen fitness/nutrition application (working name **NVR Nutrition**) so nothing is destroyed during the pivot.
+
+- Freeze tag: `nvr-nutrition-v1-freeze`
+- Archive branch: `archive/nvr-nutrition`
+- Frozen SHA: `daf5e185bd8e2b95e34c6f7f69a0df68f9d8f90a`
+- How to restore: `NVR_NUTRITION_ARCHIVE.md`
+- New product plan: `docs/NVRTRACK_COMMAND_CENTER.md`
+
+Do not drop fitness tables or delete NVR Nutrition history.
+
+---
+
+## NVR Nutrition (frozen product still in this tree)
+
+NVR Nutrition is a mobile-first, private fitness tracking web app focused on speed and simplicity.
 
 ## Current Scope (Sessions 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 9.5A, 9.5B Phase 2A, 9.5B Phase 2B, 9.5B Phase 2C, and 9.5B Phase 2D)
 
