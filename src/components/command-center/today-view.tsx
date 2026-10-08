@@ -23,7 +23,12 @@ export function TodayView() {
   }
 
   const now = new Date();
-  const attention = buildAttentionItems({ tasks: workspace.tasks, opportunities: workspace.opportunities, now });
+  const attention = buildAttentionItems({
+    tasks: workspace.tasks,
+    opportunities: workspace.opportunities,
+    research: workspace.research,
+    now,
+  });
   const { hero, rest } = splitAttention(attention);
   const pulse = buildBusinessSnapshot({ tasks: workspace.tasks, opportunities: workspace.opportunities, now });
   const suggestions = distinctSuggestions(attention, buildRecommendedActions({ tasks: workspace.tasks, opportunities: workspace.opportunities, now }));

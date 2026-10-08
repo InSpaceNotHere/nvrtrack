@@ -6,6 +6,7 @@ import {
   type LocalOpportunity,
   type LocalTask,
   type RecommendedAction,
+  type ResearchAttachment,
   type TaskStatus,
 } from "./domain";
 
@@ -35,8 +36,12 @@ export function isHighPriorityOpportunity(opportunity: Pick<LocalOpportunity, "s
 export function buildAttentionItems(input: {
   tasks: LocalTask[];
   opportunities: LocalOpportunity[];
+  research?: ResearchAttachment[];
   now: Date;
 }): AttentionItem[] {
+  const unreviewedResearch = new Set(
+    (input.research ?? []).filter((item) => item.reviewedAt === null).map((item) => item.opportunityId),
+  );
   const items: AttentionItem[] = [];
 
   for (const task of input.tasks) {
@@ -72,6 +77,17 @@ export function buildAttentionItems(input: {
         detail: "Approved and waiting for the next action",
         entityId: opportunity.id,
         rank: 4,
+      });
+      continue;
+    }
+    if (unreviewedResearch.has(opportunity.id) && (isHighPriorityOpportunity(opportunity) || opportunity.priority === "high" || opportunity.priority === "urgent")) {
+      items.push({
+        id: `research-${opportunity.id}`,
+        kind: "research_ready",
+        title: "Research ready to review",
+        detail: opportunity.title,
+        entityId: opportunity.id,
+        rank: 5,
       });
       continue;
     }

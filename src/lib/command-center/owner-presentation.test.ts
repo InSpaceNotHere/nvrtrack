@@ -26,8 +26,9 @@ describe("owner presentation", () => {
     expect(rest.map((item) => item.title)).toEqual([
       "Follow up with 3 unanswered inquiries",
       "Proposal drafting assistant",
-      "Lead intake & reply drafting",
+      "Research ready to review",
     ]);
+    expect(rest.at(-1)?.detail).toBe("Lead intake & reply drafting");
     expect(attentionCountLabel(attention.length)).toBe("4 things need a decision or follow-up.");
   });
 

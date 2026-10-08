@@ -8,10 +8,13 @@ import {
   type LocalOpportunity,
   type LocalTask,
   type OpportunityStatus,
+  type ResearchAttachment,
+  type ResearchProvenance,
   type TaskStatus,
   type WorkPriority,
   type WorkspaceSnapshot,
 } from "./domain";
+import { parseResearchResult, type ResearchResult } from "./research-contract";
 import { createJuniperSeed } from "./seed";
 
 export const WORKSPACE_STORAGE_KEY = "nvrtrack.command-center.workspace.v1";
@@ -55,6 +58,11 @@ export interface BusinessRepository {
   updateOpportunity(id: string, input: OpportunityDraft): LocalOpportunity;
   getActivity(): LocalActivityEvent[];
   appendActivity(event: Omit<LocalActivityEvent, "id" | "createdAt" | "organizationId">): LocalActivityEvent;
+  getResearchForOpportunity(opportunityId: string): ResearchAttachment | null;
+  attachResearchResult(opportunityId: string, value: unknown, provenance?: ResearchProvenance): ResearchAttachment;
+  removeResearchResult(opportunityId: string): void;
+  markResearchReviewed(opportunityId: string): ResearchAttachment;
+  adoptResearchRecommendation(opportunityId: string): LocalOpportunity;
   reset(): WorkspaceSnapshot;
   exportWorkspace(): WorkspaceSnapshot;
   importWorkspace(value: unknown): WorkspaceSnapshot;
@@ -247,6 +255,109 @@ export class LocalBusinessRepository implements BusinessRepository {
     return created;
   }
 
+  getResearchForOpportunity(opportunityId: string): ResearchAttachment | null {
+    return this.read().research.find((item) => item.opportunityId === opportunityId) ?? null;
+  }
+
+  attachResearchResult(
+    opportunityId: string,
+    value: unknown,
+    provenance: ResearchProvenance = "imported",
+  ): ResearchAttachment {
+    const parsed = parseResearchResult(value, this.now());
+    if (!parsed.ok) {
+      throw new Error(parsed.error);
+    }
+    const snapshot = this.read();
+    const opportunity = snapshot.opportunities.find((item) => item.id === opportunityId);
+    if (!opportunity) {
+      throw new Error("Opportunity not found.");
+    }
+    if (snapshot.research.some((item) => item.opportunityId === opportunityId)) {
+      throw new Error("This opportunity already has research.");
+    }
+    const attachment: ResearchAttachment = {
+      opportunityId,
+      importedAt: this.now().toISOString(),
+      reviewedAt: null,
+      provenance,
+      result: structuredClone(parsed.result),
+    };
+    snapshot.research = [...snapshot.research, attachment];
+    this.pushActivity(snapshot, {
+      eventType: "research.attached",
+      entityType: "opportunity",
+      entityId: opportunityId,
+      title: "Research attached",
+      description: opportunity.title,
+    });
+    this.write(snapshot);
+    return attachment;
+  }
+
+  removeResearchResult(opportunityId: string): void {
+    const snapshot = this.read();
+    snapshot.research = snapshot.research.filter((item) => item.opportunityId !== opportunityId);
+    this.write(snapshot);
+  }
+
+  markResearchReviewed(opportunityId: string): ResearchAttachment {
+    const snapshot = this.read();
+    const current = snapshot.research.find((item) => item.opportunityId === opportunityId);
+    const opportunity = snapshot.opportunities.find((item) => item.id === opportunityId);
+    if (!current || !opportunity) {
+      throw new Error("Research was not found.");
+    }
+    const next: ResearchAttachment = { ...current, reviewedAt: current.reviewedAt ?? this.now().toISOString() };
+    snapshot.research = snapshot.research.map((item) => (item.opportunityId === opportunityId ? next : item));
+    if (!current.reviewedAt) {
+      this.pushActivity(snapshot, {
+        eventType: "research.reviewed",
+        entityType: "opportunity",
+        entityId: opportunityId,
+        title: "Research reviewed",
+        description: opportunity.title,
+      });
+    }
+    this.write(snapshot);
+    return next;
+  }
+
+  adoptResearchRecommendation(opportunityId: string): LocalOpportunity {
+    const snapshot = this.read();
+    const attachment = snapshot.research.find((item) => item.opportunityId === opportunityId);
+    const opportunity = snapshot.opportunities.find((item) => item.id === opportunityId);
+    if (!attachment || !opportunity) {
+      throw new Error("Research was not found.");
+    }
+    const suggestion = attachment.result.recommendations.find((item) => item.state === "supported" || item.state === "preliminary");
+    if (!suggestion) {
+      throw new Error("There is no recommendation ready to use.");
+    }
+    const before = structuredClone(attachment.result) as ResearchResult;
+    const next: LocalOpportunity = {
+      ...opportunity,
+      recommendation: suggestion.text,
+      updatedAt: this.now().toISOString(),
+    };
+    snapshot.opportunities = snapshot.opportunities.map((item) => (item.id === opportunityId ? next : item));
+    if (opportunity.recommendation !== suggestion.text) {
+      this.pushActivity(snapshot, {
+        eventType: "research.recommendation_adopted",
+        entityType: "opportunity",
+        entityId: opportunityId,
+        title: "Recommendation adopted",
+        description: opportunity.title,
+      });
+    }
+    this.write(snapshot);
+    const stored = this.read().research.find((item) => item.opportunityId === opportunityId);
+    if (!stored || JSON.stringify(stored.result) !== JSON.stringify(before)) {
+      throw new Error("Research attachment changed while adopting a recommendation.");
+    }
+    return next;
+  }
+
   reset(): WorkspaceSnapshot {
     const seed = createJuniperSeed(this.now());
     this.write(seed);
@@ -409,6 +520,12 @@ export function parseWorkspace(value: unknown): WorkspaceSnapshot | null {
   if (tasks.some((item) => item === null) || opportunities.some((item) => item === null) || activity.some((item) => item === null)) {
     return null;
   }
+  let research: ResearchAttachment[] = [];
+  try {
+    research = parseResearchAttachments(value.research);
+  } catch {
+    return null;
+  }
   return {
     version: 1,
     business: {
@@ -420,7 +537,32 @@ export function parseWorkspace(value: unknown): WorkspaceSnapshot | null {
     tasks: tasks as LocalTask[],
     opportunities: opportunities as LocalOpportunity[],
     activity: activity as LocalActivityEvent[],
+    research,
   };
+}
+
+function parseResearchAttachments(value: unknown): ResearchAttachment[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) {
+    throw new Error("Research attachments are malformed.");
+  }
+  return value.map((item) => {
+    if (!isRecord(item) || typeof item.opportunityId !== "string") {
+      throw new Error("Research attachments are malformed.");
+    }
+    if (item.provenance !== "demo-fixture" && item.provenance !== "imported") {
+      throw new Error("Research attachments are malformed.");
+    }
+    const parsed = parseResearchResult(item.result);
+    if (!parsed.ok) throw new Error(parsed.error);
+    return {
+      opportunityId: item.opportunityId,
+      importedAt: typeof item.importedAt === "string" ? item.importedAt : new Date(0).toISOString(),
+      reviewedAt: typeof item.reviewedAt === "string" ? item.reviewedAt : null,
+      provenance: item.provenance,
+      result: parsed.result,
+    };
+  });
 }
 
 function parseTask(value: unknown): LocalTask | null {

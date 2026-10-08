@@ -12,10 +12,23 @@ function note(message) {
   console.log(message);
 }
 
+async function settle() {
+  await page.locator(".nvr-page").first().waitFor();
+  await page.waitForFunction(() => {
+    const node = document.querySelector(".nvr-page");
+    if (!node) return false;
+    const opacity = Number(getComputedStyle(node).opacity);
+    return opacity === 1;
+  });
+  await page.waitForTimeout(80);
+}
+
 await page.goto(base + "/", { waitUntil: "networkidle" });
 await page.getByRole("heading", { name: /needs your attention/i }).waitFor();
+await settle();
 note("root opens today without login: " + page.url());
 await page.getByRole("button", { name: "Continue" }).click();
+await page.getByText("Research ready to review").waitFor();
 await page.getByText("Most important").waitFor();
 await page.getByRole("heading", { name: "Send outstanding quote" }).waitFor();
 const pulse = page.locator("section").filter({ has: page.getByRole("heading", { name: "Business pulse" }) });
@@ -36,13 +49,31 @@ await page.getByText("Estimated: 6 hrs/month").waitFor();
 await page.getByRole("button", { name: /Lead intake/ }).click();
 await page.getByText("The problem").waitFor();
 await page.getByText("Estimated · about 6 hours a month").waitFor();
+await page.getByText("Research complete").waitFor();
+await page.getByText("What we still don’t know").waitFor();
+await settle();
+await page.screenshot({ path: `${out}/opportunity-research-desktop.png` });
+await page.getByRole("button", { name: "View evidence" }).click();
+await page.getByRole("heading", { name: "Evidence" }).waitFor();
+const source = page.getByRole("link", { name: "Open source" }).first();
+expectRel(await source.getAttribute("rel"));
+await page.screenshot({ path: `${out}/evidence-sheet.png` });
+await page.getByRole("button", { name: "Close evidence" }).click();
+await page.getByRole("button", { name: "Mark reviewed" }).click();
+await page.getByText("Reviewed", { exact: true }).first().waitFor();
+await page.getByRole("button", { name: "Use as next step" }).click();
+await page.getByRole("button", { name: "Confirm" }).click();
+await page.getByText("Organize each inquiry").waitFor();
+note("research reviewed and recommendation adopted");
 await page.screenshot({ path: `${out}/opportunities-desktop.png` });
 note("opportunity review uses owner language");
 
 await page.getByRole("button", { name: "More" }).click();
 await page.getByRole("link", { name: "Activity", exact: true }).click();
 await page.getByRole("heading", { name: "What happened" }).waitFor();
-await page.getByRole("heading", { name: "Yesterday" }).waitFor();
+await page.getByText("Research reviewed").waitFor();
+await page.getByText("Recommendation adopted").waitFor();
+await settle();
 await page.screenshot({ path: `${out}/activity-desktop.png` });
 
 await page.getByRole("button", { name: "More" }).click();
@@ -97,5 +128,18 @@ await calmPage.getByRole("heading", { name: /needs your attention/i }).waitFor()
 note("reduced motion still renders Today");
 await calm.close();
 
+await page.setViewportSize({ width: 390, height: 844 });
+await page.goto(base + "/opportunities?focus=opp-lead-intake", { waitUntil: "networkidle" });
+await settle();
+await page.getByText("Research complete").waitFor();
+await page.screenshot({ path: `${out}/research-mobile.png` });
+note("mobile research summary captured");
+
 await browser.close();
 note("walkthrough ok");
+
+function expectRel(value) {
+  if (!value || !value.includes("noopener") || !value.includes("noreferrer")) {
+    throw new Error(`source link is missing a safe rel: ${value}`);
+  }
+}

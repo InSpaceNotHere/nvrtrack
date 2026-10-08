@@ -119,6 +119,46 @@ describe("local business repository", () => {
     expect(restored.activity.map((event) => event.id)).toContain("activity-seed-quote");
   });
 
+  it("keeps research attached across reload, review, and recommendation adoption", () => {
+    const storage = new MemoryStorage();
+    const repo = repository(storage);
+    const seeded = repo.getResearchForOpportunity("opp-lead-intake");
+    expect(seeded?.reviewedAt).toBeNull();
+    expect(seeded?.provenance).toBe("demo-fixture");
+    const original = JSON.stringify(seeded?.result);
+
+    const attention = buildAttentionItems({ ...repo.load(), now });
+    expect(attention.some((item) => item.kind === "research_ready" && item.detail === "Lead intake & reply drafting")).toBe(true);
+
+    repo.markResearchReviewed("opp-lead-intake");
+    const reviewed = repository(storage).getResearchForOpportunity("opp-lead-intake");
+    expect(reviewed?.reviewedAt).toBe(now.toISOString());
+    expect(buildAttentionItems({ ...repository(storage).load(), now }).some((item) => item.kind === "research_ready")).toBe(false);
+
+    const adopted = repo.adoptResearchRecommendation("opp-lead-intake");
+    expect(adopted.recommendation).toContain("staff to approve");
+    expect(JSON.stringify(repository(storage).getResearchForOpportunity("opp-lead-intake")?.result)).toBe(original);
+    const titles = repository(storage).getActivity().map((event) => event.title);
+    expect(titles).toContain("Research reviewed");
+    expect(titles).toContain("Recommendation adopted");
+
+    const exported = repo.exportWorkspace();
+    const next = repository(new MemoryStorage());
+    next.importWorkspace(exported);
+    expect(next.getResearchForOpportunity("opp-lead-intake")?.result.run_id).toBe(seeded?.result.run_id);
+
+    const withoutResearch = { ...exported, research: undefined };
+    expect(next.importWorkspace(withoutResearch).research).toEqual([]);
+  });
+
+  it("refuses a second research attachment and a broken result", () => {
+    const repo = repository();
+    expect(() => repo.attachResearchResult("opp-lead-intake", repo.getResearchForOpportunity("opp-lead-intake")?.result)).toThrow(
+      /already has research/,
+    );
+    expect(() => repo.attachResearchResult("opp-review-automation", { schema_version: "nope" })).toThrow(/schema/);
+  });
+
   it("rejects an invalid workspace import", () => {
     const repo = repository();
     expect(() => repo.importWorkspace({ version: 1 })).toThrow(/valid NVRTRACK export/);

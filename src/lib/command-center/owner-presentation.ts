@@ -26,6 +26,7 @@ export function whyNow(item: AttentionItem, task: LocalTask | undefined, now: Da
     return task?.priority === "urgent" ? "Urgent." : "High priority.";
   }
   if (item.kind === "approved_opportunity") return "Ready for review.";
+  if (item.kind === "research_ready") return item.detail;
   if (item.kind === "high_priority_opportunity") return "High-priority opportunity.";
   return item.detail;
 }

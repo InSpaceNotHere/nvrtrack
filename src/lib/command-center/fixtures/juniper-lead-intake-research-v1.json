@@ -1,0 +1,125 @@
+{
+  "schema_version": "nvrtrack-research-result-v1",
+  "request_id": "req-juniper-lead-intake-demo",
+  "run_id": "run-juniper-lead-intake-demo",
+  "status": "complete",
+  "topic": "Lead intake and first-reply drafting for an events business",
+  "business_context": {
+    "business_name": "Juniper & Co. Events",
+    "opportunity_title": "Lead intake & reply drafting"
+  },
+  "completed_at": "2026-10-07T15:00:00.000Z",
+  "summary": "AI-assisted inquiry organization and response drafting may reduce repetitive intake work while keeping staff approval before messages are sent.",
+  "findings": [
+    {
+      "id": "finding-manual-replies",
+      "text": "First replies to new inquiries are still written by hand.",
+      "status": "supported",
+      "reason": "The business description and a published small-business sales guide both describe manual first contact.",
+      "evidence_ids": ["evidence-manual-replies"]
+    },
+    {
+      "id": "finding-approval",
+      "text": "A person should approve a message before it is sent.",
+      "status": "supported",
+      "reason": "Published business guidance treats outbound commercial messages as something the business remains responsible for.",
+      "evidence_ids": ["evidence-approval"]
+    },
+    {
+      "id": "finding-organization",
+      "text": "Keeping inquiry details in one place makes the first reply easier to draft.",
+      "status": "supported",
+      "reason": "A public customer-service guide describes collecting the request before writing a response.",
+      "evidence_ids": ["evidence-organization"]
+    },
+    {
+      "id": "finding-benchmark",
+      "text": "A reliable hours-saved percentage for event businesses was not established.",
+      "status": "uncertain",
+      "reason": "The reviewed sources do not measure this exact workflow.",
+      "evidence_ids": ["evidence-benchmark-gap"]
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "recommendation-draft-for-review",
+      "text": "Organize each inquiry and prepare a first reply for staff to approve before anything is sent.",
+      "state": "supported",
+      "finding_ids": ["finding-manual-replies", "finding-approval", "finding-organization"]
+    }
+  ],
+  "sources": [
+    {
+      "id": "source-sba-sales",
+      "title": "Marketing and sales",
+      "publisher": "U.S. Small Business Administration",
+      "url": "https://www.sba.gov/business-guide/manage-your-business/marketing-and-sales"
+    },
+    {
+      "id": "source-ftc-advertising",
+      "title": "Advertising and marketing",
+      "publisher": "Federal Trade Commission",
+      "url": "https://www.ftc.gov/business-guidance/advertising-marketing"
+    },
+    {
+      "id": "source-sba-customers",
+      "title": "Serve your customers",
+      "publisher": "U.S. Small Business Administration",
+      "url": "https://www.sba.gov/business-guide/manage-your-business/serve-your-customers"
+    },
+    {
+      "id": "source-nist-ai",
+      "title": "AI risk management framework",
+      "publisher": "National Institute of Standards and Technology",
+      "url": "https://www.nist.gov/itl/ai-risk-management-framework"
+    },
+    {
+      "id": "source-ftc-ai",
+      "title": "Keep your AI claims in check",
+      "publisher": "Federal Trade Commission",
+      "url": "https://www.ftc.gov/business-guidance/blog/2023/02/keep-your-ai-claims-check"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "evidence-manual-replies",
+      "source_id": "source-sba-sales",
+      "excerpt": "Small businesses are told to respond to customer inquiries as part of selling, which still leaves the wording of that first reply to the business.",
+      "retrieved_at": "2026-10-07T15:00:00.000Z"
+    },
+    {
+      "id": "evidence-approval",
+      "source_id": "source-ftc-advertising",
+      "excerpt": "Businesses remain responsible for the marketing messages they send.",
+      "retrieved_at": "2026-10-07T15:00:00.000Z"
+    },
+    {
+      "id": "evidence-organization",
+      "source_id": "source-sba-customers",
+      "excerpt": "Serving customers starts with understanding what they asked for before a response goes out.",
+      "retrieved_at": "2026-10-07T15:00:00.000Z"
+    },
+    {
+      "id": "evidence-benchmark-gap",
+      "source_id": "source-nist-ai",
+      "excerpt": "General AI guidance does not publish a time-saved figure for event-business inquiry replies.",
+      "retrieved_at": "2026-10-07T15:00:00.000Z"
+    }
+  ],
+  "evidence_gaps": [
+    {
+      "id": "gap-benchmark",
+      "text": "No reliable benchmark was found for this exact type of business."
+    },
+    {
+      "id": "gap-percentage",
+      "text": "No source establishes a guaranteed time-saving percentage."
+    }
+  ],
+  "limitations": [
+    "This fixture is synthetic development data shaped like a future NVR Labs result. It is not a live research run."
+  ],
+  "provider_summary": {
+    "note": "Synthetic development fixture prepared in NVRTRACK. Not a live NVR Labs run. The upstream file examples/nvrtrack/business-research-result-v1.json was not available from a separate Labs repository."
+  }
+}

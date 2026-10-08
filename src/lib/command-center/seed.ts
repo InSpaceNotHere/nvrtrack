@@ -1,4 +1,6 @@
-import type { LocalActivityEvent, LocalOpportunity, LocalTask, WorkspaceSnapshot } from "./domain";
+import type { LocalActivityEvent, LocalOpportunity, LocalTask, ResearchAttachment, WorkspaceSnapshot } from "./domain";
+import leadIntakeResearch from "./fixtures/juniper-lead-intake-research-v1.json";
+import { parseResearchResult } from "./research-contract";
 
 export const JUNIPER_ORG_ID = "org-juniper";
 
@@ -143,6 +145,20 @@ export function createJuniperSeed(now: Date): WorkspaceSnapshot {
     },
   ];
 
+  const researchResult = parseResearchResult(leadIntakeResearch, now);
+  if (!researchResult.ok) {
+    throw new Error(researchResult.error);
+  }
+  const research: ResearchAttachment[] = [
+    {
+      opportunityId: "opp-lead-intake",
+      importedAt: atNoon(now, -1),
+      reviewedAt: null,
+      provenance: "demo-fixture",
+      result: researchResult.result,
+    },
+  ];
+
   return {
     version: 1,
     business: {
@@ -153,6 +169,19 @@ export function createJuniperSeed(now: Date): WorkspaceSnapshot {
     },
     tasks,
     opportunities,
-    activity,
+    activity: [
+      ...activity,
+      {
+        id: "activity-seed-research",
+        organizationId: JUNIPER_ORG_ID,
+        eventType: "research.attached",
+        entityType: "opportunity",
+        entityId: "opp-lead-intake",
+        title: "Research attached",
+        description: "Lead intake & reply drafting",
+        createdAt: atNoon(now, -1),
+      },
+    ],
+    research,
   };
 }

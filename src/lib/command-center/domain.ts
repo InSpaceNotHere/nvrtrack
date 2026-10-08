@@ -61,19 +61,31 @@ export interface LocalActivityEvent {
   createdAt: string;
 }
 
+export type ResearchProvenance = "demo-fixture" | "imported";
+
+export interface ResearchAttachment {
+  opportunityId: string;
+  importedAt: string;
+  reviewedAt: string | null;
+  provenance: ResearchProvenance;
+  result: import("./research-contract").ResearchResult;
+}
+
 export interface WorkspaceSnapshot {
   version: 1;
   business: LocalBusiness;
   tasks: LocalTask[];
   opportunities: LocalOpportunity[];
   activity: LocalActivityEvent[];
+  research: ResearchAttachment[];
 }
 
 export type AttentionKind =
   | "overdue_task"
   | "high_priority_task"
   | "high_priority_opportunity"
-  | "approved_opportunity";
+  | "approved_opportunity"
+  | "research_ready";
 
 export interface AttentionItem {
   id: string;

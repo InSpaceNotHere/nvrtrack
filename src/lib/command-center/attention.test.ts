@@ -49,14 +49,15 @@ describe("local attention", () => {
       "Send outstanding quote",
       "Follow up with 3 unanswered inquiries",
       "Proposal drafting assistant",
-      "Lead intake & reply drafting",
+      "Research ready to review",
     ]);
     expect(items.map((item) => item.kind)).toEqual([
       "overdue_task",
       "high_priority_task",
       "approved_opportunity",
-      "high_priority_opportunity",
+      "research_ready",
     ]);
+    expect(items.at(-1)?.detail).toBe("Lead intake & reply drafting");
   });
 
   it("ignores completed tasks even when the due date is past", () => {

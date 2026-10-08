@@ -4,13 +4,14 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { OpportunityEditor } from "@/components/command-center/record-editor";
+import { ResearchBriefing } from "@/components/command-center/research-briefing";
 import { useWorkspace } from "@/components/command-center/workspace-provider";
 import { opportunityBand, priorityLabel, stageLabel } from "@/lib/command-center/owner-presentation";
 import type { LocalOpportunity } from "@/lib/command-center/domain";
 
 function OpportunityBoard() {
   const params = useSearchParams();
-  const { ready, workspace, createOpportunity, updateOpportunity } = useWorkspace();
+  const { ready, workspace, createOpportunity, updateOpportunity, markResearchReviewed, adoptResearchRecommendation } = useWorkspace();
   const initial = params.get("new") ? "new" : params.get("focus");
   const [editing, setEditing] = useState<string | "new" | null>(initial);
   const [showEditor, setShowEditor] = useState(initial === "new");
@@ -35,7 +36,17 @@ function OpportunityBoard() {
       </button>
       {editing === "new" || selected ? (
         <section className="nvr-rise rounded-[28px] bg-white p-6 shadow-[0_18px_50px_rgba(23,32,29,0.06)]">
-          {selected ? <OpportunityDetail opportunity={selected} /> : null}
+          {selected ? (
+            <>
+              <OpportunityDetail opportunity={selected} />
+              <ResearchBriefing
+                attachment={workspace.research.find((item) => item.opportunityId === selected.id) ?? null}
+                currentRecommendation={selected.recommendation}
+                onReview={() => markResearchReviewed(selected.id)}
+                onAdopt={() => adoptResearchRecommendation(selected.id)}
+              />
+            </>
+          ) : null}
           {showEditor ? (
             <OpportunityEditor
               key={editing === "new" ? "new" : editing}
@@ -61,6 +72,7 @@ function OpportunityBoard() {
       <OpportunityGroup
         title="Ready to review"
         items={readyItems}
+        researchIds={workspace.research.map((item) => item.opportunityId)}
         onOpen={(id) => {
           setShowEditor(false);
           setEditing(id);
@@ -105,10 +117,12 @@ function OpportunityGroup({
   title,
   items,
   onOpen,
+  researchIds = [],
 }: {
   title: string;
   items: LocalOpportunity[];
   onOpen: (id: string) => void;
+  researchIds?: string[];
 }) {
   if (items.length === 0) return null;
   return (
@@ -122,6 +136,9 @@ function OpportunityGroup({
               <p className="mt-1 text-[16px] text-[#65706B]">{item.department ?? "Across the business"}</p>
               {item.problem ? <p className="mt-3 text-[17px] leading-7 text-[#17201D]">{item.problem}</p> : null}
               <div className="mt-4 flex flex-wrap gap-2">
+                {researchIds.includes(item.id) ? (
+                  <span className="rounded-full bg-[#E8F5EF] px-3 py-1 text-[15px] font-semibold text-[#17785E]">Research available</span>
+                ) : null}
                 <span className="rounded-full bg-[#F0F3EE] px-3 py-1 text-[15px] text-[#17201D]">{priorityLabel(item.priority)}</span>
                 {item.estimatedHoursSavedMonthly !== null ? (
                   <span className="rounded-full bg-[#E8F5EF] px-3 py-1 text-[15px] text-[#17785E]">

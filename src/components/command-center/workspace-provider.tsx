@@ -3,6 +3,7 @@
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
 
 import type { WorkspaceSnapshot } from "@/lib/command-center/domain";
+import type { ResearchProvenance } from "@/lib/command-center/domain";
 import {
   LocalBusinessRepository,
   WELCOME_STORAGE_KEY,
@@ -22,6 +23,9 @@ interface WorkspaceContextValue {
   deleteTask: (id: string) => void;
   createOpportunity: (input: OpportunityDraft) => void;
   updateOpportunity: (id: string, input: OpportunityDraft) => void;
+  markResearchReviewed: (opportunityId: string) => void;
+  adoptResearchRecommendation: (opportunityId: string) => void;
+  attachResearchResult: (opportunityId: string, value: unknown, provenance?: ResearchProvenance) => string | null;
   resetWorkspace: () => void;
   exportWorkspace: () => WorkspaceSnapshot | null;
   importWorkspace: (value: unknown) => string | null;
@@ -110,6 +114,23 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       updateOpportunity(id, input) {
         ensureRepository().updateOpportunity(id, input);
         publish();
+      },
+      markResearchReviewed(opportunityId) {
+        ensureRepository().markResearchReviewed(opportunityId);
+        publish();
+      },
+      adoptResearchRecommendation(opportunityId) {
+        ensureRepository().adoptResearchRecommendation(opportunityId);
+        publish();
+      },
+      attachResearchResult(opportunityId, value, provenance) {
+        try {
+          ensureRepository().attachResearchResult(opportunityId, value, provenance);
+          publish();
+          return null;
+        } catch (error) {
+          return error instanceof Error ? error.message : "Research could not be attached.";
+        }
       },
       resetWorkspace() {
         ensureRepository().reset();
