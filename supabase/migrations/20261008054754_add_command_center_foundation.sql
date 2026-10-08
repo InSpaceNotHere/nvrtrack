@@ -97,7 +97,7 @@ create table if not exists public.opportunities (
   constraint opportunities_title_not_empty check (char_length(trim(title)) > 0),
   constraint opportunities_priority_check check (priority in ('low', 'medium', 'high', 'urgent')),
   constraint opportunities_status_check check (
-    status in ('identified', 'approved', 'building', 'testing', 'live', 'measuring')
+    status in ('identified', 'approved', 'building', 'testing', 'live', 'measuring', 'completed', 'rejected')
   ),
   constraint opportunities_hours_nonnegative check (
     estimated_hours_per_month is null or estimated_hours_per_month >= 0

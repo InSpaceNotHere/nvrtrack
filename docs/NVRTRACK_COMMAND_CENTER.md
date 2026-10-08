@@ -1,5 +1,7 @@
 # NVRTRACK — AI Business Command Center
 
+The running product on this branch is the local-first MVP in `docs/NVRTRACK_LOCAL_MVP.md`. Supabase auth is not required. The migration below stays staged and is not applied.
+
 Planning document for the pivot **after** NVR Nutrition was frozen. Application fitness code in this tree is unchanged until a later, explicit cutover.
 
 **Daily question:** What needs my attention in my business?

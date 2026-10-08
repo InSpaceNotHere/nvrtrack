@@ -1,122 +1,97 @@
 import { describe, expect, it } from "vitest";
 
-import type { BusinessTask, Opportunity } from "@/types/command-center";
+import type { LocalOpportunity, LocalTask } from "./domain";
+import { createJuniperSeed } from "./seed";
+import { buildAttentionItems, buildBusinessSnapshot, buildRecommendedActions, isOverdueTask } from "./attention";
 
-import {
-  buildAttentionItems,
-  buildBusinessSnapshot,
-  buildImpactSnapshot,
-  buildRecommendedActions,
-  isOverdueTask,
-} from "./attention";
+const now = new Date("2026-10-08T15:00:00.000Z");
 
-const now = new Date("2026-10-08T12:00:00.000Z");
-
-function task(overrides: Partial<BusinessTask>): BusinessTask {
+function task(overrides: Partial<LocalTask>): LocalTask {
   return {
     id: "task-1",
-    organization_id: "org-1",
+    organizationId: "org-juniper",
     title: "Call the owner",
+    description: null,
     status: "open",
     priority: "medium",
-    due_at: null,
-    owner_user_id: null,
-    source: null,
-    opportunity_id: null,
-    completed_at: null,
-    created_by: "user-1",
-    created_at: "2026-10-01T00:00:00.000Z",
-    updated_at: "2026-10-01T00:00:00.000Z",
+    dueAt: null,
+    createdAt: "2026-10-01T12:00:00.000Z",
+    updatedAt: "2026-10-01T12:00:00.000Z",
+    completedAt: null,
     ...overrides,
   };
 }
 
-function opportunity(overrides: Partial<Opportunity>): Opportunity {
+function opportunity(overrides: Partial<LocalOpportunity>): LocalOpportunity {
   return {
     id: "opp-1",
-    organization_id: "org-1",
-    title: "Invoice follow-up bot",
-    department: "ops",
-    current_problem: "Manual chasing",
-    proposed_solution: "Reminder sequence",
-    estimated_hours_per_month: 4,
-    estimated_revenue_cents: 120000,
-    priority: "high",
+    organizationId: "org-juniper",
+    title: "Lead intake",
+    problem: null,
+    department: "Sales",
+    description: null,
+    recommendation: null,
+    priority: "medium",
     status: "identified",
-    created_by: "user-1",
-    created_at: "2026-10-01T00:00:00.000Z",
-    updated_at: "2026-10-01T00:00:00.000Z",
+    estimatedHoursSavedMonthly: null,
+    estimatedValueMonthly: null,
+    createdAt: "2026-10-01T12:00:00.000Z",
+    updatedAt: "2026-10-01T12:00:00.000Z",
     ...overrides,
   };
 }
 
-describe("command center attention", () => {
-  it("treats past-due open tasks as overdue and ignores completed work", () => {
-    expect(isOverdueTask(task({ due_at: "2026-10-07T00:00:00.000Z" }), now)).toBe(true);
-    expect(
-      isOverdueTask(task({ due_at: "2026-10-07T00:00:00.000Z", status: "completed" }), now),
-    ).toBe(false);
-    expect(isOverdueTask(task({ due_at: "2026-10-09T00:00:00.000Z" }), now)).toBe(false);
-  });
-
-  it("ranks overdue work ahead of high-priority and open opportunities", () => {
-    const items = buildAttentionItems({
-      now,
-      tasks: [
-        task({ id: "t-high", title: "Prep proposal", priority: "high" }),
-        task({ id: "t-late", title: "Send quote", due_at: "2026-10-01T00:00:00.000Z", priority: "low" }),
-      ],
-      opportunities: [opportunity({ title: "CRM cleanup" })],
-    });
-
+describe("local attention", () => {
+  it("ranks overdue tasks, urgent work, high-priority opportunities, then approved work", () => {
+    const seed = createJuniperSeed(now);
+    const items = buildAttentionItems({ ...seed, now });
+    expect(items.map((item) => item.title)).toEqual([
+      "Send outstanding quote",
+      "Follow up with 3 unanswered inquiries",
+      "Proposal drafting assistant",
+      "Lead intake & reply drafting",
+    ]);
     expect(items.map((item) => item.kind)).toEqual([
       "overdue_task",
       "high_priority_task",
+      "approved_opportunity",
       "high_priority_opportunity",
     ]);
   });
 
-  it("builds a snapshot from stored facts and leaves missing hours null", () => {
+  it("ignores completed tasks even when the due date is past", () => {
+    expect(isOverdueTask(task({ dueAt: "2026-10-01T12:00:00.000Z", status: "completed" }), now)).toBe(false);
+  });
+
+  it("counts only stored open, overdue, active, and high-priority rows", () => {
     const snapshot = buildBusinessSnapshot({
       now,
       tasks: [
         task({ id: "open" }),
-        task({ id: "late", due_at: "2026-10-01T00:00:00.000Z" }),
-        task({ id: "done", status: "completed" }),
+        task({ id: "late", dueAt: "2026-10-01T12:00:00.000Z" }),
+        task({ id: "done", status: "completed", dueAt: "2026-10-01T12:00:00.000Z" }),
       ],
       opportunities: [
-        opportunity({ estimated_hours_per_month: 3 }),
-        opportunity({ id: "opp-2", status: "live", estimated_hours_per_month: 10 }),
+        opportunity({ priority: "high" }),
+        opportunity({ id: "approved", status: "approved" }),
+        opportunity({ id: "done", status: "completed", priority: "urgent" }),
       ],
     });
-
     expect(snapshot).toEqual({
-      openOpportunityCount: 1,
-      highPriorityOpportunityCount: 1,
       openTaskCount: 2,
       overdueTaskCount: 1,
+      activeOpportunityCount: 2,
+      highPriorityOpportunityCount: 1,
     });
   });
 
-  it("labels impact as estimated only until measured values exist", () => {
-    const impact = buildImpactSnapshot([
-      opportunity({ estimated_hours_per_month: 2, estimated_revenue_cents: 5000 }),
-      opportunity({ id: "opp-2", estimated_hours_per_month: null, estimated_revenue_cents: null }),
-    ]);
-
-    expect(impact.estimatedHoursPerMonth).toBe(2);
-    expect(impact.estimatedRevenueCents).toBe(5000);
-    expect(impact.measuredHoursPerMonth).toBeNull();
-    expect(impact.measuredRevenueCents).toBeNull();
-  });
-
-  it("recommends creating a first record when the org is empty", () => {
-    const actions = buildRecommendedActions({ now, tasks: [], opportunities: [] });
-    expect(actions).toEqual([
-      expect.objectContaining({
-        kind: "create_first_record",
-        entityId: null,
-      }),
+  it("derives recommended actions from the Juniper seed", () => {
+    const seed = createJuniperSeed(now);
+    const actions = buildRecommendedActions({ ...seed, now });
+    expect(actions.map((action) => action.title)).toEqual([
+      "Send overdue quote",
+      "Follow up with 3 unanswered inquiries",
+      "Review approved AI opportunity: Proposal drafting assistant",
     ]);
   });
 });
