@@ -201,7 +201,7 @@ export default function Home() {
           </div>
           <div className="demo-badge">
             <span aria-hidden="true">◆</span>
-            Sample demo · Prepared data
+            Sample Demo
           </div>
         </div>
       </header>
@@ -218,7 +218,7 @@ export default function Home() {
           <div>
             <span className="sample-kicker">Prepared examples</span>
             <h2 id="samples-title">Choose a fictional sample</h2>
-            <p>Prepared examples are ready to review.</p>
+            <p>Prepared examples. Interactive demo.</p>
           </div>
           <div className="sample-actions">
             {SAMPLES.map((sample, index) => (
@@ -379,10 +379,6 @@ export default function Home() {
             <button className="button primary full" type="submit" disabled={loading}>
               {loading ? "Generating…" : "Generate content"}
             </button>
-            <p className="privacy-note">
-              Live AI is not connected in this sample. If configured, submitted
-              fields are sent to OpenAI.
-            </p>
           </form>
 
           <section className="card output-card" aria-labelledby="drafts-title">
@@ -434,9 +430,9 @@ export default function Home() {
                   <div className="tabs" role="tablist" aria-label="Content type">
                     {(
                       [
-                        ["social", "Social Posts"],
+                        ["social", "Social"],
                         ["email", "Email"],
-                        ["video", "Video Script"],
+                        ["video", "Video"],
                       ] as const
                     ).map(([value, label]) => (
                       <button
@@ -469,7 +465,7 @@ export default function Home() {
                 </div>
 
                 {tab === "social" && (
-                  <div role="tabpanel" className="draft-list">
+                  <div role="tabpanel" className="draft-list tab-panel">
                     {pack.socialPosts.map((post, index) => (
                       <article className="draft" key={index}>
                         <div className="draft-heading">
@@ -506,7 +502,7 @@ export default function Home() {
                 )}
 
                 {tab === "email" && (
-                  <article role="tabpanel" className="draft">
+                  <article role="tabpanel" className="draft tab-panel">
                     <div className="draft-heading">
                       <h3>Promotional email</h3>
                       <button
@@ -552,7 +548,7 @@ export default function Home() {
                 )}
 
                 {tab === "video" && (
-                  <article role="tabpanel" className="draft">
+                  <article role="tabpanel" className="draft tab-panel">
                     <div className="draft-heading">
                       <h3>Short video script</h3>
                       <button
