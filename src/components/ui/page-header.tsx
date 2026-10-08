@@ -7,9 +7,9 @@ interface PageHeaderProps {
 export function PageHeader({ title, subtitle, eyebrow }: PageHeaderProps) {
   return (
     <header className="mb-4 sm:mb-5">
-      {eyebrow ? <p className="mb-1.5 text-[11px] uppercase tracking-[0.14em] text-zinc-500">{eyebrow}</p> : null}
-      <h1 className="text-[var(--ds-font-size-heading-lg)] font-semibold tracking-tight text-white">{title}</h1>
-      {subtitle ? <p className="mt-1.5 text-sm text-zinc-400">{subtitle}</p> : null}
+      {eyebrow ? <p className="mb-1.5 text-base text-[var(--ds-color-text-secondary)]">{eyebrow}</p> : null}
+      <h1 className="text-[clamp(2rem,4vw,2.375rem)] font-semibold tracking-tight text-[var(--ds-color-text-primary)]">{title}</h1>
+      {subtitle ? <p className="mt-2 text-[17px] leading-7 text-[var(--ds-color-text-secondary)]">{subtitle}</p> : null}
     </header>
   );
 }

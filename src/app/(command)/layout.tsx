@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 
 export default function CommandLayout({ children }: { children: ReactNode }) {
   return (
-    <AppShell>
+      <AppShell tone="owner">
       <WorkspaceProvider>{children}</WorkspaceProvider>
     </AppShell>
   );

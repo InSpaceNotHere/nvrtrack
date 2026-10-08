@@ -26,7 +26,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
           className,
         )}
       >
-        {title ? <h2 className="text-sm font-semibold uppercase tracking-[0.09em] text-zinc-100">{title}</h2> : null}
+        {title ? <h2 className="text-lg font-semibold text-[var(--ds-color-text-primary)]">{title}</h2> : null}
         <div className={title ? "mt-3" : ""}>{children}</div>
       </section>
     </div>

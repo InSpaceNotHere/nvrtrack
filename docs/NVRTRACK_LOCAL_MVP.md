@@ -2,6 +2,10 @@
 
 The active product on `cursor/nvrtrack-command-center-8c10` is a **single-user Command Center**. It opens at `/today` with no login.
 
+## Owner experience
+
+Today is the product. The primary navigation is Today, Work, and Opportunities, with Business, Results, Activity, AI, and Account behind More. The screen leads with one most-important action, then the rest of what needs the owner. Estimated impact stays labeled estimated.
+
 ## Current architecture
 
 - Persistence: browser `localStorage` key `nvrtrack.command-center.workspace.v1`

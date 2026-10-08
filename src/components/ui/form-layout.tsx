@@ -24,7 +24,7 @@ export function FormGrid({ children, className }: FormProps) {
 
 export function FormField({ label, error, children, className }: FormFieldProps) {
   return (
-    <label className={cn("space-y-1 text-sm text-zinc-300", className)}>
+    <label className={cn("space-y-1 text-base text-[var(--ds-color-text-secondary)]", className)}>
       <span>{label}</span>
       {children}
       {error ? <p className="text-xs text-rose-300">{error}</p> : null}

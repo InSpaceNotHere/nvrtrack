@@ -6,89 +6,96 @@ const out = "/opt/cursor/artifacts";
 await mkdir(out, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-const log = [];
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 
 function note(message) {
-  log.push(message);
   console.log(message);
 }
 
 await page.goto(base + "/", { waitUntil: "networkidle" });
-await page.getByRole("heading", { name: "What needs my attention?" }).waitFor();
+await page.getByRole("heading", { name: /needs your attention/i }).waitFor();
 note("root opens today without login: " + page.url());
 await page.getByRole("button", { name: "Continue" }).click();
-await page.getByText("Send outstanding quote").first().waitFor();
-await page.screenshot({ path: `${out}/today-desktop.png`, fullPage: true });
+await page.getByText("Most important").waitFor();
+await page.getByRole("heading", { name: "Send outstanding quote" }).waitFor();
+const pulse = page.locator("section").filter({ has: page.getByRole("heading", { name: "Business pulse" }) });
+await pulse.getByText("1", { exact: true }).first().waitFor();
+await page.screenshot({ path: `${out}/today-desktop.png` });
+note("today hero is the overdue quote");
 
-await page.getByRole("link", { name: "Tasks", exact: true }).click();
-await page.getByRole("heading", { name: "Tasks", exact: true }).waitFor();
-await page.getByRole("button", { name: "New task" }).click();
-await page.getByLabel("Title").fill("Confirm florist delivery");
-await page.getByRole("button", { name: "Save task" }).click();
-await page.getByText("Confirm florist delivery").waitFor();
-note("created task");
-
-await page.getByRole("button", { name: /Confirm florist delivery/ }).click();
-await page.getByLabel("Status").selectOption("completed");
-await page.getByRole("button", { name: "Save task" }).click();
-await page.getByText("completed ·").first().waitFor();
-note("completed task");
-
-await page.getByRole("link", { name: "Today", exact: true }).click();
-await page.getByRole("heading", { name: "What needs my attention?" }).waitFor();
-const attention = await page.locator("#attention-heading").locator("xpath=following-sibling::ul").innerText();
-if (attention.includes("Confirm florist delivery")) {
-  throw new Error("Completed medium task should not stay in attention");
-}
-if (!attention.includes("Send outstanding quote")) {
-  throw new Error("Seed overdue quote missing from attention");
-}
-note("today attention still shows overdue quote and not the completed florist task");
+await page.getByRole("link", { name: "Work", exact: true }).click();
+await page.getByRole("heading", { name: "Work", exact: true }).waitFor();
+await page.getByRole("heading", { name: "Overdue" }).waitFor();
+await page.getByText("Overdue by 2 days").waitFor();
+await page.screenshot({ path: `${out}/work-desktop.png` });
+note("work groups overdue in owner language");
 
 await page.getByRole("link", { name: "Opportunities", exact: true }).click();
-await page.getByRole("button", { name: "New opportunity" }).click();
-await page.getByLabel("Title").fill("Venue checklist");
-await page.getByLabel("Status").selectOption("approved");
-await page.getByLabel("Problem").fill("Checklists are rebuilt for every venue.");
-await page.getByRole("button", { name: "Save opportunity" }).click();
-await page.getByText("Venue checklist").waitFor();
-note("created approved opportunity");
+await page.getByText("Ready to review").waitFor();
+await page.getByText("Estimated: 6 hrs/month").waitFor();
+await page.getByRole("button", { name: /Lead intake/ }).click();
+await page.getByText("The problem").waitFor();
+await page.getByText("Estimated · about 6 hours a month").waitFor();
+await page.screenshot({ path: `${out}/opportunities-desktop.png` });
+note("opportunity review uses owner language");
 
+await page.getByRole("button", { name: "More" }).click();
 await page.getByRole("link", { name: "Activity", exact: true }).click();
-await page.getByText("Opportunity approved").first().waitFor();
-await page.getByText("Task completed").first().waitFor();
-await page.screenshot({ path: `${out}/activity-desktop.png`, fullPage: true });
-note("activity shows task completion and opportunity approval");
+await page.getByRole("heading", { name: "What happened" }).waitFor();
+await page.getByRole("heading", { name: "Yesterday" }).waitFor();
+await page.screenshot({ path: `${out}/activity-desktop.png` });
+
+await page.getByRole("button", { name: "More" }).click();
+await page.getByRole("link", { name: "Account", exact: true }).click();
+await page.getByText("This preview saves data on this device.").waitFor();
+await page.screenshot({ path: `${out}/account-desktop.png` });
+note("more menu reaches activity and account");
+
+await page.setViewportSize({ width: 390, height: 844 });
+await page.getByRole("link", { name: "Today", exact: true }).locator("visible=true").click();
+await page.getByRole("heading", { name: /needs your attention/i }).waitFor();
+await page.getByRole("link", { name: "Work", exact: true }).locator("visible=true").waitFor();
+await page.getByRole("button", { name: "More" }).waitFor();
+await page.screenshot({ path: `${out}/today-mobile.png` });
+note("mobile dock is Today, Work, Opportunities, More");
+
+await page.setViewportSize({ width: 1600, height: 900 });
+await page.screenshot({ path: `${out}/nvrtrack-poster.png` });
+
+await page.setViewportSize({ width: 1440, height: 1000 });
+await page.getByRole("button", { name: "Complete" }).first().click();
+await page.getByRole("heading", { name: "Send outstanding quote" }).waitFor({ state: "detached" });
+const after = page.locator("section").filter({ has: page.getByRole("heading", { name: "Business pulse" }) });
+await after.getByText("0", { exact: true }).waitFor();
+note("completing the quote clears it and updates the pulse");
 
 await page.reload({ waitUntil: "networkidle" });
 await page.getByText("Task completed").first().waitFor();
-await page.getByText("Confirm florist delivery").first().waitFor();
-note("activity survived reload");
+note("completion survived reload");
 
-await page.getByRole("link", { name: "Tasks", exact: true }).click();
-await page.getByText("completed · medium").first().waitFor();
-await page.screenshot({ path: `${out}/tasks-desktop.png`, fullPage: true });
-
-await page.getByRole("link", { name: "Opportunities", exact: true }).click();
-await page.getByText("Venue checklist").waitFor();
-await page.screenshot({ path: `${out}/opportunities-desktop.png`, fullPage: true });
-
-await page.setViewportSize({ width: 390, height: 844 });
-await page.getByRole("link", { name: "Today", exact: true }).click();
-await page.getByRole("heading", { name: "What needs my attention?" }).waitFor();
-await page.screenshot({ path: `${out}/today-mobile.png`, fullPage: true });
-note("mobile today captured");
-
-await page.setViewportSize({ width: 1280, height: 900 });
+await page.getByRole("button", { name: "More" }).click();
 await page.getByRole("link", { name: "Account", exact: true }).click();
 await page.getByRole("button", { name: "Reset demo workspace" }).click();
 await page.getByRole("button", { name: "Confirm reset" }).click();
 await page.getByText("Demo workspace restored.").waitFor();
-await page.getByRole("link", { name: "Tasks", exact: true }).click();
-await page.getByText("Confirm florist delivery").waitFor({ state: "detached" });
+await page.getByRole("link", { name: "Work", exact: true }).click();
 await page.getByText("Send outstanding quote").waitFor();
-note("reset restored seed and removed the created task");
+note("reset restored the quote");
+
+const zoomed = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+await zoomed.goto(base + "/today", { waitUntil: "networkidle" });
+await zoomed.evaluate(() => {
+  document.documentElement.style.zoom = "2";
+});
+await zoomed.getByRole("heading", { name: /needs your attention/i }).waitFor();
+note("200% zoom still shows the Today statement");
+
+const calm = await browser.newContext({ reducedMotion: "reduce" });
+const calmPage = await calm.newPage({ viewport: { width: 1280, height: 800 } });
+await calmPage.goto(base + "/today", { waitUntil: "networkidle" });
+await calmPage.getByRole("heading", { name: /needs your attention/i }).waitFor();
+note("reduced motion still renders Today");
+await calm.close();
 
 await browser.close();
 note("walkthrough ok");
