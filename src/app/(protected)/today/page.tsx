@@ -14,6 +14,8 @@ import {
 } from "@/lib/command-center/attention";
 import { getCommandCenterToday } from "@/lib/data/command-center";
 
+export const dynamic = "force-dynamic";
+
 function formatHours(value: number | null): string {
   if (value === null) {
     return "—";
