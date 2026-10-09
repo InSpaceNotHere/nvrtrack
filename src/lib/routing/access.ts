@@ -1,7 +1,23 @@
 const AUTH_ROUTES = new Set(["/login", "/signup"]);
 const PUBLIC_EXACT_ROUTES = new Set(["/privacy", "/login", "/signup"]);
 const PUBLIC_PREFIXES = ["/privacy/", "/auth/"] as const;
-const PROTECTED_ROUTE_PREFIXES = ["/", "/nutrition", "/training", "/progress", "/profile", "/onboarding"] as const;
+const PROTECTED_ROUTE_PREFIXES = [
+  "/",
+  "/today",
+  "/businesses",
+  "/opportunities",
+  "/implementations",
+  "/tasks",
+  "/results",
+  "/activity",
+  "/ai",
+  "/account",
+  "/nutrition",
+  "/training",
+  "/progress",
+  "/profile",
+  "/onboarding",
+] as const;
 
 export function isAuthRoute(pathname: string): boolean {
   return AUTH_ROUTES.has(pathname);

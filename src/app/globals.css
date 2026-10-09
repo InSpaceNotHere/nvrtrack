@@ -22,6 +22,13 @@
   --ds-color-accent: #87a3ff;
   --ds-color-danger: #f06c7c;
   --ds-color-success: #59d4a9;
+  --ds-button-primary-bg: #f7f8fb;
+  --ds-button-primary-fg: #050608;
+  --ds-button-secondary-bg: transparent;
+  --ds-button-secondary-fg: #f4f4f5;
+  --ds-button-secondary-border: rgba(255, 255, 255, 0.15);
+  --ds-button-ghost-fg: #e4e4e7;
+  --ds-button-danger-fg: #fecdd3;
 
   --ds-font-size-metric-xl: clamp(2.2rem, 5vw, 2.8rem);
   --ds-font-size-metric-lg: clamp(1.7rem, 4vw, 2.1rem);
@@ -237,7 +244,10 @@ a,
   .ds-press,
   .ds-sheet-backdrop,
   .ds-sheet-panel,
-  .ds-row-out {
+  .ds-row-out,
+  .nvr-page,
+  .nvr-leave,
+  .nvr-rise {
     transition: none;
     animation: none;
   }
@@ -245,5 +255,107 @@ a,
   .ds-press:active:not(:disabled) {
     transform: none;
     opacity: 0.85;
+  }
+}
+
+.nvr-owner {
+  --ds-color-bg-base: #f6f7f3;
+  --ds-color-bg-surface: #ffffff;
+  --ds-color-bg-muted: #f0f3ee;
+  --ds-color-bg-elevated: #ffffff;
+  --ds-color-border-subtle: rgba(23, 32, 29, 0.08);
+  --ds-color-border-strong: rgba(23, 32, 29, 0.14);
+  --ds-color-text-primary: #17201d;
+  --ds-color-text-secondary: #65706b;
+  --ds-color-text-muted: #65706b;
+  --ds-color-accent: #17785e;
+  --ds-color-accent-bright: #20a77b;
+  --ds-color-accent-soft: #e8f5ef;
+  --ds-color-attention: #c88924;
+  --ds-color-attention-soft: #fff5de;
+  --ds-color-danger: #a33b3b;
+  --ds-button-primary-bg: #17785e;
+  --ds-button-primary-fg: #ffffff;
+  --ds-button-secondary-bg: #ffffff;
+  --ds-button-secondary-fg: #17201d;
+  --ds-button-secondary-border: rgba(23, 32, 29, 0.1);
+  --ds-button-ghost-fg: #17201d;
+  --ds-button-danger-fg: #a33b3b;
+  --ds-shadow-sm: 0 16px 40px rgba(23, 32, 29, 0.05);
+  --ds-shadow-md: 0 22px 60px rgba(23, 32, 29, 0.08);
+  --ds-radius-xl: 1.6rem;
+  min-height: 100vh;
+  color: var(--ds-color-text-primary);
+  background:
+    radial-gradient(900px 480px at 12% -10%, rgba(32, 167, 123, 0.09), transparent 60%),
+    radial-gradient(700px 420px at 100% 0%, rgba(255, 245, 222, 0.7), transparent 55%),
+    var(--ds-color-bg-base);
+}
+
+.nvr-owner .ds-card {
+  border: 1px solid rgba(23, 32, 29, 0.05);
+  background: #ffffff;
+  box-shadow: var(--ds-shadow-sm);
+}
+
+.nvr-owner .ds-input,
+.nvr-owner .ds-textarea,
+.nvr-owner .app-input {
+  background: #ffffff;
+  border-color: rgba(23, 32, 29, 0.1);
+  color: #17201d;
+  font-size: 1.05rem;
+}
+
+.nvr-owner .ds-input:focus,
+.nvr-owner .ds-textarea:focus {
+  border-color: #17785e;
+  box-shadow: 0 0 0 3px rgba(23, 120, 94, 0.16);
+}
+
+.nvr-owner label {
+  color: #17201d;
+  font-size: 1rem;
+}
+
+.nvr-rail {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 50px rgba(23, 32, 29, 0.05);
+}
+
+.nvr-dock {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 16px 40px rgba(23, 32, 29, 0.12);
+}
+
+.nvr-page {
+  animation: nvr-page-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nvr-rise {
+  animation: nvr-page-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nvr-leave {
+  animation: nvr-leave-out 280ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes nvr-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes nvr-leave-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
   }
 }

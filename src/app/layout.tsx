@@ -12,7 +12,7 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: "NVRTRACK",
-  description: "Minimal, private fitness tracker for training, nutrition, and progress tracking.",
+  description: "What needs attention in the business, and what to do next.",
   applicationName: "NVRTRACK",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "NVRTRACK",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
   formatDetection: {
     telephone: false,

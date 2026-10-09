@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { resolveOnboardingGate } from "@/lib/onboarding/gating";
 import { ONBOARDING_REQUIRED_VERSION } from "@/lib/onboarding/constants";
+import { isBusinessRoute } from "@/lib/command-center/routes";
 import { isAuthRoute, isProtectedRoute } from "@/lib/routing/access";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
 import type { Database } from "@/types/database";
@@ -21,6 +22,9 @@ function isMissingColumnError(message: string | undefined): boolean {
 
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (isBusinessRoute(pathname)) {
+    return NextResponse.next({ request });
+  }
   const env = getSupabasePublicEnv();
 
   if (!env) {

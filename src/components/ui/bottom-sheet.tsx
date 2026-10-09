@@ -27,7 +27,7 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
         )}
       >
         <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-white/20" />
-        {title ? <h2 className="text-sm font-semibold uppercase tracking-[0.09em] text-zinc-100">{title}</h2> : null}
+        {title ? <h2 className="text-lg font-semibold text-[var(--ds-color-text-primary)]">{title}</h2> : null}
         <div className={title ? "mt-3" : ""}>{children}</div>
       </section>
     </div>

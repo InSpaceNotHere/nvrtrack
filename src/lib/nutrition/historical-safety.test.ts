@@ -30,10 +30,10 @@ describe("historical nutrition logs stay snapshot-only", () => {
     expect(todayPage).toContain("entries={entriesResult.data ?? []}");
     expect(todayPage).not.toMatch(/food_catalog/);
 
-    const homePage = read("src/app/(protected)/page.tsx");
-    expect(homePage).toContain("getMyFoodEntriesForDate(todayDate)");
-    expect(homePage).toContain("calculateDailyTotals(nutritionEntriesResult.data ?? [])");
-    expect(homePage).not.toMatch(/food_catalog/);
+    const rootPage = read("src/app/(command)/page.tsx");
+    expect(rootPage).toContain("redirect(POST_AUTH_HOME)");
+    expect(rootPage).not.toMatch(/food_catalog/);
+    expect(rootPage).not.toContain("getMyFoodEntriesForDate");
   });
 
   it("renders diary names and calories from the stored entry, not a live catalog row", () => {

@@ -1,3 +1,5 @@
+import { isBusinessRoute, POST_AUTH_HOME } from "../command-center/routes";
+
 const ONBOARDING_ROUTE_PREFIX = "/onboarding";
 const ACTIVE_WORKOUT_ROUTE_REGEX = /^\/training\/workouts\/([^/]+)$/;
 
@@ -40,8 +42,12 @@ export function resolveOnboardingGate(input: ResolveOnboardingGateInput): Onboar
       if (onboardingQuery === "complete") {
         return { allow: true, redirectTo: null };
       }
-      return { allow: false, redirectTo: "/" };
+      return { allow: false, redirectTo: POST_AUTH_HOME };
     }
+    return { allow: true, redirectTo: null };
+  }
+
+  if (isBusinessRoute(pathname)) {
     return { allow: true, redirectTo: null };
   }
 

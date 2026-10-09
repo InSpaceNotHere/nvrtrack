@@ -1204,6 +1204,204 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          id: string
+          occurred_at: string
+          organization_id: string
+          payload: Json
+          summary: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          id?: string
+          occurred_at?: string
+          organization_id: string
+          payload?: Json
+          summary: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          organization_id?: string
+          payload?: Json
+          summary?: string
+        }
+        Relationships: []
+      }
+      business_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          due_at: string | null
+          id: string
+          opportunity_id: string | null
+          organization_id: string
+          owner_user_id: string | null
+          priority: string
+          source: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          due_at?: string | null
+          id?: string
+          opportunity_id?: string | null
+          organization_id: string
+          owner_user_id?: string | null
+          priority?: string
+          source?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          due_at?: string | null
+          id?: string
+          opportunity_id?: string | null
+          organization_id?: string
+          owner_user_id?: string | null
+          priority?: string
+          source?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      opportunities: {
+        Row: {
+          created_at: string
+          created_by: string
+          current_problem: string | null
+          department: string | null
+          estimated_hours_per_month: number | null
+          estimated_revenue_cents: number | null
+          id: string
+          organization_id: string
+          priority: string
+          proposed_solution: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          current_problem?: string | null
+          department?: string | null
+          estimated_hours_per_month?: number | null
+          estimated_revenue_cents?: number | null
+          id?: string
+          organization_id: string
+          priority?: string
+          proposed_solution?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          current_problem?: string | null
+          department?: string | null
+          estimated_hours_per_month?: number | null
+          estimated_revenue_cents?: number | null
+          id?: string
+          organization_id?: string
+          priority?: string
+          proposed_solution?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          industry: string | null
+          name: string
+          slug: string
+          timezone: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          industry?: string | null
+          name: string
+          slug: string
+          timezone?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          industry?: string | null
+          name?: string
+          slug?: string
+          timezone?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
