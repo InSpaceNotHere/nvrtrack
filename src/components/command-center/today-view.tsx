@@ -8,9 +8,16 @@ import { buildAttentionItems, buildBusinessSnapshot, buildRecommendedActions } f
 import { activityWhen, attentionCountLabel, distinctSuggestions, splitAttention, whyNow } from "@/lib/command-center/owner-presentation";
 import type { AttentionItem, LocalTask } from "@/lib/command-center/domain";
 
-function hrefFor(item: AttentionItem): string {
+function hrefFor(item: AttentionItem, implementations: Array<{ id: string; opportunityId: string }>): string {
   if (item.kind === "overdue_task" || item.kind === "high_priority_task") {
     return `/tasks?focus=${item.entityId}`;
+  }
+  if (item.kind === "baseline_due" || item.kind === "result_ready") {
+    return "/results";
+  }
+  if (item.kind === "implementation_approval") {
+    const implementation = implementations.find((entry) => entry.id === item.entityId);
+    return implementation ? `/opportunities?focus=${implementation.opportunityId}` : "/opportunities";
   }
   return `/opportunities?focus=${item.entityId}`;
 }
@@ -27,6 +34,9 @@ export function TodayView() {
     tasks: workspace.tasks,
     opportunities: workspace.opportunities,
     research: workspace.research,
+    implementations: workspace.implementations,
+    metrics: workspace.metrics,
+    observations: workspace.observations,
     now,
   });
   const { hero, rest } = splitAttention(attention);
@@ -83,7 +93,7 @@ export function TodayView() {
             <h2 className="text-[clamp(1.6rem,3vw,2rem)] font-semibold tracking-tight text-[#17201D]">{hero.title}</h2>
             <p className="mt-2 text-[18px] text-[#65706B]">{whyNow(hero, tasksById.get(hero.entityId), now)}</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href={hrefFor(hero)} className="ds-press rounded-full bg-[#17201D] px-5 py-3 text-[16px] font-semibold text-white">
+              <Link href={hrefFor(hero, workspace.implementations)} className="ds-press rounded-full bg-[#17201D] px-5 py-3 text-[16px] font-semibold text-white">
                 Review now
               </Link>
               {tasksById.has(hero.entityId) ? (
@@ -126,7 +136,7 @@ export function TodayView() {
                         Complete
                       </button>
                     ) : (
-                      <Link href={hrefFor(item)} className="ds-press shrink-0 rounded-full bg-[#E8F5EF] px-4 py-2 text-[15px] font-semibold text-[#17785E]">
+                      <Link href={hrefFor(item, workspace.implementations)} className="ds-press shrink-0 rounded-full bg-[#E8F5EF] px-4 py-2 text-[15px] font-semibold text-[#17785E]">
                         Review
                       </Link>
                     )}

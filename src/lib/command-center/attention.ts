@@ -3,12 +3,16 @@ import {
   OPEN_TASK_STATUSES,
   type AttentionItem,
   type BusinessSnapshot,
+  type LocalImplementation,
   type LocalOpportunity,
   type LocalTask,
+  type MetricDefinition,
+  type MetricObservation,
   type RecommendedAction,
   type ResearchAttachment,
   type TaskStatus,
 } from "./domain";
+import { isMeasured } from "./improvement";
 
 export function isOpenTask(task: Pick<LocalTask, "status">): boolean {
   return OPEN_TASK_STATUSES.includes(task.status);
@@ -37,6 +41,9 @@ export function buildAttentionItems(input: {
   tasks: LocalTask[];
   opportunities: LocalOpportunity[];
   research?: ResearchAttachment[];
+  implementations?: LocalImplementation[];
+  metrics?: MetricDefinition[];
+  observations?: MetricObservation[];
   now: Date;
 }): AttentionItem[] {
   const unreviewedResearch = new Set(
@@ -99,6 +106,44 @@ export function buildAttentionItems(input: {
         detail: `${label(opportunity.status)} · ${label(opportunity.priority)} priority`,
         entityId: opportunity.id,
         rank: 5,
+      });
+    }
+  }
+
+  for (const implementation of input.implementations ?? []) {
+    if (implementation.status === "planning") {
+      items.push({
+        id: `approve-${implementation.id}`,
+        kind: "implementation_approval",
+        title: "Implementation waiting for approval",
+        detail: implementation.name,
+        entityId: implementation.id,
+        rank: 3,
+      });
+    }
+    const metrics = (input.metrics ?? []).filter((metric) => metric.implementationId === implementation.id);
+    const observations = (input.observations ?? []).filter((item) => metrics.some((metric) => metric.id === item.metricId));
+    const baseline = observations.find((item) => item.role === "baseline" && item.evidenceType !== "missing");
+    const followUp = observations.find((item) => item.role === "follow_up" && isMeasured(item));
+    const active = implementation.status === "testing" || implementation.status === "live" || implementation.status === "measuring";
+    if (active && !baseline) {
+      items.push({
+        id: `baseline-${implementation.id}`,
+        kind: "baseline_due",
+        title: "Baseline measurement due",
+        detail: implementation.name,
+        entityId: implementation.id,
+        rank: 6,
+      });
+    }
+    if (followUp) {
+      items.push({
+        id: `result-${implementation.id}`,
+        kind: "result_ready",
+        title: "Result ready for review",
+        detail: implementation.name,
+        entityId: implementation.id,
+        rank: 4,
       });
     }
   }

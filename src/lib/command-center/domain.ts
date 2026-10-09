@@ -71,6 +71,65 @@ export interface ResearchAttachment {
   result: import("./research-contract").ResearchResult;
 }
 
+export type ImplementationStatus =
+  | "planning"
+  | "approved"
+  | "building"
+  | "testing"
+  | "live"
+  | "measuring"
+  | "completed"
+  | "paused"
+  | "cancelled";
+
+export interface LocalImplementation {
+  id: string;
+  opportunityId: string;
+  name: string;
+  problem: string | null;
+  proposedImprovement: string | null;
+  chosenApproach: string | null;
+  whySelected: string | null;
+  status: ImplementationStatus;
+  nextAction: string | null;
+  targetDate: string | null;
+  responsible: string | null;
+  risks: string | null;
+  successLooksLike: string | null;
+  taskIds: string[];
+  pausedFromStatus: ImplementationStatus | null;
+  createdAt: string;
+  updatedAt: string;
+  approvedAt: string | null;
+}
+
+export type EvidenceType = "measured" | "self_reported" | "estimated" | "missing";
+export type DesiredDirection = "higher" | "lower";
+export type ObservationRole = "baseline" | "follow_up";
+
+export interface MetricDefinition {
+  id: string;
+  implementationId: string;
+  name: string;
+  unit: string;
+  desiredDirection: DesiredDirection;
+  createdAt: string;
+}
+
+export interface MetricObservation {
+  id: string;
+  metricId: string;
+  role: ObservationRole;
+  observedAt: string;
+  periodLabel: string | null;
+  value: number | null;
+  evidenceType: EvidenceType;
+  method: string | null;
+  note: string | null;
+  limitations: string | null;
+  createdAt: string;
+}
+
 export interface WorkspaceSnapshot {
   version: 1;
   business: LocalBusiness;
@@ -78,6 +137,9 @@ export interface WorkspaceSnapshot {
   opportunities: LocalOpportunity[];
   activity: LocalActivityEvent[];
   research: ResearchAttachment[];
+  implementations: LocalImplementation[];
+  metrics: MetricDefinition[];
+  observations: MetricObservation[];
 }
 
 export type AttentionKind =
@@ -85,7 +147,10 @@ export type AttentionKind =
   | "high_priority_task"
   | "high_priority_opportunity"
   | "approved_opportunity"
-  | "research_ready";
+  | "research_ready"
+  | "implementation_approval"
+  | "baseline_due"
+  | "result_ready";
 
 export interface AttentionItem {
   id: string;

@@ -1,5 +1,5 @@
-import { ComingLater } from "@/components/command-center/coming-later";
+import { ResultsView } from "@/components/command-center/results-view";
 
 export default function ResultsPage() {
-  return <ComingLater title="Results" summary="See whether changes are producing measurable value." />;
+  return <ResultsView />;
 }

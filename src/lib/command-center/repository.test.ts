@@ -159,6 +159,98 @@ describe("local business repository", () => {
     expect(() => repo.attachResearchResult("opp-review-automation", { schema_version: "nope" })).toThrow(/schema/);
   });
 
+  it("plans an improvement without approving it, then links work and measures only real numbers", () => {
+    const storage = new MemoryStorage();
+    const repo = repository(storage);
+    const planned = repo.createImplementation({
+      opportunityId: "opp-proposal-assistant",
+      name: "Proposal drafting improvements",
+      problem: "Proposals start from a blank page.",
+      proposedImprovement: "Prepare a first draft for approval.",
+      chosenApproach: "Keep a person approving every draft.",
+      whySelected: "It matches how the business already works.",
+      nextAction: "Confirm the current inquiry workflow.",
+      targetDate: null,
+      responsible: "Owner",
+      risks: "Staff may skip the review.",
+      successLooksLike: "A draft exists before a proposal is sent.",
+      stepTitles: ["Document inquiry channels"],
+    });
+    expect(planned.status).toBe("planning");
+    expect(planned.approvedAt).toBeNull();
+    expect(planned.taskIds).toHaveLength(1);
+    expect(repo.getTasks().some((task) => task.title === "Document inquiry channels")).toBe(true);
+    expect(() => repo.transitionImplementation(planned.id, "live")).toThrow(/Cannot move/);
+
+    const approved = repo.transitionImplementation(planned.id, "approved");
+    expect(approved.approvedAt).toBe(now.toISOString());
+    const testing = repo.transitionImplementation(repo.transitionImplementation(planned.id, "building").id, "testing");
+    const paused = repo.pauseImplementationRecord(testing.id);
+    expect(repo.resumeImplementationRecord(paused.id).status).toBe("testing");
+
+    const metric = repo.createMetric({
+      implementationId: planned.id,
+      name: "Proposal hours",
+      unit: "hours",
+      desiredDirection: "lower",
+    });
+    expect(() =>
+      repo.recordObservation({
+        metricId: metric.id,
+        role: "baseline",
+        observedAt: now.toISOString(),
+        periodLabel: "October",
+        value: null,
+        evidenceType: "measured",
+        method: null,
+        note: null,
+        limitations: null,
+      }),
+    ).toThrow(/real number/);
+    repo.recordObservation({
+      metricId: metric.id,
+      role: "baseline",
+      observedAt: now.toISOString(),
+      periodLabel: "October",
+      value: 8,
+      evidenceType: "measured",
+      method: "Timed three proposals.",
+      note: null,
+      limitations: null,
+    });
+    repo.recordObservation({
+      metricId: metric.id,
+      role: "follow_up",
+      observedAt: now.toISOString(),
+      periodLabel: "October",
+      value: 5,
+      evidenceType: "measured",
+      method: "Timed three more.",
+      note: null,
+      limitations: "Small sample.",
+    });
+
+    const saved = repository(storage).load();
+    expect(saved.implementations[0]?.status).toBe("testing");
+    expect(saved.observations).toHaveLength(2);
+    const titles = saved.activity.map((event) => event.title);
+    expect(titles).toContain("Implementation planned");
+    expect(titles).toContain("Implementation approved");
+    expect(titles).toContain("Baseline recorded");
+    expect(titles).toContain("Follow-up recorded");
+
+    const exported = repo.exportWorkspace();
+    const imported = repository(new MemoryStorage()).importWorkspace(exported);
+    expect(imported.implementations[0]?.name).toBe("Proposal drafting improvements");
+    const legacy = { ...exported };
+    delete (legacy as { implementations?: unknown }).implementations;
+    delete (legacy as { metrics?: unknown }).metrics;
+    delete (legacy as { observations?: unknown }).observations;
+    expect(repository(new MemoryStorage()).importWorkspace(legacy).implementations).toEqual([]);
+    expect(repo.load().research).toHaveLength(1);
+    expect(repo.load().implementations.some((item) => item.opportunityId === "opp-lead-intake" && item.approvedAt)).toBe(false);
+  });
+
   it("rejects an invalid workspace import", () => {
     const repo = repository();
     expect(() => repo.importWorkspace({ version: 1 })).toThrow(/valid NVRTRACK export/);

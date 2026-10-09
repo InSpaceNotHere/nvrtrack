@@ -3,10 +3,15 @@ import {
   OPPORTUNITY_STATUSES,
   TASK_STATUSES,
   WORK_PRIORITIES,
+  type EvidenceType,
+  type ImplementationStatus,
   type LocalActivityEvent,
   type LocalBusiness,
+  type LocalImplementation,
   type LocalOpportunity,
   type LocalTask,
+  type MetricDefinition,
+  type MetricObservation,
   type OpportunityStatus,
   type ResearchAttachment,
   type ResearchProvenance,
@@ -14,6 +19,7 @@ import {
   type WorkPriority,
   type WorkspaceSnapshot,
 } from "./domain";
+import { applyStatus, pauseImplementation, resumeImplementation, validateObservation } from "./improvement";
 import { parseResearchResult, type ResearchResult } from "./research-contract";
 import { createJuniperSeed } from "./seed";
 
@@ -32,6 +38,40 @@ export interface TaskDraft {
   status: TaskStatus;
   priority: WorkPriority;
   dueAt: string | null;
+}
+
+export interface ImplementationDraft {
+  opportunityId: string;
+  name: string;
+  problem: string | null;
+  proposedImprovement: string | null;
+  chosenApproach: string | null;
+  whySelected: string | null;
+  nextAction: string | null;
+  targetDate: string | null;
+  responsible: string | null;
+  risks: string | null;
+  successLooksLike: string | null;
+  stepTitles?: string[];
+}
+
+export interface MetricDraft {
+  implementationId: string;
+  name: string;
+  unit: string;
+  desiredDirection: "higher" | "lower";
+}
+
+export interface ObservationDraft {
+  metricId: string;
+  role: "baseline" | "follow_up";
+  observedAt: string;
+  periodLabel: string | null;
+  value: number | null;
+  evidenceType: EvidenceType;
+  method: string | null;
+  note: string | null;
+  limitations: string | null;
 }
 
 export interface OpportunityDraft {
@@ -63,6 +103,14 @@ export interface BusinessRepository {
   removeResearchResult(opportunityId: string): void;
   markResearchReviewed(opportunityId: string): ResearchAttachment;
   adoptResearchRecommendation(opportunityId: string): LocalOpportunity;
+  createImplementation(input: ImplementationDraft): LocalImplementation;
+  updateImplementation(id: string, input: ImplementationDraft): LocalImplementation;
+  transitionImplementation(id: string, status: ImplementationStatus): LocalImplementation;
+  pauseImplementationRecord(id: string): LocalImplementation;
+  resumeImplementationRecord(id: string): LocalImplementation;
+  linkTask(implementationId: string, taskId: string): LocalImplementation;
+  createMetric(input: MetricDraft): MetricDefinition;
+  recordObservation(input: ObservationDraft): MetricObservation;
   reset(): WorkspaceSnapshot;
   exportWorkspace(): WorkspaceSnapshot;
   importWorkspace(value: unknown): WorkspaceSnapshot;
@@ -358,6 +406,206 @@ export class LocalBusinessRepository implements BusinessRepository {
     return next;
   }
 
+  createImplementation(input: ImplementationDraft): LocalImplementation {
+    const name = input.name.trim();
+    if (!name) throw new Error("The improvement needs a name.");
+    const snapshot = this.read();
+    const opportunity = snapshot.opportunities.find((item) => item.id === input.opportunityId);
+    if (!opportunity) throw new Error("Opportunity not found.");
+    const timestamp = this.now().toISOString();
+    const taskIds: string[] = [];
+    for (const title of input.stepTitles ?? []) {
+      const trimmed = title.trim();
+      if (!trimmed) continue;
+      const task: LocalTask = {
+        id: this.createId("task"),
+        organizationId: snapshot.business.id,
+        title: trimmed,
+        description: null,
+        status: "open",
+        priority: "medium",
+        dueAt: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        completedAt: null,
+      };
+      snapshot.tasks = [task, ...snapshot.tasks];
+      taskIds.push(task.id);
+    }
+    const implementation: LocalImplementation = {
+      id: this.createId("implementation"),
+      opportunityId: opportunity.id,
+      name,
+      problem: blankToNull(input.problem),
+      proposedImprovement: blankToNull(input.proposedImprovement),
+      chosenApproach: blankToNull(input.chosenApproach),
+      whySelected: blankToNull(input.whySelected),
+      status: "planning",
+      nextAction: blankToNull(input.nextAction),
+      targetDate: input.targetDate,
+      responsible: blankToNull(input.responsible),
+      risks: blankToNull(input.risks),
+      successLooksLike: blankToNull(input.successLooksLike),
+      taskIds,
+      pausedFromStatus: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      approvedAt: null,
+    };
+    snapshot.implementations = [implementation, ...snapshot.implementations];
+    this.pushActivity(snapshot, {
+      eventType: "implementation.planned",
+      entityType: "implementation",
+      entityId: implementation.id,
+      title: "Implementation planned",
+      description: implementation.name,
+    });
+    this.write(snapshot);
+    return implementation;
+  }
+
+  updateImplementation(id: string, input: ImplementationDraft): LocalImplementation {
+    const snapshot = this.read();
+    const current = snapshot.implementations.find((item) => item.id === id);
+    if (!current) throw new Error("Implementation not found.");
+    const next: LocalImplementation = {
+      ...current,
+      name: input.name.trim() || current.name,
+      problem: blankToNull(input.problem),
+      proposedImprovement: blankToNull(input.proposedImprovement),
+      chosenApproach: blankToNull(input.chosenApproach),
+      whySelected: blankToNull(input.whySelected),
+      nextAction: blankToNull(input.nextAction),
+      targetDate: input.targetDate,
+      responsible: blankToNull(input.responsible),
+      risks: blankToNull(input.risks),
+      successLooksLike: blankToNull(input.successLooksLike),
+      updatedAt: this.now().toISOString(),
+    };
+    snapshot.implementations = snapshot.implementations.map((item) => (item.id === id ? next : item));
+    this.write(snapshot);
+    return next;
+  }
+
+  transitionImplementation(id: string, status: ImplementationStatus): LocalImplementation {
+    const snapshot = this.read();
+    const current = snapshot.implementations.find((item) => item.id === id);
+    if (!current) throw new Error("Implementation not found.");
+    const next = applyStatus(current, status, this.now().toISOString());
+    snapshot.implementations = snapshot.implementations.map((item) => (item.id === id ? next : item));
+    this.pushActivity(snapshot, {
+      eventType: status === "approved" ? "implementation.approved" : "implementation.status_changed",
+      entityType: "implementation",
+      entityId: id,
+      title: status === "approved" ? "Implementation approved" : "Implementation status changed",
+      description: `${next.name}: ${current.status} → ${status}`,
+    });
+    this.write(snapshot);
+    return next;
+  }
+
+  pauseImplementationRecord(id: string): LocalImplementation {
+    return this.replaceImplementation(id, (current) => pauseImplementation(current, this.now().toISOString()), "Implementation paused");
+  }
+
+  resumeImplementationRecord(id: string): LocalImplementation {
+    return this.replaceImplementation(id, (current) => resumeImplementation(current, this.now().toISOString()), "Implementation resumed");
+  }
+
+  linkTask(implementationId: string, taskId: string): LocalImplementation {
+    const snapshot = this.read();
+    const current = snapshot.implementations.find((item) => item.id === implementationId);
+    const task = snapshot.tasks.find((item) => item.id === taskId);
+    if (!current || !task) throw new Error("Work could not be linked.");
+    if (current.taskIds.includes(taskId)) return current;
+    const next = { ...current, taskIds: [...current.taskIds, taskId], updatedAt: this.now().toISOString() };
+    snapshot.implementations = snapshot.implementations.map((item) => (item.id === implementationId ? next : item));
+    this.pushActivity(snapshot, {
+      eventType: "implementation.work_linked",
+      entityType: "implementation",
+      entityId: implementationId,
+      title: "Work linked",
+      description: `${task.title} · ${current.name}`,
+    });
+    this.write(snapshot);
+    return next;
+  }
+
+  createMetric(input: MetricDraft): MetricDefinition {
+    const snapshot = this.read();
+    if (!snapshot.implementations.some((item) => item.id === input.implementationId)) {
+      throw new Error("Implementation not found.");
+    }
+    if (!input.name.trim() || !input.unit.trim()) throw new Error("A measurement needs a name and a unit.");
+    const metric: MetricDefinition = {
+      id: this.createId("metric"),
+      implementationId: input.implementationId,
+      name: input.name.trim(),
+      unit: input.unit.trim(),
+      desiredDirection: input.desiredDirection,
+      createdAt: this.now().toISOString(),
+    };
+    snapshot.metrics = [metric, ...snapshot.metrics];
+    this.write(snapshot);
+    return metric;
+  }
+
+  recordObservation(input: ObservationDraft): MetricObservation {
+    const problem = validateObservation(input);
+    if (problem) throw new Error(problem);
+    const snapshot = this.read();
+    const metric = snapshot.metrics.find((item) => item.id === input.metricId);
+    if (!metric) throw new Error("Measurement not found.");
+    if (input.role === "baseline" && snapshot.observations.some((item) => item.metricId === input.metricId && item.role === "baseline")) {
+      throw new Error("This measurement already has a starting point.");
+    }
+    const observation: MetricObservation = {
+      id: this.createId("observation"),
+      metricId: input.metricId,
+      role: input.role,
+      observedAt: input.observedAt,
+      periodLabel: blankToNull(input.periodLabel),
+      value: input.evidenceType === "missing" ? null : input.value,
+      evidenceType: input.evidenceType,
+      method: blankToNull(input.method),
+      note: blankToNull(input.note),
+      limitations: blankToNull(input.limitations),
+      createdAt: this.now().toISOString(),
+    };
+    snapshot.observations = [observation, ...snapshot.observations];
+    const implementation = snapshot.implementations.find((item) => item.id === metric.implementationId);
+    this.pushActivity(snapshot, {
+      eventType: input.role === "baseline" ? "measurement.baseline" : "measurement.follow_up",
+      entityType: "implementation",
+      entityId: metric.implementationId,
+      title: input.role === "baseline" ? "Baseline recorded" : "Follow-up recorded",
+      description: `${metric.name} · ${implementation?.name ?? "Improvement"}`,
+    });
+    this.write(snapshot);
+    return observation;
+  }
+
+  private replaceImplementation(
+    id: string,
+    change: (current: LocalImplementation) => LocalImplementation,
+    title: string,
+  ): LocalImplementation {
+    const snapshot = this.read();
+    const current = snapshot.implementations.find((item) => item.id === id);
+    if (!current) throw new Error("Implementation not found.");
+    const next = change(current);
+    snapshot.implementations = snapshot.implementations.map((item) => (item.id === id ? next : item));
+    this.pushActivity(snapshot, {
+      eventType: "implementation.status_changed",
+      entityType: "implementation",
+      entityId: id,
+      title,
+      description: next.name,
+    });
+    this.write(snapshot);
+    return next;
+  }
+
   reset(): WorkspaceSnapshot {
     const seed = createJuniperSeed(this.now());
     this.write(seed);
@@ -521,8 +769,14 @@ export function parseWorkspace(value: unknown): WorkspaceSnapshot | null {
     return null;
   }
   let research: ResearchAttachment[] = [];
+  let implementations: LocalImplementation[] = [];
+  let metrics: MetricDefinition[] = [];
+  let observations: MetricObservation[] = [];
   try {
     research = parseResearchAttachments(value.research);
+    implementations = parseImplementations(value.implementations);
+    metrics = parseMetrics(value.metrics);
+    observations = parseObservations(value.observations);
   } catch {
     return null;
   }
@@ -538,7 +792,84 @@ export function parseWorkspace(value: unknown): WorkspaceSnapshot | null {
     opportunities: opportunities as LocalOpportunity[],
     activity: activity as LocalActivityEvent[],
     research,
+    implementations,
+    metrics,
+    observations,
   };
+}
+
+function parseImplementations(value: unknown): LocalImplementation[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error("Implementations are malformed.");
+  return value.map((item) => {
+    if (!isRecord(item) || typeof item.id !== "string" || typeof item.opportunityId !== "string" || typeof item.name !== "string") {
+      throw new Error("Implementations are malformed.");
+    }
+    const statuses: ImplementationStatus[] = ["planning", "approved", "building", "testing", "live", "measuring", "completed", "paused", "cancelled"];
+    if (!statuses.includes(item.status as ImplementationStatus)) throw new Error("Implementations are malformed.");
+    return {
+      id: item.id,
+      opportunityId: item.opportunityId,
+      name: item.name,
+      problem: nullableString(item.problem),
+      proposedImprovement: nullableString(item.proposedImprovement),
+      chosenApproach: nullableString(item.chosenApproach),
+      whySelected: nullableString(item.whySelected),
+      status: item.status as ImplementationStatus,
+      nextAction: nullableString(item.nextAction),
+      targetDate: nullableString(item.targetDate),
+      responsible: nullableString(item.responsible),
+      risks: nullableString(item.risks),
+      successLooksLike: nullableString(item.successLooksLike),
+      taskIds: Array.isArray(item.taskIds) ? item.taskIds.filter((id): id is string => typeof id === "string") : [],
+      pausedFromStatus: statuses.includes(item.pausedFromStatus as ImplementationStatus) ? (item.pausedFromStatus as ImplementationStatus) : null,
+      createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date(0).toISOString(),
+      updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : new Date(0).toISOString(),
+      approvedAt: nullableString(item.approvedAt),
+    };
+  });
+}
+
+function parseMetrics(value: unknown): MetricDefinition[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error("Measurements are malformed.");
+  return value.map((item) => {
+    if (!isRecord(item) || typeof item.id !== "string" || typeof item.name !== "string" || typeof item.unit !== "string") {
+      throw new Error("Measurements are malformed.");
+    }
+    return {
+      id: item.id,
+      implementationId: typeof item.implementationId === "string" ? item.implementationId : "",
+      name: item.name,
+      unit: item.unit,
+      desiredDirection: item.desiredDirection === "lower" ? "lower" : "higher",
+      createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date(0).toISOString(),
+    };
+  });
+}
+
+function parseObservations(value: unknown): MetricObservation[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error("Observations are malformed.");
+  const types: EvidenceType[] = ["measured", "self_reported", "estimated", "missing"];
+  return value.map((item) => {
+    if (!isRecord(item) || typeof item.id !== "string" || !types.includes(item.evidenceType as EvidenceType)) {
+      throw new Error("Observations are malformed.");
+    }
+    return {
+      id: item.id,
+      metricId: typeof item.metricId === "string" ? item.metricId : "",
+      role: item.role === "follow_up" ? "follow_up" : "baseline",
+      observedAt: typeof item.observedAt === "string" ? item.observedAt : new Date(0).toISOString(),
+      periodLabel: nullableString(item.periodLabel),
+      value: typeof item.value === "number" && Number.isFinite(item.value) ? item.value : null,
+      evidenceType: item.evidenceType as EvidenceType,
+      method: nullableString(item.method),
+      note: nullableString(item.note),
+      limitations: nullableString(item.limitations),
+      createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date(0).toISOString(),
+    };
+  });
 }
 
 function parseResearchAttachments(value: unknown): ResearchAttachment[] {

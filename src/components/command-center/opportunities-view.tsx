@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { OpportunityEditor } from "@/components/command-center/record-editor";
+import { ImprovementPanel } from "@/components/command-center/improvement-panel";
 import { ResearchBriefing } from "@/components/command-center/research-briefing";
 import { useWorkspace } from "@/components/command-center/workspace-provider";
 import { opportunityBand, priorityLabel, stageLabel } from "@/lib/command-center/owner-presentation";
@@ -39,6 +40,7 @@ function OpportunityBoard() {
           {selected ? (
             <>
               <OpportunityDetail opportunity={selected} />
+              <ImprovementPanel opportunity={selected} />
               <ResearchBriefing
                 attachment={workspace.research.find((item) => item.opportunityId === selected.id) ?? null}
                 currentRecommendation={selected.recommendation}

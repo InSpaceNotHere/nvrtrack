@@ -30,7 +30,15 @@ Workspace export includes `research`. An older export without that field still i
 
 Origin: synthetic development fixture written in this repository. It is attached to Juniper & Co. Events / Lead intake & reply drafting and marked `demo-fixture`.
 
-The expected upstream file, `examples/nvrtrack/business-research-result-v1.json` from a separate NVR Labs repository, was not available to copy. No Labs source was imported. The owner-facing screen calls this a development fixture, not live research.
+The canonical producer files were checked again for this milestone and are still not readable from this environment:
+
+- repository: `InSpaceNotHere/nvr-labs`
+- branch: `feature/nvrtrack-business-research-v1`
+- files: `examples/nvrtrack/business-research-result-v1.json` and `examples/nvrtrack/nvrtrack-research-result-v1.schema.json`
+
+No Labs source was imported. The owner-facing screen calls this a development fixture, not live research. `nvr-labs-structured-context-v1` is not accepted as a research result.
+
+Labs owns schema versioning. NVRTRACK should pin an exact producer commit when that repository is readable. A changed Labs schema needs an explicit compatibility review. Future schema versions are not accepted silently. The app does not fetch GitHub on its own.
 
 ## Why transport waits
 

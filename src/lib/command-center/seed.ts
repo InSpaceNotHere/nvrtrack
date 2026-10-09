@@ -183,5 +183,8 @@ export function createJuniperSeed(now: Date): WorkspaceSnapshot {
       },
     ],
     research,
+    implementations: [],
+    metrics: [],
+    observations: [],
   };
 }

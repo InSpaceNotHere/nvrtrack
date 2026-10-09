@@ -3,10 +3,13 @@
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
 
 import type { WorkspaceSnapshot } from "@/lib/command-center/domain";
-import type { ResearchProvenance } from "@/lib/command-center/domain";
+import type { ImplementationStatus, ResearchProvenance } from "@/lib/command-center/domain";
 import {
   LocalBusinessRepository,
   WELCOME_STORAGE_KEY,
+  type ImplementationDraft,
+  type MetricDraft,
+  type ObservationDraft,
   type OpportunityDraft,
   type TaskDraft,
 } from "@/lib/command-center/repository";
@@ -26,6 +29,13 @@ interface WorkspaceContextValue {
   markResearchReviewed: (opportunityId: string) => void;
   adoptResearchRecommendation: (opportunityId: string) => void;
   attachResearchResult: (opportunityId: string, value: unknown, provenance?: ResearchProvenance) => string | null;
+  createImplementation: (input: ImplementationDraft) => string | null;
+  updateImplementation: (id: string, input: ImplementationDraft) => string | null;
+  transitionImplementation: (id: string, status: ImplementationStatus) => string | null;
+  pauseImplementation: (id: string) => string | null;
+  resumeImplementation: (id: string) => string | null;
+  createMetric: (input: MetricDraft) => string | null;
+  recordObservation: (input: ObservationDraft) => string | null;
   resetWorkspace: () => void;
   exportWorkspace: () => WorkspaceSnapshot | null;
   importWorkspace: (value: unknown) => string | null;
@@ -130,6 +140,69 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           return null;
         } catch (error) {
           return error instanceof Error ? error.message : "Research could not be attached.";
+        }
+      },
+      createImplementation(input) {
+        try {
+          ensureRepository().createImplementation(input);
+          publish();
+          return null;
+        } catch (error) {
+          return error instanceof Error ? error.message : "The plan could not be saved.";
+        }
+      },
+      updateImplementation(id, input) {
+        try {
+          ensureRepository().updateImplementation(id, input);
+          publish();
+          return null;
+        } catch (error) {
+          return error instanceof Error ? error.message : "The plan could not be updated.";
+        }
+      },
+      transitionImplementation(id, status) {
+        try {
+          ensureRepository().transitionImplementation(id, status);
+          publish();
+          return null;
+        } catch (error) {
+          return error instanceof Error ? error.message : "That status change is not allowed.";
+        }
+      },
+      pauseImplementation(id) {
+        try {
+          ensureRepository().pauseImplementationRecord(id);
+          publish();
+          return null;
+        } catch (error) {
+          return error instanceof Error ? error.message : "This could not be paused.";
+        }
+      },
+      resumeImplementation(id) {
+        try {
+          ensureRepository().resumeImplementationRecord(id);
+          publish();
+          return null;
+        } catch (error) {
+          return error instanceof Error ? error.message : "This could not be resumed.";
+        }
+      },
+      createMetric(input) {
+        try {
+          ensureRepository().createMetric(input);
+          publish();
+          return null;
+        } catch (error) {
+          return error instanceof Error ? error.message : "The measurement could not be saved.";
+        }
+      },
+      recordObservation(input) {
+        try {
+          ensureRepository().recordObservation(input);
+          publish();
+          return null;
+        } catch (error) {
+          return error instanceof Error ? error.message : "The measurement could not be saved.";
         }
       },
       resetWorkspace() {
